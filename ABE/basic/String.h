@@ -42,13 +42,13 @@
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
-//#if defined(__clang__)// || defined(ANDROID)
+#if defined(ANDROID)
 // FIXME: clang suppose to have this defined.
 // but we don't known which header file.
 typedef uint16_t char16_t;
-//#endif
+#endif
 
-class String {
+class __ABE_EXPORT String {
     public:
         /**
          * format a string

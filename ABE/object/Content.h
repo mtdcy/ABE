@@ -57,10 +57,10 @@ __BEGIN_NAMESPACE_ABE
 
 // NOTE: 
 // 1. the Content object is not thread safe
-class Content : public SharedObject {
+class __ABE_EXPORT Content : public SharedObject {
     public:
         // it is ok to be lock free
-        struct Protocol : public SharedObject {
+        struct __ABE_EXPORT Protocol : public SharedObject {
             Protocol() { }
             virtual ~Protocol() { }
             virtual status_t    status() const = 0;

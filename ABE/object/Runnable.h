@@ -39,7 +39,7 @@
 __BEGIN_NAMESPACE_ABE
 
 #include <ABE/basic/SharedObject.h>
-class Runnable : public SharedObject {
+class __ABE_EXPORT Runnable : public SharedObject {
     private:
 
     public:

@@ -297,8 +297,8 @@ String& Looper::name() const {
 
 Thread& Looper::thread() const {
     sp<SharedLooper> looper = mShared;
-    CHECK_NULL(looper->mThread, "no backend thread for main looper");
-    return *looper->mThread;
+    if (looper->mThread)    return *looper->mThread;
+    else                    return Thread::Null;
 }
 
 void Looper::loop() {

@@ -38,6 +38,8 @@
 #define LOG_TAG   "Hardware"
 #include "Log.h"
 
+#include "Hardware.h"
+
 #if defined(__ANDROID__)
 // this is a code we copy from android
 #include "private/cpu-features.h"

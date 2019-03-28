@@ -49,7 +49,7 @@ enum eLogLevel {
 /**
  * print log message
  */
-void LogPrint(
+__ABE_EXPORT void LogPrint(
         const char *    tag,        ///< @see LOG_TAG
         enum eLogLevel  lvl,        ///< @see eLogLevel
         const char *    func,       ///< @see __FUNCTION__

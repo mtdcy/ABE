@@ -40,7 +40,7 @@ __BEGIN_DECLS
 
 // get system time in usecs since Epoch
 // For time measurement and timmer.
-int64_t SystemTime();
+__ABE_EXPORT int64_t SystemTime();
 
 #define SystemTimeUs()      (SystemTime() / 1000)
 #define SystemTimeMs()      (SystemTime() / 1000000)
@@ -49,7 +49,7 @@ int64_t SystemTime();
  * suspend thread execution for an interval
  * @note not all sleep implementation on different os will have guarantee.
  */
-int SleepTime(int64_t ns);
+__ABE_EXPORT int SleepTime(int64_t ns);
 #define SleepTimeUs(us)     SleepTime(us * 1000LL);
 #define SleepTimeMs(ms)     SleepTime(ms * 1000000LL)
 

@@ -78,7 +78,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
     bool                    mJoinable;
     bool                    mRequestExiting;
 
-    SharedThread(const String& name,
+    __ABE_INLINE SharedThread(const String& name,
             const eThreadType type,
             const sp<Runnable>& routine) :
         SharedObject(),
@@ -88,7 +88,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
     {
     }
 
-    virtual ~SharedThread() {
+    __ABE_INLINE virtual ~SharedThread() {
         CHECK_EQ(mState, kThreadIntTerminated);
     }
 
@@ -112,7 +112,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         mWait.signal();
     }
 
-    void execution() {
+    __ABE_INLINE void execution() {
         // local setup
         mLock.lock();
         // simulate pthread_create_suspended_np()
@@ -145,7 +145,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
     }
 
     // client have to retain this object before start()
-    void start() {
+    __ABE_INLINE void start() {
         CHECK_FALSE(wouldBlock());
 
         AutoLock _l(mLock);
@@ -179,7 +179,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         pthread_attr_destroy(&attr);
     }
 
-    void run() {
+    __ABE_INLINE void run() {
         AutoLock _l(mLock);
         CHECK_LE(mState, kThreadIntReady);
         CHECK_FALSE(mReadyToRun);
@@ -193,7 +193,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
     }
 
     // wait this thread's job done and join it
-    void join() {
+    __ABE_INLINE void join() {
         mLock.lock();
         CHECK_TRUE(mJoinable);
         mRequestExiting         = true;
@@ -225,7 +225,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         }
     }
 
-    void detach(bool wait) {
+    __ABE_INLINE void detach(bool wait) {
         mLock.lock();
         mRequestExiting         = true;
         mJoinable               = false;
@@ -267,6 +267,8 @@ static volatile int g_thread_id = 0;
 static String MakeThreadName() {
     return String::format("thread%zu", (size_t)atomic_add(&g_thread_id, 1));
 }
+
+Thread Thread::Null = Thread();
 
 Thread::Thread(const sp<Runnable>& runnable, const eThreadType type) : mShared(NULL)
 {

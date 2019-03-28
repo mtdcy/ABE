@@ -42,7 +42,7 @@
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE_PRIVATE
-class VectorImpl {
+class __ABE_EXPORT VectorImpl {
     public:
         VectorImpl(const sp<Allocator>& allocator,
                 size_t capacity, const TypeHelper& helper);

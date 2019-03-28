@@ -39,7 +39,8 @@
 #include <ABE/object/Runnable.h>
 #include <ABE/tools/Thread.h>
 __BEGIN_NAMESPACE_ABE
-class Looper : public SharedObject {
+
+class __ABE_EXPORT Looper : public SharedObject {
     public:
         /**
          * get 'main looper', prepare one if not exists.
@@ -76,7 +77,7 @@ class Looper : public SharedObject {
     public:
         /**
          * get backend thread
-         * @note no backend thread for main looper
+         * @note no backend thread for main looper, return Thread::Null for main looper
          */
         Thread& thread() const;
 

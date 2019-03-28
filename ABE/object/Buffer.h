@@ -73,7 +73,7 @@ __BEGIN_NAMESPACE_ABE
  *
  * Buffer is not thread safe
  */
-class Buffer : public SharedObject {
+class __ABE_EXPORT Buffer : public SharedObject {
     public:
         /**
          * alloc an empty buffer with given capacity

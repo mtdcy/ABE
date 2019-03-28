@@ -74,6 +74,7 @@
 //#define __ABE_INLINE                __attribute__ ((__always_inline__))
 #define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__))
 #define __ABE_HIDDEN                __attribute__ ((__visibility__("hidden")))
+#define __ABE_EXPORT                __attribute__ ((__visibility__("default")))
 #define __ABE_DEPRECATED            __attribute__ ((deprecated))
 
 #ifndef REMOVE_ATOMICS
@@ -102,16 +103,20 @@
 #endif
 
 #ifdef __cplusplus
+#define __BEGIN_NAMESPACE(x)            namespace x {
+#define __END_NAMESPACE(x)              }
+#define __USING_NAMESPACE(x)            using namespace x;
+
 #define __NAMESPACE_ABE                 abe
-#define __BEGIN_NAMESPACE_ABE           namespace __NAMESPACE_ABE {
-#define __END_NAMESPACE_ABE             }
+#define __BEGIN_NAMESPACE_ABE           __BEGIN_NAMESPACE(__NAMESPACE_ABE)
+#define __END_NAMESPACE_ABE             __END_NAMESPACE(__NAMESPACE_ABE)
 
 #define __NAMESPACE_ABE_PRIVATE         abe_private
-#define __BEGIN_NAMESPACE_ABE_PRIVATE   namespace __NAMESPACE_ABE { namespace __NAMESPACE_ABE_PRIVATE {
-#define __END_NAMESPACE_ABE_PRIVATE     } }
+#define __BEGIN_NAMESPACE_ABE_PRIVATE   __BEGIN_NAMESPACE(__NAMESPACE_ABE) __BEGIN_NAMESPACE(__NAMESPACE_ABE_PRIVATE)
+#define __END_NAMESPACE_ABE_PRIVATE     __END_NAMESPACE(__NAMESPACE_ABE_PRIVATE) __END_NAMESPACE(__NAMESPACE_ABE)
 
-#define USING_NAMESPACE_ABE             using namespace __NAMESPACE_ABE;
-#define USING_NAMESPACE_ABE_PRIVATE     using namespace __NAMESPACE_ABE::__NAMESPACE_ABE_PRIVATE;
+#define USING_NAMESPACE_ABE             __USING_NAMESPACE(__NAMESPACE_ABE)
+#define USING_NAMESPACE_ABE_PRIVATE     __USING_NAMESPACE(__NAMESPACE_ABE::__NAMESPACE_ABE_PRIVATE)
 
 // borrow from Android
 // Put this in the private: declarations for a class to be uncopyable.
@@ -134,16 +139,6 @@
 #ifdef __cplusplus
 // refer to android@system/core/include/utils/Errors.h
 __BEGIN_NAMESPACE_ABE
-#endif
-
-#if 0
-// use this type to return error codes
-#ifdef HAVE_MS_C_RUNTIME
-/* the MS C runtime lacks a few error codes */
-typedef int         status_t;
-#else
-typedef int32_t     status_t;
-#endif
 #endif
 
 /*
@@ -190,12 +185,6 @@ enum status_t {
 #endif
     FDS_NOT_ALLOWED     = (UNKNOWN_ERROR + 7),
 };
-
-// Restore define; enumeration is in "mtdcy" namespace, so the value defined
-// there won't work for Win32 code in a different namespace.
-#ifdef _WIN32
-# define NO_ERROR 0L
-#endif
 
 #ifdef __cplusplus
 __END_NAMESPACE_ABE

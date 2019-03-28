@@ -54,7 +54,7 @@ __BEGIN_NAMESPACE_ABE
  * @note client should NOT keep a pointer to SharedObject without retain, always
  *       retain first, use it later
  */
-struct SharedObject {
+struct __ABE_EXPORT SharedObject {
     private:
         const uint32_t  mID;
         volatile int    mRefs;
@@ -115,24 +115,24 @@ __BEGIN_DECLS
 /**
  * retain a shared object
  */
-SharedObject *  SharedObjectRetain(SharedObject *);
+__ABE_EXPORT SharedObject *  SharedObjectRetain(SharedObject *);
 
 /**
  * release a shared object
  */
-void            SharedObjectRelease(SharedObject *);
+__ABE_EXPORT void            SharedObjectRelease(SharedObject *);
 
 /**
  * get a shared object retain count
  */
-size_t          SharedObjectGetRetainCount(SharedObject *);
+__ABE_EXPORT size_t          SharedObjectGetRetainCount(SharedObject *);
 #define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
 #define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
 
 /**
  * get a shread object id
  */
-uint32_t        SharedObjectGetID(SharedObject *);
+__ABE_EXPORT uint32_t        SharedObjectGetID(SharedObject *);
 
 __END_DECLS
 
@@ -156,7 +156,7 @@ __ABE_INLINE bool operator _op_ (const U* o) const {             \
     return mShared _op_ o;                                          \
 }                                                                   \
 
-template <class T> class sp {
+template <class T> class __ABE_EXPORT sp {
     public:
         // constructors
         __ABE_INLINE sp() : mShared(NULL) { }

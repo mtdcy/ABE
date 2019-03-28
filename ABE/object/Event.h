@@ -46,7 +46,7 @@ __BEGIN_NAMESPACE_ABE
  * if looper exists, it will run async by runnable.
  * otherwise it run directly and blocked.
  */
-class Event : public SharedObject {
+class __ABE_EXPORT Event : public SharedObject {
     public:
         /**
          * construct a event
@@ -68,7 +68,7 @@ class Event : public SharedObject {
          * @note if looper no exists, delay will be ignored
          * @note thread safe
          */
-        virtual void fire(int64_t delay = 0);
+        void fire(int64_t delay = 0);
 
     protected:
         /**
@@ -98,7 +98,7 @@ template <class TYPE> class TypedEvent : public Event {
         __ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
 
     protected:
-        virtual void fire() { Event::fire(); }
+        //virtual void fire() { Event::fire(); }
         virtual void onEvent(const TYPE& v) = 0;
 
     private:

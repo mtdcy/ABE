@@ -41,7 +41,7 @@
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
-class Mutex {
+class __ABE_EXPORT Mutex {
     public:
         Mutex();
         ~Mutex();
@@ -61,7 +61,7 @@ class Mutex {
         DISALLOW_EVILS(Mutex);
 };
 
-class AutoLock {
+class __ABE_EXPORT AutoLock {
     public:
         __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock) { mLock.lock(); }
         __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock) { mLock.lock(); }
@@ -74,7 +74,7 @@ class AutoLock {
         DISALLOW_EVILS(AutoLock);
 };
 
-class Condition {
+class __ABE_EXPORT Condition {
     public:
         Condition();
         ~Condition();
@@ -93,7 +93,7 @@ class Condition {
         DISALLOW_EVILS(Condition);
 };
 
-class RWLock {
+class __ABE_EXPORT RWLock {
     public:
         RWLock();
         ~RWLock();

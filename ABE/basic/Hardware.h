@@ -39,7 +39,7 @@
 
 __BEGIN_DECLS
 
-int GetCpuCount();
+__ABE_EXPORT int GetCpuCount();
 
 __END_DECLS
 

@@ -43,7 +43,7 @@
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
-class Message : public SharedObject {
+class __ABE_EXPORT Message : public SharedObject {
     public:
         Message(uint32_t what = 0);
         virtual ~Message();

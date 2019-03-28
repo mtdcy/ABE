@@ -1,3 +1,4 @@
+#define LOG_TAG "test_c"
 #include <ABE/ABE.h>
 
 #include <string.h>

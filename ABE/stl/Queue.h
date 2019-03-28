@@ -38,7 +38,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 /**
  * a lock free queue implement
  */
-class LockFreeQueueImpl {
+class __ABE_EXPORT LockFreeQueueImpl {
     public:
         LockFreeQueueImpl(const TypeHelper& helper);
         ~LockFreeQueueImpl();

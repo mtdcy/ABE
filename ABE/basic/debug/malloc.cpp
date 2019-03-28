@@ -350,46 +350,44 @@ static int malloc_impl_posix_memalign_body(void **memptr, size_t alignment, size
 //////////////////////////////////////////////////////////////////////////////
 __BEGIN_DECLS
 
-void* malloc(size_t n) {
+__ABE_EXPORT void* malloc(size_t n) {
     DEBUG("malloc %zu", n);
     //BTRACE();
     return g_malloc_impl_malloc(n);
 }
 
-void* calloc(size_t count, size_t n) {
+__ABE_EXPORT void* calloc(size_t count, size_t n) {
     void *p = malloc(count * n);
     CHECK_NULL(p);
     memset(p, 0, count * n);
     return p;
 }
 
-void free(void *p) {
+__ABE_EXPORT void free(void *p) {
     g_malloc_impl_free(p);
 }
 
-void* realloc(void *p, size_t n) {
+__ABE_EXPORT void* realloc(void *p, size_t n) {
     return g_malloc_impl_realloc(p, n);
 }
 
-int posix_memalign(void **memptr, size_t alignment, size_t n) {
+__ABE_EXPORT int posix_memalign(void **memptr, size_t alignment, size_t n) {
     return g_malloc_impl_posix_memalign(memptr, alignment, n);
 }
 
 #if 1
-char* strndup(const char *s, size_t n) {
+__ABE_EXPORT char* strndup(const char *s, size_t n) {
     char *p = (char *)malloc(n + 1);
     strncpy(p, s, n);
     ((char*)(p))[n] = '\0';
     return (char*)p;
 }
 
-char* strdup(const char *s) {
+__ABE_EXPORT char* strdup(const char *s) {
     char *p = strndup(s, strlen(s));
     return p;
 }
 #endif
-
-__END_DECLS
 
 #if 0
 void * operator new(size_t n) throw(std::bad_alloc) {
@@ -410,26 +408,35 @@ void operator delete[](void* ptr) throw() {
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-extern "C" void malloc_prepare() {
+__ABE_EXPORT void malloc_prepare() {
     g_malloc_impl_malloc            = malloc_impl_malloc_body;
     g_malloc_impl_free              = malloc_impl_free_body;
     g_malloc_impl_realloc           = malloc_impl_realloc_body;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_body;
 }
 
-extern "C" void malloc_bypass() {
+__ABE_EXPORT void malloc_bypass() {
     g_malloc_impl_malloc            = malloc_impl_malloc_bypass;
     g_malloc_impl_free              = malloc_impl_free_bypass;
     g_malloc_impl_realloc           = malloc_impl_realloc_bypass;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_bypass;
 }
 
-extern "C" void malloc_finalize() {
+__ABE_EXPORT void malloc_finalize() {
     if (g_blocks.size()) printBlocks();
     malloc_bypass();
 }
+
+__END_DECLS
+
 #else
-extern "C" void malloc_prepare() { }
-extern "C" void malloc_bypass() { }
-extern "C" void malloc_finalize() { }
+
+#include "basic/Types.h"
+__BEGIN_DECLS
+__ABE_EXPORT void malloc_prepare() { }
+__ABE_EXPORT void malloc_bypass() { }
+__ABE_EXPORT void malloc_finalize() { }
+__END_DECLS
+
 #endif
+

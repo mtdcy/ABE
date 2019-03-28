@@ -42,15 +42,15 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct Allocator : public SharedObject {
+struct __ABE_EXPORT Allocator : public SharedObject {
     __ABE_INLINE Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
     __ABE_INLINE virtual ~Allocator() { }
     virtual void *  allocate(size_t size) = 0;
     virtual void *  reallocate(void * ptr, size_t size) = 0;
     virtual void    deallocate(void * ptr) = 0;
 };
-extern sp<Allocator> kAllocatorDefault;
-sp<Allocator> GetAlignedAllocator(size_t alignment);
+__ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
+__ABE_EXPORT sp<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
 #endif   // __cplusplus
@@ -66,8 +66,8 @@ __BEGIN_DECLS
 /**
  * retain default allocator
  */
-Allocator *     AllocatorGetDefault(void);
-Allocator *     AllocatorGetDefaultAligned(size_t);
+__ABE_EXPORT Allocator *     AllocatorGetDefault(void);
+__ABE_EXPORT Allocator *     AllocatorGetDefaultAligned(size_t);
 
 /**
  * release a allocator
@@ -83,16 +83,16 @@ Allocator *     AllocatorGetDefaultAligned(size_t);
 /**
  * get allocator alignment
  */
-size_t          AllocatorGetAlignment(Allocator *);
+__ABE_EXPORT size_t          AllocatorGetAlignment(Allocator *);
 /**
  * allocate memory using allocator
  */
-void *          AllocatorAllocate(Allocator *, size_t);
-void *          AllocatorReallocate(Allocator *, void *, size_t);
+__ABE_EXPORT void *          AllocatorAllocate(Allocator *, size_t);
+__ABE_EXPORT void *          AllocatorReallocate(Allocator *, void *, size_t);
 /**
  * free memory using allocator
  */
-void            AllocatorDeallocate(Allocator *, void *);
+__ABE_EXPORT void            AllocatorDeallocate(Allocator *, void *);
 __END_DECLS
 
 #endif // _TOOLKIT_HEADERS_ALLOCATOR_H

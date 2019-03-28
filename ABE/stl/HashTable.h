@@ -42,7 +42,7 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-class HashTableImpl {
+class __ABE_EXPORT HashTableImpl {
     public:
         HashTableImpl(const sp<Allocator>& allocator,
                 size_t tableLength,

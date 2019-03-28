@@ -74,7 +74,7 @@ __BEGIN_NAMESPACE_ABE
  * Thread(new MyRunnable()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
-class Thread {
+class __ABE_EXPORT Thread {
     public:
         /**
          * yield current thread
@@ -159,6 +159,9 @@ class Thread {
          * @return return native thread handle
          */
         pthread_t native_thread_handle() const;
+    
+    public:
+        static Thread Null;
 
     private:
         Thread() : mShared(NULL) { }
