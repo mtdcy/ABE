@@ -1,0 +1,183 @@
+/******************************************************************************
+ * Copyright (c) 2016, Chen Fang <mtdcy.chen@gmail.com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ ******************************************************************************/
+
+
+// File:    Queue.cpp
+// Author:  mtdcy.chen
+// Changes:
+//          1. 20160829     initial version
+//
+
+#define LOG_TAG "Queue"
+//#define LOG_NDEBUG 0
+#include "ABE/basic/Log.h"
+
+#include "basic/private/atomic.h"
+
+#include "Queue.h"
+#include <stdlib.h>
+
+// single producer & single consumer
+// https://github.com/cameron314/readerwriterqueue
+// multi producer & multi consumer
+// https://github.com/cameron314/concurrentqueue
+// others:
+// https://www.boost.org/doc/libs/1_63_0/doc/html/boost/lockfree/queue.html
+// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.8674&rep=rep1&type=pdf
+
+__BEGIN_NAMESPACE_ABE_PRIVATE
+
+struct LockFreeQueueImpl::NodeImpl {
+    NodeImpl *  mNext;
+    void *      mData;
+};
+
+LockFreeQueueImpl::LockFreeQueueImpl(const TypeHelper& helper) :
+    mTypeHelper(helper), mHead(NULL), mTail(NULL), mLength(0) {
+        // use a dummy node
+        // to avoid modify both mHead and mTail at push() or pop()
+        mHead = mTail = allocateNode();
+        mHead->mData = NULL;
+    }
+
+LockFreeQueueImpl::~LockFreeQueueImpl() {
+    clear();
+    freeNode((NodeImpl *)mHead);    // free dummy node
+    mHead = mTail = NULL;
+}
+
+void LockFreeQueueImpl::clear() {
+    volatile NodeImpl *head = atomic_load(&mHead);
+    while (atomic_load(&mLength)) {
+        if (atomic_compare_exchange(&mHead, &head, mHead->mNext)) {
+            atomic_sub(&mLength, 1);
+
+            atomic_fence();
+            mTypeHelper.do_destruct(head->mNext->mData, 1);
+            freeNode((NodeImpl *)head);
+        }
+    }
+}
+
+size_t LockFreeQueueImpl::size() const {
+    return atomic_load(&mLength);
+}
+
+LockFreeQueueImpl::NodeImpl * LockFreeQueueImpl::allocateNode() {
+    const size_t length = sizeof(NodeImpl) + mTypeHelper.size();
+    NodeImpl * node = static_cast<NodeImpl*>(malloc(length));
+    node->mNext = NULL;
+    node->mData = node + 1;
+    return node;
+}
+
+void LockFreeQueueImpl::freeNode(NodeImpl * node) {
+    free(node);
+}
+
+// node = allocateNode();
+// do_copy();
+// mTail->mNext = node;
+// mTail = node;
+void LockFreeQueueImpl::push1(const void * what) {
+    NodeImpl *node = allocateNode();
+    mTypeHelper.do_copy(node->mData, what, 1);
+
+    atomic_fence();
+    atomic_store(&mTail->mNext, node);
+    atomic_store(&mTail, node);
+    atomic_add(&mLength, 1);
+}
+
+void LockFreeQueueImpl::pushN(const void * what) {
+    DEBUG("%p: push %p", this, mTail->mData);
+    NodeImpl *node = allocateNode();
+    mTypeHelper.do_copy(node->mData, what, 1);
+
+    atomic_fence();
+    volatile NodeImpl *tail = atomic_load(&mTail);  // old tail
+    // mTail = node;
+    do {
+        if (atomic_compare_exchange(&mTail, &tail, node)) {
+            // fix next: tail->mNext = node
+            atomic_store(&tail->mNext, node);
+            atomic_add(&mLength, 1);
+            break;
+        }
+    } while (1);
+}
+
+// node = mHead;
+// mHead = mHead->mNext;
+// do_destruct
+// freeNode();
+bool LockFreeQueueImpl::pop1(void * where) {
+    if (atomic_load(&mLength)) {
+        volatile NodeImpl * head = atomic_load(&mHead);
+        atomic_store(&mHead, mHead->mNext);
+        atomic_sub(&mLength, 1);
+
+        atomic_fence();
+        if (where) {
+            mTypeHelper.do_move(where, head->mNext->mData, 1);
+        } else {
+            mTypeHelper.do_destruct(head->mNext->mData, 1);
+        }
+        head->mNext->mData = NULL;
+        freeNode((NodeImpl *)head);
+        return true;
+    }
+    return false;
+}
+
+bool LockFreeQueueImpl::popN(void * where) {
+    bool success = false;
+    volatile NodeImpl *head = atomic_load(&mHead);
+    while (atomic_load(&mLength)) {
+        // mHead = mHead->mNext
+        if (atomic_compare_exchange(&mHead, &head, mHead->mNext)) {
+            atomic_sub(&mLength, 1);
+            success = true;
+            break;
+        }
+    }
+
+    atomic_fence();
+    if (success) {
+        if (where) {
+            mTypeHelper.do_move(where, head->mNext->mData, 1);
+        } else {
+            mTypeHelper.do_destruct(head->mNext->mData, 1);
+        }
+        head->mNext->mData = NULL;
+        freeNode((NodeImpl *)head);
+        return true;
+    }
+    return false;
+}
+
+__END_NAMESPACE_ABE_PRIVATE
