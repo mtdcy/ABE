@@ -42,10 +42,10 @@ __BEGIN_DECLS
 typedef uintptr_t   bt_stack_t;
 
 // save current call stack
-size_t  backtrace_stack(bt_stack_t array[], size_t max);
+__ABE_HIDDEN size_t backtrace_stack(bt_stack_t array[], size_t max);
 
 // print this call stack
-void    backtrace_symbols(const bt_stack_t array[], size_t size);
+__ABE_HIDDEN void backtrace_symbols(const bt_stack_t array[], size_t size);
 
 // print backtrace directly into log system.
 #define BACKTRACE() do {                                \

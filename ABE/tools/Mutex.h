@@ -63,9 +63,9 @@ class Mutex {
 
 class AutoLock {
     public:
-        __ALWAYS_INLINE AutoLock(Mutex& lock) : mLock(lock) { mLock.lock(); }
-        __ALWAYS_INLINE AutoLock(Mutex* lock) : mLock(*lock) { mLock.lock(); }
-        __ALWAYS_INLINE ~AutoLock() { mLock.unlock(); }
+        __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock) { mLock.lock(); }
+        __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock) { mLock.lock(); }
+        __ABE_INLINE ~AutoLock() { mLock.unlock(); }
 
     private:
         Mutex&  mLock;

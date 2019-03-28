@@ -70,14 +70,14 @@ __BEGIN_NAMESPACE_ABE
 namespace LockFree {
     template <class TYPE> class Queue : protected __NAMESPACE_ABE_PRIVATE::LockFreeQueueImpl {
         public:
-            __ALWAYS_INLINE Queue() : LockFreeQueueImpl(TypeHelperBuilder<TYPE, false, true, true>()) { }
-            __ALWAYS_INLINE ~Queue() { }
+            __ABE_INLINE Queue() : LockFreeQueueImpl(TypeHelperBuilder<TYPE, false, true, true>()) { }
+            __ABE_INLINE ~Queue() { }
 
-            __ALWAYS_INLINE size_t      size() const        { return LockFreeQueueImpl::size();     }
-            __ALWAYS_INLINE bool        empty() const       { return size() == 0;                   }
-            __ALWAYS_INLINE void        clear()             { LockFreeQueueImpl::clear();           }
-            __ALWAYS_INLINE void        push(const TYPE& v) { LockFreeQueueImpl::pushN(&v);         }
-            __ALWAYS_INLINE bool        pop(TYPE& v)        { return LockFreeQueueImpl::popN(&v);   }
+            __ABE_INLINE size_t      size() const        { return LockFreeQueueImpl::size();     }
+            __ABE_INLINE bool        empty() const       { return size() == 0;                   }
+            __ABE_INLINE void        clear()             { LockFreeQueueImpl::clear();           }
+            __ABE_INLINE void        push(const TYPE& v) { LockFreeQueueImpl::pushN(&v);         }
+            __ABE_INLINE bool        pop(TYPE& v)        { return LockFreeQueueImpl::popN(&v);   }
     };
 };
 __END_NAMESPACE_ABE

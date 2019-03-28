@@ -47,6 +47,14 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
+static __ABE_INLINE size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    size_t len = vsnprintf((char*)str, size, format, ap);
+    va_end(ap);
+    return len;
+}
+
 // about cow 
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2534.html
 
@@ -55,12 +63,10 @@
 
 __BEGIN_NAMESPACE_ABE
 
-static __ALWAYS_INLINE size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
-    va_list ap;
-    va_start(ap, format);
-    size_t len = vsnprintf((char*)str, size, format, ap);
-    va_end(ap);
-    return len;
+static __ABE_INLINE size_t strlen16(const char16_t *s) {
+    const char16_t *ss = s;
+    while (*ss) ss++;
+    return ss - s;
 }
 
 String String::format(const char *format, ...) {
@@ -83,14 +89,6 @@ String String::format(const char *format, va_list ap) {
     return result;
 }
 
-///////////////////////////////////////////////////////////////////////////
-__ALWAYS_INLINE size_t strlen16(const char16_t *s) {
-    const char16_t *ss = s;
-    while (*ss) ss++;
-    return ss - s;
-}
-
-///////////////////////////////////////////////////////////////////////////
 String::String() : mData(NULL), mSize(0)
 {
     mData = SharedBuffer::Create(kAllocatorDefault, 1);

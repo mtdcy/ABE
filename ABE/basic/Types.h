@@ -71,6 +71,11 @@
 // for PRId32/PRId64/...
 #include <inttypes.h>
 
+//#define __ABE_INLINE                __attribute__ ((__always_inline__))
+#define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__))
+#define __ABE_HIDDEN                __attribute__ ((__visibility__("hidden")))
+#define __ABE_DEPRECATED            __attribute__ ((deprecated))
+
 #ifndef REMOVE_ATOMICS
 #ifndef ATOMIC_MEMMODEL
 #define ATOMIC_MEMMODEL __ATOMIC_SEQ_CST
@@ -107,10 +112,6 @@
 
 #define USING_NAMESPACE_ABE             using namespace __NAMESPACE_ABE;
 #define USING_NAMESPACE_ABE_PRIVATE     using namespace __NAMESPACE_ABE::__NAMESPACE_ABE_PRIVATE;
-
-//#define __ALWAYS_INLINE                 __attribute__ ((__always_inline__))
-#define __ALWAYS_INLINE                 __attribute__ ((__visibility__("hidden"), __always_inline__))
-//#define __DEPRECATED                    __attribute__ ((deprecated))
 
 // borrow from Android
 // Put this in the private: declarations for a class to be uncopyable.

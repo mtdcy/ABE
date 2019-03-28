@@ -89,13 +89,13 @@ class Event : public SharedObject {
 
 template <class TYPE> class TypedEvent : public Event {
     public:
-        __ALWAYS_INLINE TypedEvent() : Event() { }
-        __ALWAYS_INLINE TypedEvent(const sp<Looper>& looper) : Event(looper) { }
-        __ALWAYS_INLINE TypedEvent(const String& name, const sp<Looper>& looper) : Event(name, looper) { }
+        __ABE_INLINE TypedEvent() : Event() { }
+        __ABE_INLINE TypedEvent(const sp<Looper>& looper) : Event(looper) { }
+        __ABE_INLINE TypedEvent(const String& name, const sp<Looper>& looper) : Event(name, looper) { }
 
-        __ALWAYS_INLINE virtual ~TypedEvent() { }
+        __ABE_INLINE virtual ~TypedEvent() { }
 
-        __ALWAYS_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
+        __ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
 
     protected:
         virtual void fire() { Event::fire(); }

@@ -36,7 +36,8 @@
 #define _BSD_SOURCE     // for usleep
 #endif 
 
-#include "Config.h" 
+#include "Config.h"
+#include "basic/compat/time.h"
 
 #include <errno.h>
 #include <stdint.h>

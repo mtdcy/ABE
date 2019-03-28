@@ -48,6 +48,8 @@
 //#define LOG_NDEBUG 0
 #include "basic/Log.h"
 
+#include "basic/Types.h"
+
 #include "backtrace.h"
 #define MALLOC_CALLSTACK
 #define MALLOC_DEFAULT_BYPASS
@@ -85,7 +87,7 @@ extern void *__libc_realloc(void *, size_t);
 
 // can NOT garentee static global variable initialization order,
 // so put it inside function as static local variable.
-static inline void * real_malloc(size_t size) {
+static __ABE_INLINE void * real_malloc(size_t size) {
 #if __GLIBC__
     static real_malloc_t _real_malloc = __libc_malloc;
 #else
@@ -98,7 +100,7 @@ static inline void * real_malloc(size_t size) {
     return _real_malloc(size);
 }
 
-static inline void real_free(void *ptr) {
+static __ABE_INLINE void real_free(void *ptr) {
 #if __GLIBC__
     static real_free_t _real_free = __libc_free;
 #else
@@ -111,7 +113,7 @@ static inline void real_free(void *ptr) {
     return _real_free(ptr);
 }
 
-static inline void * real_realloc(void *ptr, size_t size) {
+static __ABE_INLINE void * real_realloc(void *ptr, size_t size) {
 #if __GLIBC__
     static real_realloc_t _real_realloc = __libc_realloc;
 #else
@@ -124,7 +126,7 @@ static inline void * real_realloc(void *ptr, size_t size) {
     return _real_realloc(ptr, size);
 }
 
-static inline int real_posix_memalign(void **memptr, size_t alignment, size_t n) {
+static __ABE_INLINE int real_posix_memalign(void **memptr, size_t alignment, size_t n) {
     static real_posix_memalign_t _real_posix_memalign = NULL;
     if (__builtin_expect(_real_posix_memalign == NULL, false)) {
         DEBUG("initial real_posix_memalign");
@@ -133,13 +135,13 @@ static inline int real_posix_memalign(void **memptr, size_t alignment, size_t n)
     return _real_posix_memalign(memptr, alignment, n);
 }
 
-struct RealAllocator : public Allocator {
+struct __ABE_HIDDEN RealAllocator : public Allocator {
     virtual void *  allocate(size_t size) { return real_malloc(size); }
     virtual void *  reallocate(void * ptr, size_t size) { return real_realloc(ptr, size); }
     virtual void    deallocate(void * ptr) { return real_free(ptr); }
 };
 
-struct MallocBlock {
+struct __ABE_HIDDEN MallocBlock {
     uint32_t        magic;
     size_t          n;
     uint32_t        flags;
@@ -153,23 +155,25 @@ struct MallocBlock {
     void *          dummy2;
 };
 
+#if 0
 // find a better hash function ???
 // 1. The address of a block returned by malloc or realloc in the GNU system is
 //    always a multiple of eight (or sixteen on 64-bit systems)
 // 2. https://www.cocoawithlove.com/2010/05/look-at-how-malloc-works-on-mac.html
 //
-static inline size_t do_hash(void * p) {
+static __ABE_INLINE size_t do_hash(void * p) {
 #if __LP64__
     return (size_t)((((intptr_t)p >> 32) | (intptr_t)p) / 16);
 #else
     return (size_t)((((intptr_t)p >> 32) | (intptr_t)p) / 8);
 #endif
 }
+#endif
 
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static HashTable<void *, MallocBlock *> g_blocks(8192, new RealAllocator);
 
-static inline void printBlocks() {
+static __ABE_INLINE void printBlocks() {
     size_t n = 0;
     size_t total = 0;
     HashTable<void *, MallocBlock*>::const_iterator it = g_blocks.cbegin();
@@ -188,7 +192,7 @@ static inline void printBlocks() {
     INFO("===============================================================");
 }
 
-static inline MallocBlock* validateBlock(void *p) {
+static __ABE_INLINE MallocBlock* validateBlock(void *p) {
     CHECK_NULL(p);
 
     pthread_mutex_lock(&g_lock);
@@ -344,44 +348,48 @@ static int malloc_impl_posix_memalign_body(void **memptr, size_t alignment, size
 }
 
 //////////////////////////////////////////////////////////////////////////////
-extern "C" void* malloc(size_t n) {
+__BEGIN_DECLS
+
+void* malloc(size_t n) {
     DEBUG("malloc %zu", n);
     //BTRACE();
     return g_malloc_impl_malloc(n);
 }
 
-extern "C" void* calloc(size_t count, size_t n) {
+void* calloc(size_t count, size_t n) {
     void *p = malloc(count * n);
     CHECK_NULL(p);
     memset(p, 0, count * n);
     return p;
 }
 
-extern "C" void free(void *p) {
+void free(void *p) {
     g_malloc_impl_free(p);
 }
 
-extern "C" void* realloc(void *p, size_t n) {
+void* realloc(void *p, size_t n) {
     return g_malloc_impl_realloc(p, n);
 }
 
-extern "C" int posix_memalign(void **memptr, size_t alignment, size_t n) {
+int posix_memalign(void **memptr, size_t alignment, size_t n) {
     return g_malloc_impl_posix_memalign(memptr, alignment, n);
 }
 
 #if 1
-extern "C" char* strndup(const char *s, size_t n) {
+char* strndup(const char *s, size_t n) {
     char *p = (char *)malloc(n + 1);
     strncpy(p, s, n);
     ((char*)(p))[n] = '\0';
     return (char*)p;
 }
 
-extern "C" char* strdup(const char *s) {
+char* strdup(const char *s) {
     char *p = strndup(s, strlen(s));
     return p;
 }
 #endif
+
+__END_DECLS
 
 #if 0
 void * operator new(size_t n) throw(std::bad_alloc) {

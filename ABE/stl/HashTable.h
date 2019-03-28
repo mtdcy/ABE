@@ -54,7 +54,7 @@ class HashTableImpl {
         ~HashTableImpl();
 
     protected:
-        struct Element {
+        struct __ABE_HIDDEN Element {
             const size_t    mHash;
             void *          mKey;
             void *          mValue;
@@ -65,7 +65,7 @@ class HashTableImpl {
         };
 
     protected:
-        __ALWAYS_INLINE size_t size () const { return mNumElements; }
+        __ABE_INLINE size_t size () const { return mNumElements; }
 
     protected:
         void            insert      (const void *k, const void *v, size_t hash);
@@ -82,7 +82,7 @@ class HashTableImpl {
 
     protected:
         // for iterator
-        __ALWAYS_INLINE size_t tableLength() const { return mTableLength; }
+        __ABE_INLINE size_t tableLength() const { return mTableLength; }
         Element *       next        (const Element *, size_t *);
         const Element * next        (const Element *, size_t *) const;
 
@@ -111,20 +111,20 @@ __END_NAMESPACE_ABE_PRIVATE
 __BEGIN_NAMESPACE_ABE
 //////////////////////////////////////////////////////////////////////////////
 // implementation of hash of basic types
-template <typename TYPE> static __ALWAYS_INLINE size_t hash(const TYPE& value) {
+template <typename TYPE> static __ABE_INLINE size_t hash(const TYPE& value) {
     return value.hash();
 };
 
-#define HASH_BASIC_TYPES32(TYPE)                                            \
-    template <> size_t hash(const TYPE& v) { return size_t(v); }
-#define HASH_BASIC_TYPES64(TYPE)                                            \
-    template <> size_t hash(const TYPE& v) { return size_t((v >> 32) ^ v); }
-#define HASH_BASIC_TYPES(TYPE)                                              \
-    template <> size_t hash(const TYPE& v) {                                \
-        size_t x = 0;                                                       \
-        const uint8_t *u8 = reinterpret_cast<const uint8_t*>(&v);           \
-        for (size_t i = 0; i < sizeof(TYPE); ++i) x = x * 31 + u8[i];       \
-        return x;                                                           \
+#define HASH_BASIC_TYPES32(TYPE)                                                        \
+    template <> __ABE_INLINE size_t hash(const TYPE& v) { return size_t(v); }
+#define HASH_BASIC_TYPES64(TYPE)                                                        \
+    template <> __ABE_INLINE size_t hash(const TYPE& v) { return size_t((v >> 32) ^ v); }
+#define HASH_BASIC_TYPES(TYPE)                                                          \
+    template <> __ABE_INLINE size_t hash(const TYPE& v) {                               \
+        size_t x = 0;                                                                   \
+        const uint8_t *u8 = reinterpret_cast<const uint8_t*>(&v);                       \
+        for (size_t i = 0; i < sizeof(TYPE); ++i) x = x * 31 + u8[i];                   \
+        return x;                                                                       \
     };
 
 HASH_BASIC_TYPES32  (uint8_t);
@@ -146,7 +146,7 @@ HASH_BASIC_TYPES32(ssize_t);
 #undef HASH_BASIC_TYPES32
 #undef HASH_BASIC_TYPES64
 
-template <typename TYPE> size_t hash(TYPE * const& p) {
+template <typename TYPE> __ABE_INLINE size_t hash(TYPE * const& p) {
     return hash<uintptr_t>(uintptr_t(p));
 };
 
@@ -155,21 +155,21 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
         // increment only iterator
         template <class TABLE_TYPE, class VALUE_TYPE, class ELEM_TYPE> class Iterator {
             public:
-                __ALWAYS_INLINE Iterator() : mTable(NULL), mIndex(0), mElement(NULL) { }
-                __ALWAYS_INLINE Iterator(TABLE_TYPE table, size_t index, const ELEM_TYPE& e) : mTable(table), mIndex(index), mElement(e) { }
-                __ALWAYS_INLINE ~Iterator() { }
+                __ABE_INLINE Iterator() : mTable(NULL), mIndex(0), mElement(NULL) { }
+                __ABE_INLINE Iterator(TABLE_TYPE table, size_t index, const ELEM_TYPE& e) : mTable(table), mIndex(index), mElement(e) { }
+                __ABE_INLINE ~Iterator() { }
 
-                __ALWAYS_INLINE Iterator&   operator++()    { next(); return *this;                                 }   // pre-increment
-                __ALWAYS_INLINE Iterator    operator++(int) { Iterator old(*this); next(); return old;              }   // post-increment
+                __ABE_INLINE Iterator&   operator++()    { next(); return *this;                                 }   // pre-increment
+                __ABE_INLINE Iterator    operator++(int) { Iterator old(*this); next(); return old;              }   // post-increment
 
-                __ALWAYS_INLINE bool        operator == (const Iterator& rhs) const { return mElement == rhs.mElement; }
-                __ALWAYS_INLINE bool        operator != (const Iterator& rhs) const { return !operator==(rhs);      }
+                __ABE_INLINE bool        operator == (const Iterator& rhs) const { return mElement == rhs.mElement; }
+                __ABE_INLINE bool        operator != (const Iterator& rhs) const { return !operator==(rhs);      }
 
-                __ALWAYS_INLINE const KEY&  key() const     { return *static_cast<KEY*>(mElement->mKey);            }
-                __ALWAYS_INLINE VALUE_TYPE& value()         { return *static_cast<VALUE_TYPE*>(mElement->mValue);   }
+                __ABE_INLINE const KEY&  key() const     { return *static_cast<KEY*>(mElement->mKey);            }
+                __ABE_INLINE VALUE_TYPE& value()         { return *static_cast<VALUE_TYPE*>(mElement->mValue);   }
 
             private:
-                __ALWAYS_INLINE void        next()          { mElement = mTable->next(mElement, &mIndex);           }
+                __ABE_INLINE void        next()          { mElement = mTable->next(mElement, &mIndex);           }
 
             protected:
                 TABLE_TYPE  mTable;
@@ -187,37 +187,37 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
         typedef Iterator<const HashTable<KEY, VALUE> *, const VALUE, const Element *> const_iterator;
 
     public:
-        __ALWAYS_INLINE HashTable(size_t tableLength = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
+        __ABE_INLINE HashTable(size_t tableLength = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
             HashTableImpl(allocator, tableLength,
                     TypeHelperBuilder<KEY, false, true, false>(),
                     TypeHelperBuilder<VALUE, false, true, false>(),
                     type_compare_equal<KEY>) { }
 
-        __ALWAYS_INLINE ~HashTable() { }
+        __ABE_INLINE ~HashTable() { }
 
     public:
-        __ALWAYS_INLINE size_t          size() const        { return HashTableImpl::size();         }
-        __ALWAYS_INLINE bool     empty() const       { return size() == 0;                   }
-        __ALWAYS_INLINE void            clear()             { HashTableImpl::clear();               }
+        __ABE_INLINE size_t          size() const        { return HashTableImpl::size();         }
+        __ABE_INLINE bool     empty() const       { return size() == 0;                   }
+        __ABE_INLINE void            clear()             { HashTableImpl::clear();               }
 
     public:
         // insert value with key, replace if exists
-        __ALWAYS_INLINE void            insert(const KEY& k, const VALUE& v){ HashTableImpl::insert(&k, &v, hash(k));                                   }
+        __ABE_INLINE void            insert(const KEY& k, const VALUE& v){ HashTableImpl::insert(&k, &v, hash(k));                                   }
         // erase element with key, return 1 if exists, and 0 otherwise.
-        __ALWAYS_INLINE size_t          erase(const KEY& k)                 { return HashTableImpl::erase(&k, hash(k));                                 }
+        __ABE_INLINE size_t          erase(const KEY& k)                 { return HashTableImpl::erase(&k, hash(k));                                 }
         // return NULL if not exists
-        __ALWAYS_INLINE VALUE *         find(const KEY& k)                  { return static_cast<VALUE*>(HashTableImpl::find(&k, hash(k)));             }
-        __ALWAYS_INLINE const VALUE*    find(const KEY& k) const            { return static_cast<const VALUE*>(HashTableImpl::find(&k, hash(k)));       }
+        __ABE_INLINE VALUE *         find(const KEY& k)                  { return static_cast<VALUE*>(HashTableImpl::find(&k, hash(k)));             }
+        __ABE_INLINE const VALUE*    find(const KEY& k) const            { return static_cast<const VALUE*>(HashTableImpl::find(&k, hash(k)));       }
         // assert if not exists
-        __ALWAYS_INLINE VALUE&          operator[](const KEY& k)            { return *static_cast<VALUE*>(HashTableImpl::access(&k, hash(k)));          }
-        __ALWAYS_INLINE const VALUE&    operator[](const KEY& k) const      { return *static_cast<const VALUE*>(HashTableImpl::access(&k, hash(k)));    }
+        __ABE_INLINE VALUE&          operator[](const KEY& k)            { return *static_cast<VALUE*>(HashTableImpl::access(&k, hash(k)));          }
+        __ABE_INLINE const VALUE&    operator[](const KEY& k) const      { return *static_cast<const VALUE*>(HashTableImpl::access(&k, hash(k)));    }
 
     public:
         // iterator
-        __ALWAYS_INLINE iterator        begin()         { return ++iterator(this, 0, NULL);                                 }
-        __ALWAYS_INLINE iterator        end()           { return iterator(this, HashTableImpl::tableLength(), NULL);        }
-        __ALWAYS_INLINE const_iterator  cbegin() const  { return ++const_iterator(this, 0, NULL);                           }
-        __ALWAYS_INLINE const_iterator  cend() const    { return const_iterator(this, HashTableImpl::tableLength(), NULL);  }
+        __ABE_INLINE iterator        begin()         { return ++iterator(this, 0, NULL);                                 }
+        __ABE_INLINE iterator        end()           { return iterator(this, HashTableImpl::tableLength(), NULL);        }
+        __ABE_INLINE const_iterator  cbegin() const  { return ++const_iterator(this, 0, NULL);                           }
+        __ABE_INLINE const_iterator  cend() const    { return const_iterator(this, HashTableImpl::tableLength(), NULL);  }
 };
 
 __END_NAMESPACE_ABE

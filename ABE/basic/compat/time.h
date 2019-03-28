@@ -57,15 +57,15 @@ __BEGIN_DECLS
 // for interval measurements
 // get current time since some arbitrary
 // using monotonic clock if supported.
-void            relative_time(struct timespec *ts);
+__ABE_HIDDEN void relative_time(struct timespec *ts);
 
 // get current time since Epoch
 // affected by system time-of-day clock changing, including NTP
 // using CLOCK_REALTIME if supported
-void            absolute_time(struct timespec *ts);
+__ABE_HIDDEN void absolute_time(struct timespec *ts);
 
 // for function like pthread_cond_timedwait
-void            absolute_time_later(struct timespec *ts, uint64_t nsecs);
+__ABE_HIDDEN void absolute_time_later(struct timespec *ts, uint64_t nsecs);
 
 #define         nseconds(ts) ((ts).tv_sec * 1000000000LL + (ts).tv_nsec)
 #define         useconds(ts) ((ts).tv_sec * 1000000LL + (ts).tv_nsec / 1000)

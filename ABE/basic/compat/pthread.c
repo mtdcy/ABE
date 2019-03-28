@@ -37,8 +37,10 @@
 #define _DARWIN_C_SOURCE
 #endif
 
-#include <pthread.h>
 #include "Config.h"
+#include "basic/compat/pthread.h"
+
+#include <pthread.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

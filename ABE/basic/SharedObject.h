@@ -68,7 +68,7 @@ struct SharedObject {
         SharedObject& operator=(const SharedObject& rhs);
 
     public:
-        __ALWAYS_INLINE uint32_t    GetObjectID() const { return mID; }
+        __ABE_INLINE uint32_t    GetObjectID() const { return mID; }
 
         /**
          * retain this object by increase reference count
@@ -96,8 +96,8 @@ struct SharedObject {
          * @note if object is not shared, it is safe to do anything
          *       else either copy this object or lock it to modify its context
          */
-        __ALWAYS_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
-        __ALWAYS_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
+        __ABE_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
+        __ABE_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
 };
 
 __END_NAMESPACE_ABE
@@ -141,43 +141,43 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE
 
 #define COMPARE(_op_)                                                   \
-    __ALWAYS_INLINE bool operator _op_ (const sp<T>& o) const {         \
+    __ABE_INLINE bool operator _op_ (const sp<T>& o) const {         \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
-__ALWAYS_INLINE bool operator _op_ (const T* o) const {             \
+__ABE_INLINE bool operator _op_ (const T* o) const {             \
     return mShared _op_ o;                                          \
 }                                                                   \
 template<typename U>                                                \
-__ALWAYS_INLINE bool operator _op_ (const sp<U>& o) const {         \
+__ABE_INLINE bool operator _op_ (const sp<U>& o) const {         \
     return mShared _op_ o.mShared;                                  \
 }                                                                   \
 template<typename U>                                                \
-__ALWAYS_INLINE bool operator _op_ (const U* o) const {             \
+__ABE_INLINE bool operator _op_ (const U* o) const {             \
     return mShared _op_ o;                                          \
 }                                                                   \
 
 template <class T> class sp {
     public:
         // constructors
-        __ALWAYS_INLINE sp() : mShared(NULL) { }
-        __ALWAYS_INLINE sp(T* rhs);
-        __ALWAYS_INLINE sp(const sp<T>& rhs);
+        __ABE_INLINE sp() : mShared(NULL) { }
+        __ABE_INLINE sp(T* rhs);
+        __ABE_INLINE sp(const sp<T>& rhs);
 
-        template<typename U> __ALWAYS_INLINE sp(U* rhs);
-        template<typename U> __ALWAYS_INLINE sp(const sp<U>& rhs);
+        template<typename U> __ABE_INLINE sp(U* rhs);
+        template<typename U> __ABE_INLINE sp(const sp<U>& rhs);
 
         // destructors
-        __ALWAYS_INLINE ~sp();
+        __ABE_INLINE ~sp();
 
         // copy assignments
-        __ALWAYS_INLINE sp& operator=(T* rhs);
-        __ALWAYS_INLINE sp& operator=(const sp<T>& rhs);
+        __ABE_INLINE sp& operator=(T* rhs);
+        __ABE_INLINE sp& operator=(const sp<T>& rhs);
 
-        template<typename U> __ALWAYS_INLINE sp& operator=(U* rhs);
-        template<typename U> __ALWAYS_INLINE sp& operator=(const sp<U>& rhs);
+        template<typename U> __ABE_INLINE sp& operator=(U* rhs);
+        template<typename U> __ABE_INLINE sp& operator=(const sp<U>& rhs);
 
         // clear
-        __ALWAYS_INLINE void clear();
+        __ABE_INLINE void clear();
 
     public:
         /**
@@ -188,16 +188,16 @@ template <class T> class sp {
 
     public:
         // access
-        __ALWAYS_INLINE  T*         operator->()        { return static_cast<T*>(mShared);          }
-        __ALWAYS_INLINE  const T*   operator->() const  { return static_cast<const T*>(mShared);    }
+        __ABE_INLINE  T*         operator->()        { return static_cast<T*>(mShared);          }
+        __ABE_INLINE  const T*   operator->() const  { return static_cast<const T*>(mShared);    }
 
-        __ALWAYS_INLINE  T&         operator*()         { return *static_cast<T*>(mShared);         }
-        __ALWAYS_INLINE  const T&   operator*() const   { return *static_cast<const T*>(mShared);   }
+        __ABE_INLINE  T&         operator*()         { return *static_cast<T*>(mShared);         }
+        __ABE_INLINE  const T&   operator*() const   { return *static_cast<const T*>(mShared);   }
 
-        __ALWAYS_INLINE  T*         get() const         { return static_cast<T*>(mShared);          }
+        __ABE_INLINE  T*         get() const         { return static_cast<T*>(mShared);          }
 
     public:
-        __ALWAYS_INLINE size_t      refsCount() const   { return mShared->GetRetainCount();         }
+        __ABE_INLINE size_t      refsCount() const   { return mShared->GetRetainCount();         }
 
     private:
         template<typename U> friend class sp;

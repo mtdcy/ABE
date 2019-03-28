@@ -40,7 +40,7 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct SharedEvent : public SharedObject {
+struct __ABE_HIDDEN SharedEvent : public SharedObject {
     String      mName;
     Event *     mEvent;
     sp<Looper>  mLooper;
@@ -53,7 +53,7 @@ struct SharedEvent : public SharedObject {
         mEvent(event), mLooper(looper) { }
 };
 
-struct Event::EventRunnable : public Runnable {
+struct __ABE_HIDDEN Event::EventRunnable : public Runnable {
     SharedEvent *  mShared;
     EventRunnable(SharedEvent *shared) : Runnable(), mShared(shared) {
         mShared->RetainObject();

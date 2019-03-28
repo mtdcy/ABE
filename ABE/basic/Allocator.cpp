@@ -69,7 +69,7 @@ static int posix_memalign_mpx(void **ptr, size_t alignment, size_t size) {
 
 __BEGIN_NAMESPACE_ABE
 
-struct AllocatorDefault : public Allocator {
+struct __ABE_HIDDEN AllocatorDefault : public Allocator {
     AllocatorDefault() : Allocator() { }
     virtual ~AllocatorDefault() { }
     virtual void * allocate(size_t size) {
@@ -89,7 +89,7 @@ struct AllocatorDefault : public Allocator {
 };
 sp<Allocator> kAllocatorDefault = new AllocatorDefault;
 
-struct AllocatorDefaultAligned : public Allocator {
+struct __ABE_HIDDEN AllocatorDefaultAligned : public Allocator {
     const size_t mAlignment;
     size_t mSize;
     AllocatorDefaultAligned(size_t align) : Allocator(), mAlignment(POW_2(align)) { }

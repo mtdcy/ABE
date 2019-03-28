@@ -113,12 +113,12 @@ class BitReader {
         /**
          * skip current byte trailing.
          */
-        __ALWAYS_INLINE void skip() const { skip(mBitsLeft); }
+        __ABE_INLINE void skip() const { skip(mBitsLeft); }
 
         /**
          * skip n bytes of the data
          */
-        __ALWAYS_INLINE void skipBytes(size_t nbytes) const { skip(nbytes << 3); }
+        __ABE_INLINE void skipBytes(size_t nbytes) const { skip(nbytes << 3); }
 
         /**
          * read 8 bits from data
@@ -195,9 +195,9 @@ class BitWriter {
         ~BitWriter();
 
     public:
-        __ALWAYS_INLINE const char * data() const { return mData; }
+        __ABE_INLINE const char * data() const { return mData; }
 
-        __ALWAYS_INLINE size_t       size() const { return mHead + (mBitsPopulated + 7) / 8; }
+        __ABE_INLINE size_t       size() const { return mHead + (mBitsPopulated + 7) / 8; }
 
     public:
         size_t      numBitsLeft() const;

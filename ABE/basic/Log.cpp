@@ -43,6 +43,8 @@
 #include "compat/pthread.h"
 #include "debug/backtrace.h"
 
+__BEGIN_DECLS
+
 // NOTE:
 //  1. should avoid having dependency to others as possible as you can
 //  2. must avoid calling others which uses Log.
@@ -120,7 +122,7 @@ void LogPrint(const char *      tag,
     char name[32];
     pthread_getname_mpx(pthread_self(), name, 32);
     if (name[0] == '\0') {
-        fprintf(stdout, "[%08.03f][%07d][%-7.7s][%1s][%14.14s:%zu]\t: %s\n",
+        fprintf(stdout, "[%08.03f][%07d][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 mpx_gettid(),
                 tag,
@@ -129,7 +131,7 @@ void LogPrint(const char *      tag,
                 line,
                 buf);
     } else {
-        fprintf(stdout, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu]\t: %s\n",
+        fprintf(stdout, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 name,
                 tag,
@@ -144,3 +146,5 @@ void LogPrint(const char *      tag,
         __builtin_trap();
     }
 }
+
+__END_DECLS

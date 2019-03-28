@@ -62,8 +62,8 @@ class Message : public SharedObject {
         };
 
     public:
-        __ALWAYS_INLINE uint32_t    what        () const { return mWhat; }
-        __ALWAYS_INLINE size_t      countEntries() const { return mEntries.size(); }
+        __ABE_INLINE uint32_t    what        () const { return mWhat; }
+        __ABE_INLINE size_t      countEntries() const { return mEntries.size(); }
 
         void            clear       ();
         bool            contains    (const String& name) const;
@@ -82,7 +82,7 @@ class Message : public SharedObject {
         void            setString   (const String& name, const char *s, size_t len = 0);    // kTypeString
         void            setObject   (const String& name, SharedObject * object);            // kTypeObject
 
-        template <class T> __ALWAYS_INLINE void setObject(const String& name, const sp<T>& o)
+        template <class T> __ABE_INLINE void setObject(const String& name, const sp<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
         int32_t         findInt32   (const String& name, int32_t def = 0) const;            // kTypeInt32
@@ -94,12 +94,12 @@ class Message : public SharedObject {
         SharedObject *  findObject  (const String& name, SharedObject * def = NULL) const;  // kTypeObject
 
         // alias
-        __ALWAYS_INLINE void setString(const String& name, const String &s)
+        __ABE_INLINE void setString(const String& name, const String &s)
         { setString(name, s.c_str()); }
 
     private:
         uint32_t                    mWhat;
-        struct Entry {
+        struct __ABE_HIDDEN Entry {
             Type                    mType;
             union {
                 int32_t             i32;
@@ -117,14 +117,14 @@ class Message : public SharedObject {
     public:
         template <class TYPE> struct ObjectWrapper : public SharedObject {
             TYPE    mValue;
-            __ALWAYS_INLINE ObjectWrapper(const TYPE& value) : SharedObject(), mValue(value) { }
-            __ALWAYS_INLINE virtual ~ObjectWrapper() { }
+            __ABE_INLINE ObjectWrapper(const TYPE& value) : SharedObject(), mValue(value) { }
+            __ABE_INLINE virtual ~ObjectWrapper() { }
         };
 
-        template <class TYPE> __ALWAYS_INLINE void set(const String& name, const TYPE& value)
+        template <class TYPE> __ABE_INLINE void set(const String& name, const TYPE& value)
         { setObject(name, new ObjectWrapper<TYPE>(value)); }
 
-        template <class TYPE> __ALWAYS_INLINE const TYPE& find(const String& name) const
+        template <class TYPE> __ABE_INLINE const TYPE& find(const String& name) const
         { return (static_cast<ObjectWrapper<TYPE> *>(findObject(name)))->mValue; }
 #endif
 };

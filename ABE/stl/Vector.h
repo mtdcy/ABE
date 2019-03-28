@@ -57,8 +57,8 @@ class VectorImpl {
         void        clear();
         void        shrink();
 
-        __ALWAYS_INLINE size_t      size() const        { return mItemCount; }
-        __ALWAYS_INLINE size_t      capacity() const    { return mCapacity; }
+        __ABE_INLINE size_t      size() const        { return mItemCount; }
+        __ABE_INLINE size_t      capacity() const    { return mCapacity; }
 
     protected:
         const void* access  (size_t index) const;
@@ -92,45 +92,45 @@ __BEGIN_NAMESPACE_ABE
 // 2. No auto memory shrink
 template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl {
     public:
-        __ALWAYS_INLINE Vector(size_t capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
+        __ABE_INLINE Vector(size_t capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
             VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, false, true, true>()) { }
 
-        __ALWAYS_INLINE ~Vector() { }
+        __ABE_INLINE ~Vector() { }
 
     public:
-        __ALWAYS_INLINE void        clear()             { VectorImpl::clear();              }
-        __ALWAYS_INLINE void        shrink()            { VectorImpl::shrink();             }
-        __ALWAYS_INLINE size_t      size() const        { return VectorImpl::size();        }
-        __ALWAYS_INLINE bool        empty() const       { return size() == 0;               }
-        __ALWAYS_INLINE size_t      capacity() const    { return VectorImpl::capacity();    }
+        __ABE_INLINE void        clear()             { VectorImpl::clear();              }
+        __ABE_INLINE void        shrink()            { VectorImpl::shrink();             }
+        __ABE_INLINE size_t      size() const        { return VectorImpl::size();        }
+        __ABE_INLINE bool        empty() const       { return size() == 0;               }
+        __ABE_INLINE size_t      capacity() const    { return VectorImpl::capacity();    }
 
     public:
         // stable sort, uses operator<
-        __ALWAYS_INLINE void        sort()              { VectorImpl::sort(type_compare_less<TYPE>);                }
+        __ABE_INLINE void        sort()              { VectorImpl::sort(type_compare_less<TYPE>);                }
         typedef     bool compare_t (const TYPE *lhs, const TYPE *rhs);
-        __ALWAYS_INLINE void        sort(compare_t cmp) { VectorImpl::sort(reinterpret_cast<type_compare_t>(cmp));  }
+        __ABE_INLINE void        sort(compare_t cmp) { VectorImpl::sort(reinterpret_cast<type_compare_t>(cmp));  }
 
     public:
         // element access with range check which is not like std::vector::operator[]
-        __ALWAYS_INLINE TYPE&       operator[](size_t index)        { return *static_cast<TYPE*>(access(index));        }
-        __ALWAYS_INLINE const TYPE& operator[](size_t index) const  { return *static_cast<const TYPE*>(access(index));  }
+        __ABE_INLINE TYPE&       operator[](size_t index)        { return *static_cast<TYPE*>(access(index));        }
+        __ABE_INLINE const TYPE& operator[](size_t index) const  { return *static_cast<const TYPE*>(access(index));  }
 
     public:
-        __ALWAYS_INLINE TYPE&       front()             { return *static_cast<TYPE*>(VectorImpl::access(0));                }
-        __ALWAYS_INLINE TYPE&       back()              { return *static_cast<TYPE*>(VectorImpl::access(size()-1));         }
-        __ALWAYS_INLINE const TYPE& front() const       { return *static_cast<const TYPE*>(VectorImpl::access(0));          }
-        __ALWAYS_INLINE const TYPE& back() const        { return *static_cast<const TYPE*>(VectorImpl::access(size()-1));   }
+        __ABE_INLINE TYPE&       front()             { return *static_cast<TYPE*>(VectorImpl::access(0));                }
+        __ABE_INLINE TYPE&       back()              { return *static_cast<TYPE*>(VectorImpl::access(size()-1));         }
+        __ABE_INLINE const TYPE& front() const       { return *static_cast<const TYPE*>(VectorImpl::access(0));          }
+        __ABE_INLINE const TYPE& back() const        { return *static_cast<const TYPE*>(VectorImpl::access(size()-1));   }
 
     public:
-        __ALWAYS_INLINE void        push(const TYPE& v) { VectorImpl::insert(size(), &v);                                                   }
-        __ALWAYS_INLINE TYPE&       push()              { return *static_cast<TYPE*>(VectorImpl::emplace(size(), type_construct<TYPE>));    }
-        __ALWAYS_INLINE void        pop()               { VectorImpl::erase(size()-1);                                                      }
+        __ABE_INLINE void        push(const TYPE& v) { VectorImpl::insert(size(), &v);                                                   }
+        __ABE_INLINE TYPE&       push()              { return *static_cast<TYPE*>(VectorImpl::emplace(size(), type_construct<TYPE>));    }
+        __ABE_INLINE void        pop()               { VectorImpl::erase(size()-1);                                                      }
 
     public:
-        __ALWAYS_INLINE void        erase(size_t index)                 { VectorImpl::erase(index);                                 }
-        __ALWAYS_INLINE void        erase(size_t first, size_t last)    { VectorImpl::erase(first, last);                           }
-        __ALWAYS_INLINE void        insert(size_t index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
-        __ALWAYS_INLINE TYPE&       insert(size_t index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
+        __ABE_INLINE void        erase(size_t index)                 { VectorImpl::erase(index);                                 }
+        __ABE_INLINE void        erase(size_t first, size_t last)    { VectorImpl::erase(first, last);                           }
+        __ABE_INLINE void        insert(size_t index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
+        __ABE_INLINE TYPE&       insert(size_t index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
 };
 
 __END_NAMESPACE_ABE

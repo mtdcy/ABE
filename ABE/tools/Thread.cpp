@@ -63,7 +63,7 @@ enum eThreadIntState {
     kThreadIntTerminated,
 };
 
-struct SharedThread : public SharedObject {
+struct __ABE_HIDDEN SharedThread : public SharedObject {
     // static context, only writable during kThreadInitial
     eThreadType             mType;
     String                  mName;
@@ -92,7 +92,7 @@ struct SharedThread : public SharedObject {
         CHECK_EQ(mState, kThreadIntTerminated);
     }
 
-    __ALWAYS_INLINE bool wouldBlock() {
+    __ABE_INLINE bool wouldBlock() {
         return pthread_equal(mNativeHandler, pthread_self());
     }
 
@@ -107,7 +107,7 @@ struct SharedThread : public SharedObject {
         pthread_exit(NULL);
     }
 
-    __ALWAYS_INLINE void setState_l(eThreadIntState state) {
+    __ABE_INLINE void setState_l(eThreadIntState state) {
         mState  = state;
         mWait.signal();
     }

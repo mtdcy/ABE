@@ -116,9 +116,9 @@ class String {
         String&     upper();
 
     public:
-        __ALWAYS_INLINE String& operator=(const String &s)  { set(s); return *this;                 }
-        __ALWAYS_INLINE String& operator+=(const String &s) { append(s); return *this;              }
-        __ALWAYS_INLINE String  operator+(const String &s)  { String a(*this); return a.append(s);  }
+        __ABE_INLINE String& operator=(const String &s)  { set(s); return *this;                 }
+        __ABE_INLINE String& operator+=(const String &s) { append(s); return *this;              }
+        __ABE_INLINE String  operator+(const String &s)  { String a(*this); return a.append(s);  }
 
     public:
         /**
@@ -135,9 +135,9 @@ class String {
          * @note always non-null, even size() == 0
          * @note no non-const version of c_str()
          */
-        __ALWAYS_INLINE const char * c_str() const  { return mData->data(); }
-        __ALWAYS_INLINE size_t  size() const        { return mSize;         }
-        __ALWAYS_INLINE bool    empty() const       { return mSize == 0;    }
+        __ABE_INLINE const char * c_str() const  { return mData->data(); }
+        __ABE_INLINE size_t  size() const        { return mSize;         }
+        __ABE_INLINE bool    empty() const       { return mSize == 0;    }
 
     public:
         ssize_t     indexOf(size_t start, const String& s) const;
@@ -145,8 +145,8 @@ class String {
         ssize_t     lastIndexOf(const String& s) const;
         ssize_t     lastIndexOf(int c) const;
 
-        __ALWAYS_INLINE ssize_t indexOf(const String& s) const  { return indexOf(0, s); }
-        __ALWAYS_INLINE ssize_t indexOf(int c) const            { return indexOf(0, c); }
+        __ABE_INLINE ssize_t indexOf(const String& s) const  { return indexOf(0, s); }
+        __ABE_INLINE ssize_t indexOf(int c) const            { return indexOf(0, c); }
 
     public:
         size_t      hash() const;
@@ -156,11 +156,11 @@ class String {
         int         compareIgnoreCase(const String &s) const;
 
     public:
-        __ALWAYS_INLINE bool equals(const String &s) const { return !compare(s); }
-        __ALWAYS_INLINE bool equalsIgnoreCase(const String &s) const { return !compareIgnoreCase(s); }
+        __ABE_INLINE bool equals(const String &s) const { return !compare(s); }
+        __ABE_INLINE bool equalsIgnoreCase(const String &s) const { return !compareIgnoreCase(s); }
 
     public:
-#define OPERATOR(op) __ALWAYS_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }
+#define OPERATOR(op) __ABE_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }
         OPERATOR(==);
         OPERATOR(!=);
         OPERATOR(<);

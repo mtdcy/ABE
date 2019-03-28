@@ -43,8 +43,8 @@
 __BEGIN_NAMESPACE_ABE
 
 struct Allocator : public SharedObject {
-    Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
-    virtual ~Allocator() { }
+    __ABE_INLINE Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
+    __ABE_INLINE virtual ~Allocator() { }
     virtual void *  allocate(size_t size) = 0;
     virtual void *  reallocate(void * ptr, size_t size) = 0;
     virtual void    deallocate(void * ptr) = 0;

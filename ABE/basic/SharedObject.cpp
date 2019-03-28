@@ -101,25 +101,25 @@ SharedObject& SharedObject::operator=(const SharedObject &rhs) {
 
 __END_NAMESPACE_ABE
 
-extern "C" {
-    using __NAMESPACE_ABE::SharedObject;
+__BEGIN_DECLS
 
-    SharedObject * SharedObjectRetain(SharedObject * shared) {
-        return shared->RetainObject();
-    }
-
-    void SharedObjectRelease(SharedObject * shared) {
-        shared->ReleaseObject();
-    }
-
-    size_t SharedObjectGetRetainCount(SharedObject * shared) {
-        return shared->GetRetainCount();
-    }
-
-    uint32_t SharedObjectGetID(SharedObject * shared) {
-        return shared->GetObjectID();
-    }
+SharedObject * SharedObjectRetain(SharedObject * shared) {
+    return shared->RetainObject();
 }
+
+void SharedObjectRelease(SharedObject * shared) {
+    shared->ReleaseObject();
+}
+
+size_t SharedObjectGetRetainCount(SharedObject * shared) {
+    return shared->GetRetainCount();
+}
+
+uint32_t SharedObjectGetID(SharedObject * shared) {
+    return shared->GetObjectID();
+}
+
+__END_DECLS
 
 #define OBJECT_ID           0x100
 #define BUFFER_START_MAGIC  0xbaaddead
@@ -226,36 +226,38 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
 
 __END_NAMESPACE_ABE
 
-extern "C" {
-    SharedBuffer * SharedBufferCreate(Allocator * _allocator, size_t sz) {
-        return SharedBuffer::Create(_allocator, sz);
-    }
+__BEGIN_DECLS
 
-    void SharedBufferRelease(SharedBuffer * shared) {
-        shared->ReleaseBuffer(false);
-    }
-
-    char * SharedBufferGetData(const SharedBuffer * shared) {
-        return (char *)shared->data();
-    }
-
-    size_t SharedBufferGetSize(const SharedBuffer * shared) {
-        return shared->size();
-    }
-
-    SharedBuffer * SharedBufferEdit(SharedBuffer * shared) {
-        return shared->edit();
-    }
-
-    SharedBuffer * SharedBufferEditWithSize(SharedBuffer * shared, size_t sz) {
-        return shared->edit(sz);
-    }
-
-    size_t SharedBufferReleaseWithoutDeallocate(SharedBuffer * shared) {
-        return shared->ReleaseBuffer(true);
-    }
-
-    void SharedBufferDeallocate(SharedBuffer * shared) {
-        shared->deallocate();
-    }
+SharedBuffer * SharedBufferCreate(Allocator * _allocator, size_t sz) {
+    return SharedBuffer::Create(_allocator, sz);
 }
+
+void SharedBufferRelease(SharedBuffer * shared) {
+    shared->ReleaseBuffer(false);
+}
+
+char * SharedBufferGetData(const SharedBuffer * shared) {
+    return (char *)shared->data();
+}
+
+size_t SharedBufferGetSize(const SharedBuffer * shared) {
+    return shared->size();
+}
+
+SharedBuffer * SharedBufferEdit(SharedBuffer * shared) {
+    return shared->edit();
+}
+
+SharedBuffer * SharedBufferEditWithSize(SharedBuffer * shared, size_t sz) {
+    return shared->edit(sz);
+}
+
+size_t SharedBufferReleaseWithoutDeallocate(SharedBuffer * shared) {
+    return shared->ReleaseBuffer(true);
+}
+
+void SharedBufferDeallocate(SharedBuffer * shared) {
+    shared->deallocate();
+}
+
+__END_DECLS

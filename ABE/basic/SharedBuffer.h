@@ -54,16 +54,16 @@ struct SharedBuffer : protected SharedObject {
         void            deallocate();
 
     public:
-        __ALWAYS_INLINE SharedBuffer *  RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
-        size_t                          ReleaseBuffer(bool keep = false);
-        __ALWAYS_INLINE size_t          GetRetainCount() const      { return SharedObject::GetRetainCount();    }
-        __ALWAYS_INLINE bool            IsBufferShared() const      { return SharedObject::IsObjectShared();    }
-        __ALWAYS_INLINE bool            IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
+        __ABE_INLINE SharedBuffer *  RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
+        size_t                       ReleaseBuffer(bool keep = false);
+        __ABE_INLINE size_t          GetRetainCount() const      { return SharedObject::GetRetainCount();    }
+        __ABE_INLINE bool            IsBufferShared() const      { return SharedObject::IsObjectShared();    }
+        __ABE_INLINE bool            IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
 
     public:
-        __ALWAYS_INLINE char *          data()                      { return mData;                             }
-        __ALWAYS_INLINE const char *    data() const                { return mData;                             }
-        __ALWAYS_INLINE size_t          size() const                { return mSize;                             }
+        __ABE_INLINE char *          data()                      { return mData;                             }
+        __ABE_INLINE const char *    data() const                { return mData;                             }
+        __ABE_INLINE size_t          size() const                { return mSize;                             }
 
     public:
         SharedBuffer *  edit();

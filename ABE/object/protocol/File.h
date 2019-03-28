@@ -39,8 +39,8 @@
 
 __BEGIN_NAMESPACE_ABE
 
-namespace content_protocol {
-    class File : public Content::Protocol {
+namespace content_protocol __ABE_HIDDEN {
+    class __ABE_HIDDEN File : public Content::Protocol {
         public:
             File(const String& url, int mode);
 

@@ -119,18 +119,18 @@ class Buffer : public SharedObject {
          * get flags of this buffer
          * @return return the flags @see eBufferFlags
          */
-        __ALWAYS_INLINE eBufferFlags flags() const { return mFlags; }
+        __ABE_INLINE eBufferFlags flags() const { return mFlags; }
 
         /**
          * get the backend memory capacity
          * @return return the capacity in bytes
          */
-        __ALWAYS_INLINE size_t capacity() const { return mCapacity; }
+        __ABE_INLINE size_t capacity() const { return mCapacity; }
 
         /**
          * reset read & write position of this buffer
          */
-        __ALWAYS_INLINE void reset() { mReadPos = mWritePos = 0; }
+        __ABE_INLINE void reset() { mReadPos = mWritePos = 0; }
 
         /**
          * resize this buffer's backend memory, BUFFER_RESIZABLE must be set
@@ -148,31 +148,31 @@ class Buffer : public SharedObject {
         void            replace(size_t offset, const char *s, size_t n = 0);
         void            replace(size_t offset, int c, size_t n);
 
-        __ALWAYS_INLINE size_t write(const Buffer& s, size_t n = 0)                 { return write(s.data(), n);                            }
-        __ALWAYS_INLINE void replace(size_t offset, const Buffer& s, size_t n = 0)  { return replace(offset, s.data(), n ? n : s.size());   }
+        __ABE_INLINE size_t write(const Buffer& s, size_t n = 0)                 { return write(s.data(), n);                            }
+        __ABE_INLINE void replace(size_t offset, const Buffer& s, size_t n = 0)  { return replace(offset, s.data(), n ? n : s.size());   }
 
     public:
         // how many bytes avaible for read
-        __ALWAYS_INLINE size_t ready() const    { return mWritePos - mReadPos;  }
-        __ALWAYS_INLINE size_t size() const     { return ready();               } // alias
+        __ABE_INLINE size_t ready() const    { return mWritePos - mReadPos;  }
+        __ABE_INLINE size_t size() const     { return ready();               } // alias
         size_t          read(char *buf, size_t n);
         sp<Buffer>      read(size_t n);
         sp<Buffer>      split(size_t pos, size_t size) const;
 
         int             compare(size_t offset, const char *s, size_t n = 0) const;
-        __ALWAYS_INLINE int compare(const char *s, size_t n = 0) const                      { return compare(0, s, n);                              }
-        __ALWAYS_INLINE int compare(const Buffer& s, size_t n = 0) const                    { return compare(0, s.data(), n);                       }
-        __ALWAYS_INLINE int compare(size_t offset, const Buffer& s, size_t n = 0) const     { return compare(offset, s.data(), n ? n : s.size());   }
+        __ABE_INLINE int compare(const char *s, size_t n = 0) const                      { return compare(0, s, n);                              }
+        __ABE_INLINE int compare(const Buffer& s, size_t n = 0) const                    { return compare(0, s.data(), n);                       }
+        __ABE_INLINE int compare(size_t offset, const Buffer& s, size_t n = 0) const     { return compare(offset, s.data(), n ? n : s.size());   }
 
         ssize_t         indexOf(size_t offset, const char *s, size_t n = 0) const;
-        __ALWAYS_INLINE ssize_t indexOf(const char *s, size_t n = 0) const                  { return indexOf(0, s, n);                              }
-        __ALWAYS_INLINE ssize_t indexOf(const Buffer& s, size_t n = 0) const                { return indexOf(0, s.data(), n ? n : s.size());        }
-        __ALWAYS_INLINE ssize_t indexOf(size_t offset, const Buffer& s, size_t n = 0) const { return indexOf(offset, s.data(), n ? n : s.size());   }
+        __ABE_INLINE ssize_t indexOf(const char *s, size_t n = 0) const                  { return indexOf(0, s, n);                              }
+        __ABE_INLINE ssize_t indexOf(const Buffer& s, size_t n = 0) const                { return indexOf(0, s.data(), n ? n : s.size());        }
+        __ABE_INLINE ssize_t indexOf(size_t offset, const Buffer& s, size_t n = 0) const { return indexOf(offset, s.data(), n ? n : s.size());   }
 
-        __ALWAYS_INLINE bool operator==(const char *s) const    { return compare(s) == 0; }
-        __ALWAYS_INLINE bool operator==(const Buffer& s) const  { return compare(s) == 0; }
-        __ALWAYS_INLINE bool operator!=(const char *s) const    { return compare(s) != 0; }
-        __ALWAYS_INLINE bool operator!=(const Buffer& s) const  { return compare(s) != 0; }
+        __ABE_INLINE bool operator==(const char *s) const    { return compare(s) == 0; }
+        __ABE_INLINE bool operator==(const Buffer& s) const  { return compare(s) == 0; }
+        __ABE_INLINE bool operator!=(const char *s) const    { return compare(s) != 0; }
+        __ABE_INLINE bool operator!=(const Buffer& s) const  { return compare(s) != 0; }
 
     public:
         // move read pointer forward
@@ -181,11 +181,11 @@ class Buffer : public SharedObject {
         void            step(size_t n);
 
     public:
-        __ALWAYS_INLINE char*       data()          { return mData + mReadPos; }
-        __ALWAYS_INLINE const char* data() const    { return mData + mReadPos; }
-        __ALWAYS_INLINE char&       operator[](size_t index)        { return *(data() + index); }
-        __ALWAYS_INLINE const char& operator[](size_t index) const  { return *(data() + index); }
-        __ALWAYS_INLINE const char& at(size_t index) const          { return operator[](index); }
+        __ABE_INLINE char*       data()          { return mData + mReadPos; }
+        __ABE_INLINE const char* data() const    { return mData + mReadPos; }
+        __ABE_INLINE char&       operator[](size_t index)        { return *(data() + index); }
+        __ABE_INLINE const char& operator[](size_t index) const  { return *(data() + index); }
+        __ABE_INLINE const char& at(size_t index) const          { return operator[](index); }
 
     private:
         void            _rewind();

@@ -116,7 +116,7 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
 template <class A, class B>
-__ALWAYS_INLINE String __MAKE_CHECK_STRING(const A& a, const B& b) {
+__ABE_INLINE String __MAKE_CHECK_STRING(const A& a, const B& b) {
     String res;
     res.append(String(a));
     res.append(" vs ");

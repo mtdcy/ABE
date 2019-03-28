@@ -56,7 +56,7 @@ typedef bool (*type_compare_t)(const void* lhs, const void* rhs);
 
 //////////////////////////////////////////////////////////////////////////////
 // templates for type_helper
-template <typename TYPE> static __ALWAYS_INLINE void type_construct(void *storage, size_t n) {
+template <typename TYPE> static __ABE_INLINE void type_construct(void *storage, size_t n) {
     if (is_trivial_ctor<TYPE>::value) {
         // NOTHING
     } else {
@@ -66,7 +66,7 @@ template <typename TYPE> static __ALWAYS_INLINE void type_construct(void *storag
 }
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static __ALWAYS_INLINE void type_destruct(void *storage, size_t n) {
+template <typename TYPE> static __ABE_INLINE void type_destruct(void *storage, size_t n) {
     if (is_trivial_dtor<TYPE>::value) {
         // NOTHING
     } else {
@@ -76,7 +76,7 @@ template <typename TYPE> static __ALWAYS_INLINE void type_destruct(void *storage
 }
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static __ALWAYS_INLINE void type_copy(void *storage, const void *_from, size_t n) {
+template <typename TYPE> static __ABE_INLINE void type_copy(void *storage, const void *_from, size_t n) {
     if (is_trivial_copy<TYPE>::value) {
         memcpy(storage, _from, sizeof(TYPE) * n);
     } else {
@@ -87,7 +87,7 @@ template <typename TYPE> static __ALWAYS_INLINE void type_copy(void *storage, co
 }
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static __ALWAYS_INLINE void type_move(void * _dest, void * _src, size_t n) {
+template <typename TYPE> static __ABE_INLINE void type_move(void * _dest, void * _src, size_t n) {
     TYPE * dest = (TYPE *)_dest;
     TYPE * src  = (TYPE *)_src;
     if (is_trivial_move<TYPE>::value) {
@@ -120,7 +120,7 @@ template <typename TYPE> static __ALWAYS_INLINE void type_move(void * _dest, voi
 
 //////////////////////////////////////////////////////////////////////////////
 // for template wrapper => implementation
-struct TypeHelper {
+struct __ABE_HIDDEN TypeHelper {
     private:
         size_t              type_size;
         type_construct_t    construct;
@@ -129,28 +129,28 @@ struct TypeHelper {
         type_move_t         move;
 
     public:
-        __ALWAYS_INLINE TypeHelper(size_t _size,
+        __ABE_INLINE TypeHelper(size_t _size,
                 type_construct_t _ctor,
                 type_destruct_t _dtor,
                 type_copy_t _copy = NULL,
                 type_move_t _move = NULL) :
             type_size(_size), construct(_ctor), destruct(_dtor), copy(_copy), move(_move) { }
 
-        __ALWAYS_INLINE size_t size() const                                         { return type_size;         }
-        __ALWAYS_INLINE void do_construct(void * storage, size_t n)                 { construct(storage, n);    }
-        __ALWAYS_INLINE void do_destruct(void * storage, size_t n)                  { destruct(storage, n);     }
-        __ALWAYS_INLINE void do_copy(void * storage, const void * from, size_t n)   { copy(storage, from, n);   }
-        __ALWAYS_INLINE void do_move(void * dest, void * src, size_t n)             { move(dest, src, n);       }
+        __ABE_INLINE size_t size() const                                         { return type_size;         }
+        __ABE_INLINE void do_construct(void * storage, size_t n)                 { construct(storage, n);    }
+        __ABE_INLINE void do_destruct(void * storage, size_t n)                  { destruct(storage, n);     }
+        __ABE_INLINE void do_copy(void * storage, const void * from, size_t n)   { copy(storage, from, n);   }
+        __ABE_INLINE void do_move(void * dest, void * src, size_t n)             { move(dest, src, n);       }
 };
 
 // using template partial specilization
-#define Helper(WHO, WHAT)                                           \
-    template <typename TYPE, bool ENABLE> struct WHO##_helper;      \
-    template <typename TYPE> struct WHO##_helper<TYPE, true> {      \
-        WHAT get(void) const { return WHO<TYPE>; }                  \
-    };                                                              \
-    template <typename TYPE> struct WHO##_helper<TYPE, false> {     \
-        WHAT get(void) const { return NULL; }                       \
+#define Helper(WHO, WHAT)                                                   \
+    template <typename TYPE, bool ENABLE> struct __ABE_HIDDEN WHO##_helper; \
+    template <typename TYPE> struct WHO##_helper<TYPE, true> {              \
+        WHAT get(void) const { return WHO<TYPE>; }                          \
+    };                                                                      \
+    template <typename TYPE> struct WHO##_helper<TYPE, false> {             \
+        WHAT get(void) const { return NULL; }                               \
     };
 
 Helper(type_construct, type_construct_t);
@@ -159,7 +159,7 @@ Helper(type_copy, type_copy_t);
 Helper(type_move, type_move_t);
 
 template <typename TYPE, bool CTOR, bool COPY, bool MOVE>
-TypeHelper TypeHelperBuilder() {
+__ABE_HIDDEN TypeHelper TypeHelperBuilder() {
     return TypeHelper(sizeof(TYPE),
             type_construct_helper<TYPE, CTOR>().get(),
             type_destruct_helper<TYPE, true>().get(),
@@ -169,15 +169,15 @@ TypeHelper TypeHelperBuilder() {
 #undef Helper
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static __ALWAYS_INLINE bool type_compare_less(const void* lhs, const void* rhs) {
+template <typename TYPE> static __ABE_INLINE bool type_compare_less(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) < *static_cast<const TYPE*>(rhs);
 }
 
-template <typename TYPE> static __ALWAYS_INLINE bool type_compare_more(const void* lhs, const void* rhs) {
+template <typename TYPE> static __ABE_INLINE bool type_compare_more(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) > *static_cast<const TYPE*>(rhs);
 }
 
-template <typename TYPE> static __ALWAYS_INLINE bool type_compare_equal(const void* lhs, const void* rhs) {
+template <typename TYPE> static __ABE_INLINE bool type_compare_equal(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) == *static_cast<const TYPE*>(rhs);
 }
 

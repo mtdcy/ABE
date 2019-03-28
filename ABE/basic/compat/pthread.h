@@ -32,30 +32,30 @@
 //          1. 20161012     initial version
 //
 
-#ifndef __toolkit_compat_pthread_h
-#define __toolkit_compat_pthread_h
-
-__BEGIN_DECLS
+#ifndef __ABE_basic_compat_pthread_h
+#define __ABE_basic_compat_pthread_h
 
 #include <ABE/basic/Types.h>
+
+__BEGIN_DECLS
 
 // for portable reason, we are not suppose to using the _np part
 // bellow is something we want to make portable.
 // by removing _np suffix make it won't have name conflict or confusion
 
 // the name is restricted to 16 characters, including the terminating null byte
-int     pthread_setname_mpx(const char *name);
+__ABE_HIDDEN int pthread_setname_mpx(const char *name);
 
-int     pthread_getname_mpx(pthread_t thread, char*, size_t);
+__ABE_HIDDEN int pthread_getname_mpx(pthread_t thread, char*, size_t);
 
-void    pthread_yield_mpx();
+__ABE_HIDDEN void pthread_yield_mpx();
 
 // return 1 if current thread is main thread
-int     pthread_main_mpx();
+__ABE_HIDDEN int pthread_main_mpx();
 
-pid_t   mpx_gettid();
+__ABE_HIDDEN pid_t mpx_gettid();
 
 __END_DECLS 
 
-#endif // __toolkit_compat_pthread_h
+#endif // __ABE_basic_compat_pthread_h
 

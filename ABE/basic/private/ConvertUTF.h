@@ -132,7 +132,7 @@ typedef enum {
 extern "C" {
 #endif
 
-ConversionResult ConvertUTF8toUTF16 (
+__ABE_HIDDEN ConversionResult ConvertUTF8toUTF16 (
   const UTF8** sourceStart, const UTF8* sourceEnd,
   UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
 
@@ -140,7 +140,7 @@ ConversionResult ConvertUTF8toUTF16 (
  * Convert a partial UTF8 sequence to UTF32.  If the sequence ends in an
  * incomplete code unit sequence, returns \c sourceExhausted.
  */
-ConversionResult ConvertUTF8toUTF32Partial(
+__ABE_HIDDEN ConversionResult ConvertUTF8toUTF32Partial(
   const UTF8** sourceStart, const UTF8* sourceEnd,
   UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
@@ -148,31 +148,31 @@ ConversionResult ConvertUTF8toUTF32Partial(
  * Convert a partial UTF8 sequence to UTF32.  If the sequence ends in an
  * incomplete code unit sequence, returns \c sourceIllegal.
  */
-ConversionResult ConvertUTF8toUTF32(
+__ABE_HIDDEN ConversionResult ConvertUTF8toUTF32(
   const UTF8** sourceStart, const UTF8* sourceEnd,
   UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
-ConversionResult ConvertUTF16toUTF8 (
+__ABE_HIDDEN ConversionResult ConvertUTF16toUTF8 (
   const UTF16** sourceStart, const UTF16* sourceEnd,
   UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
 
-ConversionResult ConvertUTF32toUTF8 (
+__ABE_HIDDEN ConversionResult ConvertUTF32toUTF8 (
   const UTF32** sourceStart, const UTF32* sourceEnd,
   UTF8** targetStart, UTF8* targetEnd, ConversionFlags flags);
 
-ConversionResult ConvertUTF16toUTF32 (
+__ABE_HIDDEN ConversionResult ConvertUTF16toUTF32 (
   const UTF16** sourceStart, const UTF16* sourceEnd,
   UTF32** targetStart, UTF32* targetEnd, ConversionFlags flags);
 
-ConversionResult ConvertUTF32toUTF16 (
+__ABE_HIDDEN ConversionResult ConvertUTF32toUTF16 (
   const UTF32** sourceStart, const UTF32* sourceEnd,
   UTF16** targetStart, UTF16* targetEnd, ConversionFlags flags);
 
-Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd);
+__ABE_HIDDEN Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd);
 
-Boolean isLegalUTF8String(const UTF8 **source, const UTF8 *sourceEnd);
+__ABE_HIDDEN Boolean isLegalUTF8String(const UTF8 **source, const UTF8 *sourceEnd);
 
-unsigned getNumBytesForUTF8(UTF8 firstByte);
+__ABE_HIDDEN unsigned getNumBytesForUTF8(UTF8 firstByte);
 
 #ifdef __cplusplus
 }

@@ -48,7 +48,7 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct Job {
+struct __ABE_HIDDEN Job {
     sp<Runnable>    mRoutine;
     int64_t         mTime;
 
@@ -56,7 +56,7 @@ struct Job {
     mTime(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 };
 
-struct JobDispatcher : public Runnable {
+struct __ABE_HIDDEN JobDispatcher : public Runnable {
     // internal context
     String                  mName;
 
@@ -129,7 +129,7 @@ struct JobDispatcher : public Runnable {
     }
 };
 
-struct NormalJobDispatcher : public JobDispatcher {
+struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
     NormalJobDispatcher(const String& name) : JobDispatcher(name) { }
 
     virtual void run() {
@@ -182,7 +182,7 @@ struct NormalJobDispatcher : public JobDispatcher {
     }
 };
 
-struct MainJobDispatcher : public JobDispatcher {
+struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
     MainJobDispatcher() : JobDispatcher("main") { }
 
     virtual void run() {
@@ -237,7 +237,7 @@ struct MainJobDispatcher : public JobDispatcher {
     }
 };
 
-struct SharedLooper : public SharedObject {
+struct __ABE_HIDDEN SharedLooper : public SharedObject {
     sp<JobDispatcher>   mDispatcher;
     Thread *            mThread;
 
@@ -256,7 +256,7 @@ struct SharedLooper : public SharedObject {
 
 static __thread Looper * local_looper = NULL;
 static Looper * main_looper = NULL;
-struct FirstRoutine : public Runnable {
+struct __ABE_HIDDEN FirstRoutine : public Runnable {
     sp<Looper> self;
     FirstRoutine(const sp<Looper>& _self) : Runnable(), self(_self) { }
 
@@ -390,16 +390,17 @@ void * Looper::user(size_t id) const {
 __END_NAMESPACE_ABE
 
 //////////////////////////////////////////////////////////////////////////////////
-extern "C" {
-    USING_NAMESPACE_ABE
+USING_NAMESPACE_ABE
 
-        struct UserRunnable : public Runnable {
-            void (*callback)(void *);
-            void * user;
-            UserRunnable(void (*Callback)(void *), void * User) : Runnable(),
-            callback(Callback), user(User) { }
-            virtual void run() { callback(user); }
-        };
+extern "C" {
+
+    struct __ABE_HIDDEN UserRunnable : public Runnable {
+        void (*callback)(void *);
+        void * user;
+        UserRunnable(void (*Callback)(void *), void * User) : Runnable(),
+        callback(Callback), user(User) { }
+        virtual void run() { callback(user); }
+    };
 
     Runnable *  SharedRunnableCreate(void (*Callback)(void *), void * User) {
         Runnable * shared = new UserRunnable(Callback, User);
