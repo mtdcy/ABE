@@ -269,12 +269,13 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
 
 struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
     bool                    mLooping;
+    bool                    mRequestExit;
     bool                    mWaitForJobDidFinished;
     mutable Mutex           mLock;
     Condition               mWait;
 
     NormalJobDispatcher(const String& name) : JobDispatcher(name),
-    mLooping(true), mWaitForJobDidFinished(false) { }
+    mLooping(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
 
     virtual void signal() {
         AutoLock _l(mLock);
@@ -283,15 +284,16 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
 
     virtual void terminate(bool wait) {
         AutoLock _l(mLock);
-        mLooping                = false;
+        if (mLooping == false) return;
+        mRequestExit            = true;
         mWaitForJobDidFinished  = wait;
         mWait.signal();
-        mWait.wait(mLock);
     }
 
     virtual void run() {
         mStat.start();
-
+        mLooping = true;
+        
         for (;;) {
             int64_t next = 0;
             Job job;
@@ -304,7 +306,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
 
             AutoLock _l(mLock);
             if (next > 0) {
-                if (!mLooping && !mWaitForJobDidFinished) {
+                if (mRequestExit && !mWaitForJobDidFinished) {
                     DEBUG("exiting...");
                     break;
                 }
@@ -313,7 +315,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
                 mStat.wakeup();
             } else if (next < 0) {
                 // no more jobs
-                if (!mLooping) {
+                if (mRequestExit) {
                     DEBUG("exiting...");
                     break;
                 }
@@ -324,6 +326,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
         }
 
         AutoLock _l(mLock);
+        mLooping = false;
         mWait.broadcast();
         mStat.stop();
     }
