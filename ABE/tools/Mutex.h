@@ -43,19 +43,18 @@ __BEGIN_NAMESPACE_ABE
 class Condition;
 class __ABE_EXPORT Mutex {
     public:
-        Mutex();
+        Mutex(bool recursive = false);
         ~Mutex();
 
     public:
         void    lock();
         void    unlock();
-        bool    tryLock();
+        bool    tryLock();      ///< return true on success
 
     private:
         friend class    Condition;
 
         pthread_mutex_t mLock;
-        pid_t           mWhoHoldsLock;
 
     private: 
         DISALLOW_EVILS(Mutex);
@@ -63,9 +62,9 @@ class __ABE_EXPORT Mutex {
 
 class __ABE_EXPORT AutoLock {
     public:
-        __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock) { mLock.lock(); }
-        __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock) { mLock.lock(); }
-        __ABE_INLINE ~AutoLock() { mLock.unlock(); }
+        __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
+        __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
+        __ABE_INLINE ~AutoLock()                            { mLock.unlock(); }
 
     private:
         Mutex&  mLock;
@@ -80,6 +79,7 @@ class __ABE_EXPORT Condition {
         ~Condition();
         void    wait(Mutex& lock);
         /**
+         * @param nsecs relative time to wait
          * @return return true on timeout, other wise return false
          */
         bool    waitRelative(Mutex& lock, int64_t nsecs);

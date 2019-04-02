@@ -47,8 +47,15 @@
 
 __BEGIN_NAMESPACE_ABE
 
-Mutex::Mutex() : mWhoHoldsLock(0) {
+Mutex::Mutex(bool recursive) {
+    pthread_mutexattr_t attr;
+    CHECK_EQ(pthread_mutexattr_init(&attr), 0);
+    if (recursive)
+        CHECK_EQ(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE), 0);
+    else
+        CHECK_EQ(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK), 0);
     CHECK_EQ(pthread_mutex_init(&mLock, NULL), 0);
+    CHECK_EQ(pthread_mutexattr_destroy(&attr), 0);
 }
 
 Mutex::~Mutex() {
@@ -56,18 +63,10 @@ Mutex::~Mutex() {
 }
 
 void Mutex::lock() {
-    pid_t tid = mpx_gettid();
-    if (mWhoHoldsLock == tid) {
-        FATAL("deadlock cause by the thread %d double acquire lock...",
-                tid);
-    }
-
     CHECK_EQ(pthread_mutex_lock(&mLock), 0);
-    mWhoHoldsLock = tid;
 }
 
 void Mutex::unlock() {
-    mWhoHoldsLock = 0;
     CHECK_EQ(pthread_mutex_unlock(&mLock), 0);
 }
 
