@@ -37,6 +37,7 @@
 
 #ifdef __cplusplus
 #include <ABE/basic/SharedObject.h>
+#include <ABE/tools/Mutex.h>
 __BEGIN_NAMESPACE_ABE
 
 class __ABE_EXPORT Runnable : public SharedObject {
@@ -49,6 +50,43 @@ class __ABE_EXPORT Runnable : public SharedObject {
 
     private:
         DISALLOW_EVILS(Runnable);
+};
+
+class __ABE_EXPORT SyncRunnable : public Runnable {
+    private:
+        mutable Mutex   mLock;
+        Condition       mWait;
+        volatile int    mSync;
+    
+    public:
+        __ABE_INLINE SyncRunnable() : Runnable(), mSync(0) { }
+        __ABE_INLINE virtual ~SyncRunnable() { }
+        virtual void sync() = 0;
+    
+        /**
+         * wait until finished
+         * @param ns    timeout, always > 0
+         * @return return true on success, else return false on timeout
+         */
+        __ABE_INLINE bool wait(int64_t ns = 0) {
+            AutoLock _l(mLock);
+            bool success = true;
+            if (ns < 0) ns = 0;
+            while (mSync == 0) {
+                if (ns) success = !mWait.waitRelative(mLock, ns);
+                else    mWait.wait(mLock);
+                --mSync;
+            }
+            return success;
+        }
+    
+    protected:
+        virtual void run() {
+            sync();
+            AutoLock _l(mLock);
+            ++mSync;
+            mWait.broadcast();
+        }
 };
 
 __END_NAMESPACE_ABE
