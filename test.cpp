@@ -280,12 +280,29 @@ struct ThreadRunnable : public Runnable {
     }
 };
 
+struct ThreadSyncRunnable : public SyncRunnable {
+    virtual void sync() {
+        INFO("ThreadSyncRunnable");
+    }
+};
+
 void testThread() {
     // easy way
     Thread(new ThreadRunnable("Thread 0")).detach();    // detach without run
     Thread(new ThreadRunnable("Thread 0")).join();      // join without run
     Thread(new ThreadRunnable("Thread 1")).run().detach();
     Thread(new ThreadRunnable("Thread 2")).run().join();
+    
+    // thread type
+    Thread(new ThreadRunnable("Lowest Thread"), kThreadLowest).run().join();
+    Thread(new ThreadRunnable("Backgroud Thread"), kThreadBackgroud).run().join();
+    Thread(new ThreadRunnable("Normal Thread"), kThreadNormal).run().join();
+    Thread(new ThreadRunnable("Foregroud Thread"), kThreadForegroud).run().join();
+    Thread(new ThreadRunnable("System Thread"), kThreadSystem).run().join();
+    Thread(new ThreadRunnable("Kernel Thread"), kThreadKernel).run().join();
+    Thread(new ThreadRunnable("Realtime Thread"), kThreadRealtime).run().join();
+    Thread(new ThreadRunnable("Highest Thread"), kThreadHighest).run().join();
+
     
     // hard way
     Thread thread(new ThreadRunnable("Thread 3"));
@@ -300,6 +317,12 @@ void testThread() {
     thread.join();
     ASSERT_FALSE(thread.joinable());
     ASSERT_EQ(Thread::kThreadTerminated, thread.state());
+    
+    // sync
+    sp<SyncRunnable> sync = new ThreadSyncRunnable;
+    Thread(sync).run().detach();
+    SleepMs(100);
+    sync->wait();
     
     // static members
     
