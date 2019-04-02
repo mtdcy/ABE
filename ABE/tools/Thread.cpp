@@ -50,6 +50,8 @@
 #include <pthread.h>
 // https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads
 
+#include <sched.h>
+
 #define JOINABLE 1
 
 __BEGIN_NAMESPACE_ABE
@@ -62,6 +64,74 @@ enum eThreadIntState {
     kThreadIntTerminating,  // set by client during terminating
     kThreadIntTerminated,
 };
+
+static const char * NAMES[] = {
+    "Lowest",
+    "Backgroud",
+    "Normal",
+    "Foreground",
+    "System",
+    "Kernel",
+    "Realtime",
+    "Realtime",
+    "Highest"
+};
+
+// interpret thread type to nice & priority
+// kThreadLowest - kThreadForegroud :   SCHED_OTHER
+// kThreadSystem - kThreadKernel:       SCHED_FIFO
+// kThreadRealtime - kThreadHighest:    SCHED_RR
+static __ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
+    sched_param old;
+    sched_param par;
+    int policy;
+    pthread_getschedparam(pthread_self(), &policy, &old);
+    DEBUG("%s: policy %d, sched_priority %d", name.c_str(), policy, old.sched_priority);
+    if (type < kThreadSystem) {
+        policy = SCHED_OTHER;
+        int min = sched_get_priority_min(SCHED_OTHER);
+        int max = sched_get_priority_max(SCHED_OTHER);
+        // make sure kThreadDefault map to default priority
+        par.sched_priority = old.sched_priority;
+        if (type >= kThreadDefault)
+            par.sched_priority += ((max - old.sched_priority) * (type - kThreadDefault)) / (kThreadSystem - kThreadDefault);
+        else
+            par.sched_priority += ((min - old.sched_priority) * (type - kThreadDefault)) / (kThreadLowest - kThreadDefault);
+    } else if (type < kThreadRealtime) {
+        policy = SCHED_FIFO;
+        int min = sched_get_priority_min(SCHED_FIFO);
+        int max = sched_get_priority_max(SCHED_FIFO);
+        par.sched_priority = min + ((max - min) * (type - kThreadSystem)) / (kThreadRealtime - kThreadSystem);
+    } else {
+        policy = SCHED_RR;
+        int min = sched_get_priority_min(SCHED_RR);
+        int max = sched_get_priority_max(SCHED_RR);
+        par.sched_priority = min + ((max - min) * (type - kThreadRealtime)) / (kThreadHighest - kThreadRealtime);
+    }
+    int err = pthread_setschedparam(pthread_self(), policy, &par);
+    switch (err) {
+        case 0:
+            INFO("%s: %s => policy %d, sched_priority %d",
+                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            break;
+        case EINVAL:
+            ERROR("%s: %s => %d %d failed, Invalid value for policy.",
+                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            break;
+        case ENOTSUP:
+            ERROR("%s: %s => %d %d failed, Invalid value for scheduling parameters.",
+                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            break;
+        case ESRCH:
+            ERROR("%s: %s => %d %d failed, Non-existent thread thread.",
+                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            break;
+        default:
+            ERROR("%s: %s => %d %d failed, pthread_setschedparam failed, err %d|%s",
+                    name.c_str(), NAMES[type/16], policy, par.sched_priority, err, strerror(err));
+            break;
+    }
+}
 
 struct __ABE_HIDDEN SharedThread : public SharedObject {
     // static context, only writable during kThreadInitial
@@ -123,8 +193,8 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         }
 
         // set thread properties
-        if (!mName.empty()) pthread_setname_mpx(mName.c_str());
-        // TODO: interpret thread type to nice & priority
+        pthread_setname_mpx(mName.c_str());
+        if (mType != kThreadDefault) SetThreadType(mName, mType);
 
         setState_l(kThreadIntRunning);
         mLock.unlock();
@@ -225,7 +295,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         }
     }
 
-    __ABE_INLINE void detach(bool wait) {
+    __ABE_INLINE void detach() {
         mLock.lock();
         mRequestExiting         = true;
         mJoinable               = false;
@@ -329,7 +399,7 @@ void Thread::join() {
 
 void Thread::detach() {
     sp<SharedThread> shared = mShared;
-    shared->detach(false);
+    shared->detach();
 }
 
 pthread_t Thread::native_thread_handle() const {

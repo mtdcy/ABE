@@ -44,20 +44,20 @@ __BEGIN_DECLS
  * combine of nice, priority and sched policy
  */
 enum eThreadType {
-    kThreadLowest           = -32,
-    kThreadBackgroud        = -16,
-    kThreadNormal           = 0,
-    kThreadForegroud        = 16,
+    kThreadLowest           = 0,
+    kThreadBackgroud        = 16,
+    kThreadNormal           = 32,
+    kThreadForegroud        = 48,
     // for those who cares about the sched latency.
-    kThreadSystem           = 32,
-    kThreadKernel           = 48,
+    // root permission maybe required
+    kThreadSystem           = 64,
+    kThreadKernel           = 80,
     // for those sched latency is critical.
     // real time sched (SCHED_RR) will be applied if possible.
     // root permission maybe required
-    kThreadRealtime         = 64,
+    kThreadRealtime         = 96,
     // POSIX.1 requires an implementation to support only a minimum 32
     // distinct priority levels for the real-time policies.
-    // we double this
     kThreadHighest          = 128,
     kThreadDefault          = kThreadNormal,
 };
