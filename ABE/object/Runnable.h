@@ -72,11 +72,11 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
             AutoLock _l(mLock);
             bool success = true;
             if (ns < 0) ns = 0;
-            while (mSync == 0) {
+            if (mSync == 0) {
                 if (ns) success = !mWait.waitRelative(mLock, ns);
                 else    mWait.wait(mLock);
-                --mSync;
             }
+            if (success) mSync -= 1;
             return success;
         }
     
@@ -84,7 +84,7 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
         virtual void run() {
             sync();
             AutoLock _l(mLock);
-            ++mSync;
+            mSync += 1;
             mWait.broadcast();
         }
 };
