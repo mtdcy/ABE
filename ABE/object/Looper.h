@@ -57,7 +57,7 @@ class __ABE_EXPORT Looper : public SharedObject {
         /**
          * create a looper
          */
-        static sp<Looper>   Create(const String& name, const eThreadType& type = kThreadNormal)
+        static __ABE_INLINE sp<Looper> Create(const String& name, const eThreadType& type = kThreadNormal)
         { return new Looper(name, type); }
 
     protected:
@@ -116,6 +116,11 @@ class __ABE_EXPORT Looper : public SharedObject {
         size_t      bind(void *user);
         void        bind(size_t id, void *user);
         void *      user(size_t id) const;
+    
+        /**
+         * profile looper, for debugging purpose
+         */
+        void        profile(int64_t interval = 5 * 1000000LL);
 
     public:
         /**

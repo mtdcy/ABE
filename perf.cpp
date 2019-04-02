@@ -464,7 +464,11 @@ void STDHashTablePerf() {
 }
 
 struct EmptyRunnable : public Runnable {
-    virtual void run() { SleepTimeUs(LOOPER_TEST_SLEEP); }
+    volatile int count;
+    virtual void run() {
+        SleepTimeUs(LOOPER_TEST_SLEEP);
+        ++count;
+    }
 };
 
 // FIXME:
@@ -491,6 +495,7 @@ void LooperPerf() {
     each = (double)delta / LOOPER_TEST_COUNT;
     INFO("Condition.waitRelative() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
+#if 0
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
         sp<Runnable> r = new EmptyRunnable;
@@ -499,15 +504,18 @@ void LooperPerf() {
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;
     INFO("Runnable::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
-
+#endif
+    
     sp<Looper> looper = Looper::Create("LooperPerf");
     looper->loop();
+    sp<EmptyRunnable> routine = new EmptyRunnable;
+    routine->count = 0;
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
-        sp<Runnable> r = new EmptyRunnable;
-        looper->post(r);
+        looper->post(routine);
     }
     looper->terminate(true);
+    CHECK_EQ(routine->count, LOOPER_TEST_COUNT);
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;
     INFO("Looper() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);

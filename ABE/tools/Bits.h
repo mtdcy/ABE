@@ -53,7 +53,7 @@ class __ABE_EXPORT BitReader {
         ~BitReader();
 
     public:
-        size_t      size() const { return mLength; }
+        __ABE_INLINE size_t size() const { return mLength; }
 
         /**
          * get how many bits left for read

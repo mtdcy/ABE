@@ -66,7 +66,7 @@
 // http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
 
 void relative_time(struct timespec *ts) {
-#if defined(__APPLE__)
+#if 0 //defined(__APPLE__)
     // https://developer.apple.com/library/content/qa/qa1398/_index.html
     mach_timebase_info_data_t timebase;
     uint64_t ns = mach_absolute_time();

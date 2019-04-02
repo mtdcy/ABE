@@ -59,6 +59,9 @@ class __ABE_EXPORT Message : public SharedObject {
             kTypePointer,
             kTypeString,
             kTypeObject,
+#if MESSAGE_WITH_STL
+            kTypeValue,
+#endif
         };
 
     public:
@@ -114,18 +117,23 @@ class __ABE_EXPORT Message : public SharedObject {
         HashTable<String, Entry>    mEntries;
 
 #if MESSAGE_WITH_STL
+    private:
+        void            _setValue(const String& name, SharedObject * object);
+        SharedObject *  _findValue(const String& name) const;
+
     public:
-        template <class TYPE> struct ObjectWrapper : public SharedObject {
-            TYPE    mValue;
-            __ABE_INLINE ObjectWrapper(const TYPE& value) : SharedObject(), mValue(value) { }
-            __ABE_INLINE virtual ~ObjectWrapper() { }
+        template <class TYPE> struct __ABE_HIDDEN holder : public SharedObject {
+            TYPE    value;
+            __ABE_INLINE holder(const TYPE& _value) : SharedObject(), value(_value) { }
+            __ABE_INLINE virtual ~holder() { }
         };
 
         template <class TYPE> __ABE_INLINE void set(const String& name, const TYPE& value)
-        { setObject(name, new ObjectWrapper<TYPE>(value)); }
+        { _setValue(name, new holder<TYPE>(value)); }
 
+        // assert if not exists
         template <class TYPE> __ABE_INLINE const TYPE& find(const String& name) const
-        { return (static_cast<ObjectWrapper<TYPE> *>(findObject(name)))->mValue; }
+        { return (static_cast<holder<TYPE> *>(_findValue(name)))->value; }
 #endif
 };
 

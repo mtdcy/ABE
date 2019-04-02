@@ -141,20 +141,20 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE
 
 #define COMPARE(_op_)                                                   \
-    __ABE_INLINE bool operator _op_ (const sp<T>& o) const {         \
+    __ABE_INLINE bool operator _op_ (const sp<T>& o) const {            \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
-__ABE_INLINE bool operator _op_ (const T* o) const {             \
-    return mShared _op_ o;                                          \
-}                                                                   \
-template<typename U>                                                \
-__ABE_INLINE bool operator _op_ (const sp<U>& o) const {         \
-    return mShared _op_ o.mShared;                                  \
-}                                                                   \
-template<typename U>                                                \
-__ABE_INLINE bool operator _op_ (const U* o) const {             \
-    return mShared _op_ o;                                          \
-}                                                                   \
+    __ABE_INLINE bool operator _op_ (const T* o) const {                \
+        return mShared _op_ o;                                          \
+    }                                                                   \
+    template<typename U>                                                \
+    __ABE_INLINE bool operator _op_ (const sp<U>& o) const {            \
+        return mShared _op_ o.mShared;                                  \
+    }                                                                   \
+    template<typename U>                                                \
+    __ABE_INLINE bool operator _op_ (const U* o) const {                \
+        return mShared _op_ o;                                          \
+    }                                                                   \
 
 template <class T> class __ABE_EXPORT sp {
     public:

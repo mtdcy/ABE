@@ -33,30 +33,20 @@
 //
 
 #include <ABE/basic/Types.h>
-#include <ABE/basic/Allocator.h>
 
 #ifndef _TOOLKIT_HEADERS_BUFFER_H
 #define _TOOLKIT_HEADERS_BUFFER_H 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Memory Management Layer [C++ Implementation]
-//
+#include <ABE/basic/Allocator.h>
 #include <ABE/basic/String.h>
 #include <ABE/basic/SharedObject.h>
-#include <ABE/stl/List.h>
-#include <ABE/tools/Mutex.h>
 
 __BEGIN_DECLS
-enum eBufferFlags {
-    // TODO
-    BUFFER_READ         = 0x1,  ///< implicit flag
-    BUFFER_WRITE        = 0x2,  ///< this buffer can be modified
-    BUFFER_RESIZABLE    = 0x4,  ///< this buffer can be resize
-    BUFFER_RING         = 0x10, ///< implement ring buffer, take twice memory as it need
-    BUFFER_SHARED       = 0x20, ///< copy-on-write
-    BUFFER_READONLY     = BUFFER_READ,
-    BUFFER_READWRITE    = BUFFER_READ | BUFFER_WRITE,
-    BUFFER_DEFAULT      = BUFFER_READWRITE | BUFFER_RESIZABLE,
+enum eBufferType {
+    kBufferTypeDefault, ///< default buffer
+    kBufferTypeRing,    ///< implement ring buffer, take twice memory as it need
 };
 __END_DECLS
 
@@ -78,38 +68,21 @@ class __ABE_EXPORT Buffer : public SharedObject {
         /**
          * alloc an empty buffer with given capacity
          * @param capacity  initial capacity of this buffer
-         * @param flags     flags of this buffer, @see eBufferFlags
+         * @param type      type of this buffer, @see eBufferType
          */
         Buffer(size_t capacity, const sp<Allocator>& allocator = kAllocatorDefault);
-        Buffer(size_t capacity, eBufferFlags flags, const sp<Allocator>& allocator = kAllocatorDefault);
+        Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator = kAllocatorDefault);
 
         /**
          * alloc a buffer by duplicate a null-terminated string
          * @param data  pointer hold the string
          * @param n     length to duplicate
-         * @param flags flags of this buffer, @see eBufferFlags
-         * @note if BUFFER_READONLY set, on memory will be allocate -> TODO
+         * @param type  type of this buffer, @see eBufferType
          */
-        Buffer(const char *, size_t n = 0, eBufferFlags flags = BUFFER_DEFAULT,
+        Buffer(const char *, size_t n = 0, eBufferType type = kBufferTypeDefault,
                 const sp<Allocator>& allocator = kAllocatorDefault);
 
-        /**
-         * copy constructor and assignment
-         * the new buffer keeps the old buffer's flags & capacity & content
-         */
-        Buffer(const Buffer&);
-        Buffer& operator=(const Buffer&);
-
         ~Buffer();
-
-        /**
-         * alloc a readonly buffer with preallocated memory, without duplicate
-         * @param data  pointer to the memory
-         * @param size  size of the memory
-         * @param flags flags of this buffer, @see eBufferFlags
-         * @return return reference to a readonly buffer
-         */
-        static sp<Buffer>   FromData(const char *data, size_t size);
 
         //! DEBUGGING
         String      string(bool hex = false) const;
@@ -119,7 +92,7 @@ class __ABE_EXPORT Buffer : public SharedObject {
          * get flags of this buffer
          * @return return the flags @see eBufferFlags
          */
-        __ABE_INLINE eBufferFlags flags() const { return mFlags; }
+        __ABE_INLINE eBufferType type() const { return mType; }
 
         /**
          * get the backend memory capacity
@@ -153,10 +126,12 @@ class __ABE_EXPORT Buffer : public SharedObject {
 
     public:
         // how many bytes avaible for read
-        __ABE_INLINE size_t ready() const    { return mWritePos - mReadPos;  }
-        __ABE_INLINE size_t size() const     { return ready();               } // alias
+        __ABE_INLINE size_t ready() const       { return mWritePos - mReadPos;  }
+        __ABE_INLINE size_t size() const        { return ready();               } // alias
+    
         size_t          read(char *buf, size_t n);
         sp<Buffer>      read(size_t n);
+    
         sp<Buffer>      split(size_t pos, size_t size) const;
 
         int             compare(size_t offset, const char *s, size_t n = 0) const;
@@ -190,18 +165,15 @@ class __ABE_EXPORT Buffer : public SharedObject {
     private:
         void            _rewind();
         void            _alloc();
-        void            _edit();
 
     private:
-        Buffer();
+        DISALLOW_EVILS(Buffer);
 
         // backend memory provider
-        SharedBuffer *      mSharedBuffer;
-        // context
         sp<Allocator>       mAllocator;
         char *              mData;
         size_t              mCapacity;
-        eBufferFlags        mFlags;
+        const eBufferType   mType;
         size_t              mReadPos;
         size_t              mWritePos;
 };

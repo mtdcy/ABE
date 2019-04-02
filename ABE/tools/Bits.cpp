@@ -164,9 +164,11 @@ sp<Buffer> BitReader::readB(size_t n) const {
         mHead += n;
         return b;
     } else {
-        Buffer b(n);
-        for (size_t i = 0; i < n; i++) b[i] = r8();
-        return new Buffer(b);
+        sp<Buffer> buffer = new Buffer(n);
+        char * data = buffer->data();
+        for (size_t i = 0; i < n; i++) *(data + i) = r8();
+        buffer->step(n);
+        return buffer;
     }
 }
 

@@ -201,7 +201,40 @@ void testString() {
 }
 
 void testBuffer() {
+    sp<Buffer> buffer = new Buffer(128);
+    ASSERT_EQ(buffer->type(), kBufferTypeDefault);
+    ASSERT_EQ(buffer->capacity(), 128);
+    ASSERT_EQ(buffer->empty(), 128);
+    ASSERT_EQ(buffer->ready(), 0);
+    ASSERT_EQ(buffer->size(), 0);
+    
+    buffer->write("abcdefgh");  // write 8 bytes
+    ASSERT_EQ(buffer->capacity(), 128);
+    ASSERT_EQ(buffer->empty(), 120);
+    ASSERT_EQ(buffer->ready(), 8);
+    
+    buffer->reset();
+    ASSERT_EQ(buffer->capacity(), 128);
+    ASSERT_EQ(buffer->empty(), 128);
+    ASSERT_EQ(buffer->ready(), 0);
+    
+    buffer->step(8);    // move write pos by 8 bytes
+    ASSERT_EQ(buffer->capacity(), 128);
+    ASSERT_EQ(buffer->empty(), 120);
+    ASSERT_EQ(buffer->ready(), 8);
+    
+    buffer->skip(8);    // move read pos by 8 bytes
+    ASSERT_EQ(buffer->capacity(), 128);
+    ASSERT_EQ(buffer->empty(), 120);
+    ASSERT_EQ(buffer->ready(), 0);
+}
 
+void testBitReader() {
+    
+}
+
+void testBitWritter() {
+    
 }
 
 struct EmptySharedObject : public SharedObject {
@@ -272,6 +305,27 @@ void testThread() {
     
 }
 
+struct MainLooperAssist : public Runnable {
+    virtual void run() {
+        SleepTimeMs(1000); // 1s
+        sp<Looper> main = Looper::Main();
+        
+        INFO("post assist 0");
+        main->post(new ThreadRunnable("assist 0"));
+        
+        INFO("post assist 1");
+        main->post(new ThreadRunnable("assist 1"), 500000LL);   // 500ms
+        SleepTimeMs(10);
+        INFO("post assist 2");
+        main->post(new ThreadRunnable("assist 2"));
+        
+        SleepTimeMs(500);
+        main->flush();
+        
+        main->terminate();
+    }
+};
+
 void testLooper() {
     sp<Looper> looper1 = Looper::Create("Looper 1");
     looper1->loop();
@@ -283,9 +337,13 @@ void testLooper() {
     ASSERT_TRUE(current == NULL);
 
     sp<Looper> main = Looper::Main();
+    sp<Looper> assist = Looper::Create("assist");
+    assist->post(new MainLooperAssist);
+    assist->loop();
     ASSERT_TRUE(main != NULL);
     main->loop();
     main->terminate();
+    assist->terminate();
 }
 
 template <class TYPE> struct QueueConsumer : public Runnable {

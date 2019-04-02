@@ -290,7 +290,7 @@ Thread& Thread::setName(const String& name) {
     return *this;
 }
 
-String Thread::name() const {
+String& Thread::name() const {
     sp<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     return shared->mName;

@@ -120,7 +120,7 @@ class __ABE_EXPORT Thread {
         /**
          * get thread name
          */
-        String name() const;
+        String& name() const;
 
         /**
          * get thread priority

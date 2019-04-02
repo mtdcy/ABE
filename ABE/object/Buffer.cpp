@@ -81,31 +81,28 @@ static String hexdump(const void *data, uint32_t bytes) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) :
-    mSharedBuffer(NULL),
+Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
-    mFlags(BUFFER_DEFAULT), mReadPos(0), mWritePos(0)
+    mType(kBufferTypeDefault), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
     _alloc();
 }
 
-Buffer::Buffer(size_t capacity, eBufferFlags flags, const sp<Allocator>& allocator) :
-    mSharedBuffer(NULL),
+Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : SharedObject(),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
-    mFlags(flags), mReadPos(0), mWritePos(0)
+    mType(type), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
     _alloc();
 }
 
-Buffer::Buffer(const char *s, size_t n, eBufferFlags flags, const sp<Allocator>& allocator) :
-    mSharedBuffer(NULL),
+Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : SharedObject(),
     mAllocator(allocator),
     mData(NULL), mCapacity(n ? n : strlen(s)),
-    mFlags(flags), mReadPos(0), mWritePos(0)
+    mType(type), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
     _alloc();
@@ -115,102 +112,19 @@ Buffer::Buffer(const char *s, size_t n, eBufferFlags flags, const sp<Allocator>&
 
 void Buffer::_alloc() {
     size_t allocLength = mCapacity;
-    if (mFlags & BUFFER_RING) allocLength <<= 1;
-
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer = SharedBuffer::Create(mAllocator, allocLength);
-        mData = mSharedBuffer->data();
-    } else {
-        mData = (char *)mAllocator->allocate(allocLength);
-    }
+    if (mType == kBufferTypeRing) allocLength <<= 1;
+    mData = (char *)mAllocator->allocate(allocLength);
     CHECK_NULL(mData);
 }
 
-Buffer::Buffer(const Buffer& rhs) :
-    mSharedBuffer(NULL),
-    mAllocator(rhs.mAllocator),
-    mData(NULL), mCapacity(rhs.mCapacity),
-    mFlags(rhs.mFlags), mReadPos(0), mWritePos(0)
-{
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer = rhs.mSharedBuffer->RetainBuffer();
-        mData = mSharedBuffer->data();
-        // no need to copy content
-    } else {
-        _alloc();
-        memcpy(mData, rhs.data(), rhs.ready());
-    }
-
-    mWritePos += rhs.ready();
-}
-
-Buffer& Buffer::operator=(const Buffer& rhs) {
-    DEBUG("copy operator");
-    // release old
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer->ReleaseBuffer();
-        mSharedBuffer = NULL;
-    } else {
-        mAllocator->deallocate(mData);
-    }
-    mData = NULL;
-    mReadPos = mWritePos = 0;
-    // no change to allocator
-
-    // copy new
-    mCapacity = rhs.mCapacity;
-    mFlags = rhs.mFlags;
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer = rhs.mSharedBuffer->RetainBuffer();
-        mData = mSharedBuffer->data();
-    } else {
-        _alloc();
-        memcpy(mData, rhs.data(), rhs.ready());
-    }
-    return *this;
-}
-
 Buffer::~Buffer() {
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer->ReleaseBuffer();
-        mSharedBuffer = NULL;
-    } else {
-        mAllocator->deallocate(mData);
-    }
-}
-
-Buffer::Buffer() :
-    mSharedBuffer(NULL),
-    mAllocator(kAllocatorDefault),
-    mData(NULL), mCapacity(0),
-    mFlags(BUFFER_READONLY), mReadPos(0), mWritePos(0)
-{
-}
-
-sp<Buffer> Buffer::FromData(const char *data, size_t size) {
-    //CHECK_FALSE(flags & BUFFER_SHARED);     // can NOT be shared.
-    //CHECK_FALSE(flags & BUFFER_RESIZABLE);  // can NOT be resizable
-
-    sp<Buffer> buffer = new Buffer;
-    buffer->mData = const_cast<char*>(data);
-    buffer->mCapacity = size;
-    buffer->mFlags = BUFFER_READONLY;
-    return buffer;
+    mAllocator->deallocate(mData);
 }
 
 status_t Buffer::resize(size_t cap) {
-    if (!(mFlags & BUFFER_WRITE)) return PERMISSION_DENIED;
-    if (!(mFlags & BUFFER_RESIZABLE)) return INVALID_OPERATION;
-
     size_t allocLength = cap;
-    if (mFlags & BUFFER_RING) allocLength <<= 1;
-
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer = mSharedBuffer->edit(allocLength);
-        mData = mSharedBuffer->data();
-    } else {
-        mData = (char *)mAllocator->reallocate(mData, allocLength);
-    }
+    if (mType == kBufferTypeRing) allocLength <<= 1;
+    mData = (char *)mAllocator->reallocate(mData, allocLength);
     mCapacity = cap;
     return OK;
 }
@@ -226,18 +140,15 @@ String Buffer::string(bool hex) const {
 }
 
 size_t Buffer::empty() const {
-    if (mFlags & BUFFER_RING) {
+    if (mType == kBufferTypeRing) {
         return capacity() - ready();
     }
     return capacity() - mWritePos;
 }
 
 size_t Buffer::write(const char *s, size_t n) {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
     if (!n)     n = strlen(s);
     CHECK_LE(n, empty());
-
-    _edit();
 
     memcpy(mData + mWritePos, s, n);
     mWritePos   += n;
@@ -247,11 +158,8 @@ size_t Buffer::write(const char *s, size_t n) {
 }
 
 size_t Buffer::write(int c, size_t n) {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
     CHECK_GT(n, 0);
     CHECK_LE(n, empty());
-
-    _edit();
 
     memset(mData + mWritePos, c, n);
     mWritePos   += n;
@@ -261,33 +169,24 @@ size_t Buffer::write(int c, size_t n) {
 }
 
 void Buffer::replace(size_t pos, int c, size_t n) {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
     CHECK_GT(n, 0);
     CHECK_LT(pos, ready());
     CHECK_LE(pos + n, ready() + empty());
-
-    _edit();
 
     memset(mData + mReadPos + pos, c, n);
 }
 
 void Buffer::replace(size_t pos, const char *s, size_t n) {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
     CHECK_LT(pos, ready());
     CHECK_LE(pos + n, ready() + empty());
-
-    _edit();
 
     if (!n)     n = strlen(s);
     memcpy(mData + mReadPos + pos, s, n);
 }
 
 void Buffer::step(size_t n) {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
     CHECK_GT(n, 0);
     CHECK_LE(n, empty());
-
-    _edit();
 
     mWritePos   += n;
 
@@ -354,18 +253,9 @@ ssize_t Buffer::indexOf(size_t offset, const char *s, size_t n) const {
     return -1;
 }
 
-void Buffer::_edit() {
-    CHECK_TRUE(mFlags & BUFFER_WRITE);
-
-    if (mFlags & BUFFER_SHARED) {
-        mSharedBuffer = mSharedBuffer->edit();
-        mData = mSharedBuffer->data();
-    }
-}
-
 // have to avoid too much rewind ops
 void Buffer::_rewind() {
-    if ((mFlags & BUFFER_RING) && (mReadPos >= capacity())) {
+    if ((mType == kBufferTypeRing) && (mReadPos >= capacity())) {
         memmove(mData, data(), ready());
         mWritePos   -= mReadPos;
         mReadPos    = 0;

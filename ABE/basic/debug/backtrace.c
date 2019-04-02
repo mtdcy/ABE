@@ -154,24 +154,24 @@ void backtrace_symbols(const bt_stack_t array[], size_t size) {
         Dl_info info;
         if (dladdr(addr, &info) && info.dli_fname) {
             if (info.dli_sname) {
-#if 1
-                INFO("%02d: %s+%d", 
-                        i,
-                        info.dli_sname,
-                        (int)(addr - info.dli_saddr));
-#else
-                INFO("%02d: %" PRIxp "+%" PRIxp " -> %s:%s:%d",
-                        i,
-                        info.dli_fbase, addr,
-                        info.dli_fname, info.dli_sname,
-                        (int)(addr - info.dli_saddr));
-#endif
-                
 #ifdef __APPLE__
                 char cmd[1024];
                 snprintf(cmd, 1024, "atos -o %s -l %p %p",
                          info.dli_fname, info.dli_fbase, addr);
                 system(cmd);
+#else
+#if 1
+                INFO("%02d: %s+%d",
+                     i,
+                     info.dli_sname,
+                     (int)(addr - info.dli_saddr));
+#else
+                INFO("%02d: %" PRIxp "+%" PRIxp " -> %s:%s:%d",
+                     i,
+                     info.dli_fbase, addr,
+                     info.dli_fname, info.dli_sname,
+                     (int)(addr - info.dli_saddr));
+#endif
 #endif
             } else {
                 INFO("%02d: %" PRIxp " -> %s", 

@@ -36,15 +36,15 @@
 #define _TOOLKIT_HEADERS_RUNNABLE_H
 
 #ifdef __cplusplus
+#include <ABE/basic/SharedObject.h>
 __BEGIN_NAMESPACE_ABE
 
-#include <ABE/basic/SharedObject.h>
 class __ABE_EXPORT Runnable : public SharedObject {
     private:
 
     public:
-        Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
-        virtual ~Runnable() { }
+        __ABE_INLINE Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
+        __ABE_INLINE virtual ~Runnable() { }
         virtual void run() = 0;
 
     private:

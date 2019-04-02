@@ -40,18 +40,29 @@ __BEGIN_DECLS
 
 // get system time in usecs since Epoch
 // For time measurement and timmer.
-__ABE_EXPORT int64_t SystemTime();
+__ABE_EXPORT int64_t SystemTimeNs();
 
-#define SystemTimeUs()      (SystemTime() / 1000)
-#define SystemTimeMs()      (SystemTime() / 1000000)
+#define SystemTime()        SystemTimeNs()
+#define SystemTimeUs()      (SystemTimeNs() / 1000)
+#define SystemTimeMs()      (SystemTimeNs() / 1000000)
 
 /**
- * suspend thread execution for an interval
+ * suspend thread execution for an interval, @see man(2) nanosleep
+ * @return return true on sleep complete, return false if was interrupted by signal
  * @note not all sleep implementation on different os will have guarantee.
  */
-__ABE_EXPORT int SleepTime(int64_t ns);
-#define SleepTimeUs(us)     SleepTime(us * 1000LL);
-#define SleepTimeMs(ms)     SleepTime(ms * 1000000LL)
+__ABE_EXPORT bool SleepNs(int64_t ns);
+#define Sleep(ns)           SleepNs(ns)
+#define SleepUs(us)         SleepNs(us * 1000LL)
+#define SleepMs(ms)         SleepNs(ms * 1000000LL)
+
+/**
+ * suspend thread execution for an interval, guarantee time elapsed
+ */
+__ABE_EXPORT void SleepTimeNs(int64_t ns);
+#define SleepTime(ns)       SleepTimeNs(ns)
+#define SleepTimeUs(us)     SleepTimeNs(us * 1000LL)
+#define SleepTimeMs(ms)     SleepTimeNs(ms * 1000000LL)
 
 __END_DECLS
 

@@ -54,7 +54,7 @@
 __BEGIN_DECLS
 
 // NOTE: DO NOT print any log with Log here
-int64_t SystemTime() {
+int64_t SystemTimeNs() {
     struct timespec ts;
     relative_time(&ts);
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
@@ -67,22 +67,37 @@ int SleepTime(int64_t ns) {
     return 0;
 }
 #else   // __MINGW32__
-int SleepTime(int64_t ns) {
-#ifdef __APPLE__
+
+__ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
+#if 0//def __APPLE__
     uint64_t now = mach_absolute_time();
     mach_timebase_info_data_t timebase;
     mach_timebase_info(&timebase);
     uint64_t to_wait = (ns * timebase.denom) / timebase.numer;
     return mach_wait_until(now + to_wait);
 #else
-    struct timespec ts;
-    ts.tv_sec   = ns / 1000000000LL;
-    ts.tv_nsec  = ns % 1000000000LL;
-    return nanosleep(&ts, NULL);
+    struct timespec rqtp;
+    struct timespec rmtp;
+    rqtp.tv_sec     = ns / 1000000000LL;
+    rqtp.tv_nsec    = ns % 1000000000LL;
+    int rt = nanosleep(&rqtp, &rmtp);
+    CHECK_TRUE(rt == 0 || errno == EINTR);
+    if (rt == 0) return true;
+    // return false and unslept time
+    if (unslept) *unslept = rmtp.tv_sec * 1000000000LL + rmtp.tv_nsec;
+    return false;
     // man(3) usleep:
     // "The usleep() function is obsolescent. Use nanosleep(2) instead."
     //return usleep(usecs);
 #endif
+}
+
+bool SleepNs(int64_t ns) {
+    return _Sleep(ns, NULL);
+}
+
+void SleepTimeNs(int64_t ns) {
+    while (_Sleep(ns, &ns) == false) { }
 }
 #endif  // __MINGW32__
 

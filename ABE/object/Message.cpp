@@ -69,6 +69,7 @@ Message::Message(const Message& rhs) :
                 copy.u.ptr = strdup((const char *)copy.u.ptr);
                 break;
             case kTypeObject:
+            case kTypeValue:
                 copy.u.obj->RetainObject();
                 break;
             default:
@@ -90,6 +91,7 @@ Message& Message::operator=(const Message& rhs) {
                 copy.u.ptr = strdup((const char *)copy.u.ptr);
                 break;
             case kTypeObject:
+            case kTypeValue:
                 copy.u.obj->RetainObject();
                 break;
             default:
@@ -113,6 +115,7 @@ void Message::clear() {
                 free(e.u.ptr);
                 break;
             case kTypeObject:
+            case kTypeValue:
                 e.u.obj->RetainObject();
                 break;
             case kTypePointer:
@@ -196,6 +199,21 @@ SharedObject * Message::findObject(const String &name, SharedObject * def) const
     return def;
 }
 
+void Message::_setValue(const String &name, SharedObject *object) {
+    Entry e;
+    e.mType         = kTypeValue;
+    e.u.obj         = object->RetainObject();
+    if (mEntries.find(name))    remove(name);
+    mEntries.insert(name, e);
+}
+
+SharedObject * Message::_findValue(const String &name) const {
+    const Entry * e = mEntries.find(name);
+    CHECK_NULL(e);
+    CHECK_TRUE(e->mType == kTypeValue);
+    return e->u.obj;
+}
+
 bool Message::remove(const String& name) {
     Entry *e = mEntries.find(name);
     if (!e) return false;
@@ -205,6 +223,7 @@ bool Message::remove(const String& name) {
             free(e->u.ptr);
             break;
         case kTypeObject:
+        case kTypeValue:
             e->u.obj->ReleaseObject();
             break;
         default:
@@ -273,9 +292,15 @@ String Message::string() const {
                 break;
             case kTypeObject:
                 tmp = String::format(
-                        "object %s = %p[%" PRIu32 "]", name.c_str(),
+                        "object %s = %p[%" PRIx32 "]", name.c_str(),
                         e.u.obj,
                         e.u.obj->GetObjectID());
+                break;
+            case kTypeValue:
+                tmp = String::format(
+                         "value %s = %p[%" PRIx32 "]", name.c_str(),
+                         e.u.obj,
+                         e.u.obj->GetObjectID());
                 break;
             default:
                 FATAL("should not be here.");
