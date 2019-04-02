@@ -121,8 +121,8 @@ class __ABE_EXPORT Buffer : public SharedObject {
         void            replace(size_t offset, const char *s, size_t n = 0);
         void            replace(size_t offset, int c, size_t n);
 
-        __ABE_INLINE size_t write(const Buffer& s, size_t n = 0)                 { return write(s.data(), n);                            }
-        __ABE_INLINE void replace(size_t offset, const Buffer& s, size_t n = 0)  { return replace(offset, s.data(), n ? n : s.size());   }
+        __ABE_INLINE size_t write(const Buffer& s, size_t n = 0)                 { return write(s.data(), n ? n : s.size());            }
+        __ABE_INLINE void replace(size_t offset, const Buffer& s, size_t n = 0)  { return replace(offset, s.data(), n ? n : s.size());  }
 
     public:
         // how many bytes avaible for read
@@ -135,9 +135,9 @@ class __ABE_EXPORT Buffer : public SharedObject {
         sp<Buffer>      split(size_t pos, size_t size) const;
 
         int             compare(size_t offset, const char *s, size_t n = 0) const;
-        __ABE_INLINE int compare(const char *s, size_t n = 0) const                      { return compare(0, s, n);                              }
-        __ABE_INLINE int compare(const Buffer& s, size_t n = 0) const                    { return compare(0, s.data(), n);                       }
-        __ABE_INLINE int compare(size_t offset, const Buffer& s, size_t n = 0) const     { return compare(offset, s.data(), n ? n : s.size());   }
+        __ABE_INLINE int compare(const char *s, size_t n = 0) const                      { return compare(0, s, n);                             }
+        __ABE_INLINE int compare(const Buffer& s, size_t n = 0) const                    { return compare(0, s.data(), n ? n : s.size());       }
+        __ABE_INLINE int compare(size_t offset, const Buffer& s, size_t n = 0) const     { return compare(offset, s.data(), n ? n : s.size());  }
 
         ssize_t         indexOf(size_t offset, const char *s, size_t n = 0) const;
         __ABE_INLINE ssize_t indexOf(const char *s, size_t n = 0) const                  { return indexOf(0, s, n);                              }
