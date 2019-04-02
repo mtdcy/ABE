@@ -495,11 +495,11 @@ struct __ABE_HIDDEN SharedLooper : public SharedObject {
 //////////////////////////////////////////////////////////////////////////////////
 static __thread Looper * local_looper = NULL;
 static Looper * main_looper = NULL;
-struct __ABE_HIDDEN FirstRoutine : public Runnable {
+struct __ABE_HIDDEN FirstRoutine : public SyncRunnable {
     sp<Looper> self;
-    FirstRoutine(const sp<Looper>& _self) : Runnable(), self(_self) { }
+    FirstRoutine(const sp<Looper>& _self) : SyncRunnable(), self(_self) { }
 
-    virtual void run() {
+    virtual void sync() {
         // set tls value
         local_looper = self.get();
     }
@@ -512,6 +512,7 @@ sp<Looper> Looper::Current() {
 // main looper without backend thread
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
+        CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;
@@ -542,8 +543,10 @@ Thread& Looper::thread() const {
 void Looper::loop() {
     sp<SharedLooper> looper = mShared;
     if (looper->mThread) {
-        looper->mDispatcher->post(new FirstRoutine(this));
+        sp<SyncRunnable> sync = new FirstRoutine(this);
+        looper->mDispatcher->post(sync);
         looper->mThread->run();
+        sync->wait();
     } else {
         looper->mDispatcher->run();
     }
