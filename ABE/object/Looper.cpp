@@ -271,14 +271,14 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
 };
 
 struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
-    bool                    mLooping;
+    bool                    mTerminated;
     bool                    mRequestExit;
     bool                    mWaitForJobDidFinished;
     mutable Mutex           mLock;
     Condition               mWait;
 
     NormalJobDispatcher(const String& name) : JobDispatcher(name),
-    mLooping(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
+    mTerminated(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
 
     virtual void signal() {
         AutoLock _l(mLock);
@@ -287,7 +287,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
 
     virtual void terminate(bool wait) {
         AutoLock _l(mLock);
-        if (mLooping == false) return;
+        if (mTerminated) return;
         mRequestExit            = true;
         mWaitForJobDidFinished  = wait;
         mWait.signal();
@@ -297,7 +297,6 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
         __tls = _interface;
         
         mStat.start();
-        mLooping = true;
         
         for (;;) {
             int64_t next = 0;
@@ -331,7 +330,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
         }
 
         AutoLock _l(mLock);
-        mLooping = false;
+        mTerminated = false;
         mWait.broadcast();
         mStat.stop();
         __tls = NULL;
@@ -358,9 +357,10 @@ static __ABE_INLINE const char * signame(int signo) {
 }
 
 static volatile bool g_quit = false;
+static pthread_t g_threadid;
 #if defined(_WIN32) || defined(__MINGW32__)
-#define SIG_RESUME 	SIGINT	
-#define SIG_EXIT 	SIGTERM
+// signal on win32 is very simple, we need some help
+#define SIG_RESUME 	SIGINT
 static __ABE_INLINE void wait_for_signals() {
     DEBUG("goto sleep");
     SleepForInterval(1000000000LL);
@@ -374,14 +374,12 @@ static void signal_exit(int signo) {
 static void signal_null(int signo) {
 }
 
-static __ABE_INLINE void install() {
+static __ABE_INLINE void init_signals() {
     DEBUG("install signal handlers");
     signal(SIG_RESUME, signal_null);
-    signal(SIG_EXIT, signal_exit);
 }
 #else
 #define SIG_RESUME      SIGUSR1
-#define SIG_EXIT        SIGQUIT
 static __ABE_INLINE void wait_for_signals() {
     /* save errno to keep it unchanged in the interrupted thread. */
     const int saved = errno;
@@ -390,7 +388,6 @@ static __ABE_INLINE void wait_for_signals() {
     sigfillset(&sigset);
 #if 1
     sigdelset(&sigset, SIG_RESUME);
-    sigdelset(&sigset, SIG_EXIT);
     sigdelset(&sigset, SIGINT);
 #else
     sigemptyset(&sigset);
@@ -416,7 +413,6 @@ static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
     g_quit = true;
 #if 0 // cause sigsuspend assert, why ???
     uninstall(SIG_RESUME);
-    uninstall(SIG_EXIT);
     uninstall(SIGINT);
 #endif
     INFO("main: exit...");
@@ -427,20 +423,18 @@ static void sigaction_null(int sig, siginfo_t *info, void *vcontext) {
     // NOTHING
 }
 
-static __ABE_INLINE void install() {
+static __ABE_INLINE void init_signals() {
+    g_threadid = pthread_self();
+    
     // install signal handlers
     struct sigaction act;
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, SIG_RESUME);
-    sigaddset(&act.sa_mask, SIG_EXIT);
     sigaddset(&act.sa_mask, SIGINT);
     act.sa_flags = SA_RESTART | SA_SIGINFO;
 
     act.sa_sigaction = sigaction_null;
     CHECK_EQ(sigaction(SIG_RESUME, &act, NULL), 0);
-
-    act.sa_sigaction = sigaction_exit;
-    CHECK_EQ(sigaction(SIG_EXIT, &act, NULL), 0);
 
     // XXX: make sure main looper can terminate by ctrl-c
     act.sa_sigaction = sigaction_exit;
@@ -450,40 +444,31 @@ static __ABE_INLINE void install() {
 
 // job dispatcher for main looper, also handle signals of the process
 struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
-    pthread_t       id;
     volatile bool   looping;
 
-    MainJobDispatcher() : JobDispatcher("main"), id(pthread_self()), looping(false) {
-        //CHECK_TRUE(pthread_main_mpx());
-        install();
-        g_quit = false;
+    MainJobDispatcher() : JobDispatcher("main"), looping(false) {
+        init_signals();
     }
 
     ~MainJobDispatcher() {
+        // wait other loopers to terminate
     }
 
     virtual void signal() {
         DEBUG("main: signal");
-        pthread_kill(id, SIG_RESUME);
+        pthread_kill(g_threadid, SIG_RESUME);
     }
 
     virtual void terminate(bool wait) {
-        if (pthread_main_mpx()) {
-            // call terminate inside run()
-            if (!g_quit) g_quit = true;
-
-            if (!looping) {
-                // TODO: wait other loopers to terminate
-            }
-        } else {
-            INFO("main: terminate by others");
-            pthread_kill(id, SIG_EXIT);
+        g_quit = true;
+        if (!pthread_equal(g_threadid, pthread_self())) {
+            DEBUG("main: terminate by others");
+            pthread_kill(g_threadid, SIG_RESUME);
         }
     }
 
     virtual void run() {
         mStat.start();
-        looping = true;
         while (!g_quit) {
             int64_t next = 0;
             Job job;
@@ -510,7 +495,6 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
                 mStat.wakeup();
             }
         }
-        looping = false;
         mStat.stop();
     }
 };
@@ -544,7 +528,11 @@ sp<Looper> Looper::Current() {
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
 	DEBUG("init main looper");
-        //CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
+#if defined(_WIN32) || defined(__MINGW32__)
+        // pthread_main_mpx is not ready for win32
+#else
+        CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
+#endif
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;
