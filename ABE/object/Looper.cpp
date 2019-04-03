@@ -196,7 +196,11 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
         if (mTimedJobs.size()) {
             Job& head = mTimedJobs.front();
             const int64_t now = SystemTimeUs();
-            if (head.mTime <= now) {
+            // with 1ms jitter:
+            // our SleepForInterval and waitRelative based on ns,
+            // but os backend implementation can not guarentee it
+            // miniseconds precise is the least.
+            if (head.mTime <= now + 1000LL) {
                 job = head;
                 mTimedJobs.pop();
                 return true;
@@ -486,7 +490,7 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
                 mStat.wakeup();
                 DEBUG("main: wakeup");
             } else if (next > 0) {
-                DEBUG("main: wait for next job");
+                DEBUG("main: wait for next job, %" PRId64, next);
                 // sleep for next job, will be interrupted by signals
                 mStat.sleep();
                 if (SleepForInterval(next * 1000LL) == false) {
