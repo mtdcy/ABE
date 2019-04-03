@@ -139,7 +139,10 @@ struct __ABE_HIDDEN Stat {
     }
 };
 
+static __thread Looper * __tls = NULL;
 struct __ABE_HIDDEN JobDispatcher : public Runnable {
+    Looper * _interface;    // hack for Looper::Current()
+    
     // internal context
     String                          mName;
     Stat                            mStat;  // only used inside looper
@@ -291,6 +294,8 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
     }
 
     virtual void run() {
+        __tls = _interface;
+        
         mStat.start();
         mLooping = true;
         
@@ -329,6 +334,7 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
         mLooping = false;
         mWait.broadcast();
         mStat.stop();
+        __tls = NULL;
     }
 };
 
@@ -493,20 +499,10 @@ struct __ABE_HIDDEN SharedLooper : public SharedObject {
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-static __thread Looper * local_looper = NULL;
 static Looper * main_looper = NULL;
-struct __ABE_HIDDEN FirstRoutine : public SyncRunnable {
-    sp<Looper> self;
-    FirstRoutine(const sp<Looper>& _self) : SyncRunnable(), self(_self) { }
-
-    virtual void sync() {
-        // set tls value
-        local_looper = self.get();
-    }
-};
 
 sp<Looper> Looper::Current() {
-    return local_looper;
+    return __tls;
 }
 
 // main looper without backend thread
@@ -523,6 +519,8 @@ sp<Looper> Looper::Main() {
 Looper::Looper(const String& name, const eThreadType& type) : SharedObject(),
     mShared(new SharedLooper(name, type))
 {
+    sp<SharedLooper> looper = mShared;
+    looper->mDispatcher->_interface = this;     // hack for Looper::Current
 }
 
 Looper::~Looper() {
@@ -543,10 +541,7 @@ Thread& Looper::thread() const {
 void Looper::loop() {
     sp<SharedLooper> looper = mShared;
     if (looper->mThread) {
-        sp<SyncRunnable> sync = new FirstRoutine(this);
-        looper->mDispatcher->post(sync);
         looper->mThread->run();
-        sync->wait();
     } else {
         looper->mDispatcher->run();
     }
