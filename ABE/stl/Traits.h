@@ -57,7 +57,7 @@ template <> struct is_builtin< int64_t  >           { enum { value = true  }; };
 template <> struct is_builtin< uint64_t >           { enum { value = true  }; };
 template <> struct is_builtin< float    >           { enum { value = true  }; };
 template <> struct is_builtin< double   >           { enum { value = true  }; };
-#if !defined(__GLIBC__)
+#if !defined(__GLIBC__) && !defined(__MINGW32__)
 template <> struct is_builtin< size_t   >           { enum { value = true  }; };
 template <> struct is_builtin< ssize_t  >           { enum { value = true  }; };
 #endif

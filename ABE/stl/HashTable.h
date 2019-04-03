@@ -138,7 +138,7 @@ HASH_BASIC_TYPES64  (int64_t);
 HASH_BASIC_TYPES    (float);
 HASH_BASIC_TYPES    (double);
 
-#if !defined(__GLIBC__)
+#if !defined(__GLIBC__) && !defined(__MINGW32__)
 HASH_BASIC_TYPES32(size_t);
 HASH_BASIC_TYPES32(ssize_t);
 #endif

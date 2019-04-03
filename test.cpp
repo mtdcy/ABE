@@ -321,7 +321,7 @@ void testThread() {
     // sync
     sp<SyncRunnable> sync = new ThreadSyncRunnable;
     Thread(sync).run().detach();
-    SleepMs(100);
+    SleepTimeMs(100);
     sync->wait();
     
     // static members
@@ -330,6 +330,7 @@ void testThread() {
 
 struct MainLooperAssist : public Runnable {
     virtual void run() {
+        INFO("post prepare");
         SleepTimeMs(1000); // 1s
         sp<Looper> main = Looper::Main();
         

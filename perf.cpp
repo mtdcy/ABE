@@ -37,8 +37,9 @@
 
 #include <list>     // std::list
 #include <vector>   // std::vector
+#if !defined(_WIN32) && !defined(__MINGW32__)
 #include <unordered_map>    // std::unordered_map
-
+#endif
 USING_NAMESPACE_ABE
 
 using namespace std;
@@ -432,6 +433,7 @@ void HashTablePerf() {
     INFO("---");
 }
 
+#if !defined(_WIN32) && !defined(__MINGW32__)
 void STDHashTablePerf() {
     int64_t now, delta;
     double each;
@@ -462,6 +464,7 @@ void STDHashTablePerf() {
     INFO("std::unordered_map erase() test takes %" PRId64 " us, each %.3f us", delta, each);
     INFO("---");
 }
+#endif
 
 struct EmptyRunnable : public Runnable {
     volatile int count;
@@ -537,8 +540,9 @@ int main(int argc, char ** argv) {
     VectorPerf();
     STDVectorPerf();
     HashTablePerf();
+#if !defined(_WIN32) && !defined(__MINGW32__)
     STDHashTablePerf();
-    
+#endif    
     LooperPerf();
 
     return 0;

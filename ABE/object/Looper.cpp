@@ -34,8 +34,8 @@
 
 #define _DARWIN_C_SOURCE    // for sys_signame on APPLE
 
-#define LOG_TAG   "Thread"
-//#define LOG_NDEBUG 0
+#define LOG_TAG   "Looper"
+#define LOG_NDEBUG 0
 #include "basic/Log.h"
 #include "basic/compat/pthread.h"
 
@@ -338,17 +338,51 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
     }
 };
 
-#define SIG_RESUME      SIGUSR1
-static volatile bool g_quit = false;
 static __ABE_INLINE const char * signame(int signo) {
 #ifdef __APPLE__
     return sys_signame[signo];
+#elif defined(_WIN32) || defined(__MINGW32__)
+    switch (signo) {
+        case SIGINT:    return "SIGINT";
+        case SIGILL:    return "SIGILL";
+        case SIGFPE:    return "SIGFPE";
+        case SIGSEGV:   return "SIGSEGV";
+        case SIGTERM:   return "SIGTERM";
+        case SIGABRT:   return "SIGABRT";
+        case SIGBREAK:  return "SIGBREAK";
+        default:        return "Unknown";
+    }
 #else
     return strsignal(signo);
 #endif
 }
 
-static __ABE_INLINE void wait_for_signals(int64_t us = 0) {
+static volatile bool g_quit = false;
+#if defined(_WIN32) || defined(__MINGW32__)
+#define SIG_RESUME 	SIGINT	
+#define SIG_EXIT 	SIGTERM
+static __ABE_INLINE void wait_for_signals() {
+    DEBUG("goto sleep");
+    SleepForInterval(1000000000LL);
+    DEBUG("wake up from sleep");
+}
+
+static void signal_exit(int signo) {
+    g_quit = true;
+}
+
+static void signal_null(int signo) {
+}
+
+static __ABE_INLINE void install() {
+    DEBUG("install signal handlers");
+    signal(SIG_RESUME, signal_null);
+    signal(SIG_EXIT, signal_exit);
+}
+#else
+#define SIG_RESUME      SIGUSR1
+#define SIG_EXIT        SIGQUIT
+static __ABE_INLINE void wait_for_signals() {
     /* save errno to keep it unchanged in the interrupted thread. */
     const int saved = errno;
 
@@ -356,7 +390,7 @@ static __ABE_INLINE void wait_for_signals(int64_t us = 0) {
     sigfillset(&sigset);
 #if 1
     sigdelset(&sigset, SIG_RESUME);
-    sigdelset(&sigset, SIGQUIT);
+    sigdelset(&sigset, SIG_EXIT);
     sigdelset(&sigset, SIGINT);
 #else
     sigemptyset(&sigset);
@@ -382,7 +416,7 @@ static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
     g_quit = true;
 #if 0 // cause sigsuspend assert, why ???
     uninstall(SIG_RESUME);
-    uninstall(SIGQUIT);
+    uninstall(SIG_EXIT);
     uninstall(SIGINT);
 #endif
     INFO("main: exit...");
@@ -398,7 +432,7 @@ static __ABE_INLINE void install() {
     struct sigaction act;
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, SIG_RESUME);
-    sigaddset(&act.sa_mask, SIGQUIT);
+    sigaddset(&act.sa_mask, SIG_EXIT);
     sigaddset(&act.sa_mask, SIGINT);
     act.sa_flags = SA_RESTART | SA_SIGINFO;
 
@@ -406,12 +440,13 @@ static __ABE_INLINE void install() {
     CHECK_EQ(sigaction(SIG_RESUME, &act, NULL), 0);
 
     act.sa_sigaction = sigaction_exit;
-    CHECK_EQ(sigaction(SIGQUIT, &act, NULL), 0);
+    CHECK_EQ(sigaction(SIG_EXIT, &act, NULL), 0);
 
     // XXX: make sure main looper can terminate by ctrl-c
     act.sa_sigaction = sigaction_exit;
     CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
 }
+#endif
 
 // job dispatcher for main looper, also handle signals of the process
 struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
@@ -419,7 +454,7 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
     volatile bool   looping;
 
     MainJobDispatcher() : JobDispatcher("main"), id(pthread_self()), looping(false) {
-        CHECK_TRUE(pthread_main_mpx());
+        //CHECK_TRUE(pthread_main_mpx());
         install();
         g_quit = false;
     }
@@ -442,7 +477,7 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
             }
         } else {
             INFO("main: terminate by others");
-            pthread_kill(id, SIGQUIT);
+            pthread_kill(id, SIG_EXIT);
         }
     }
 
@@ -469,7 +504,7 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
                 DEBUG("main: wait for next job");
                 // sleep for next job, will be interrupted by signals
                 mStat.sleep();
-                if (SleepUs(next) == false) {
+                if (SleepForInterval(next * 1000LL) == false) {
                     DEBUG("main: interrupt");
                 }
                 mStat.wakeup();
@@ -508,7 +543,8 @@ sp<Looper> Looper::Current() {
 // main looper without backend thread
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
-        CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
+	DEBUG("init main looper");
+        //CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;

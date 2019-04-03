@@ -40,7 +40,7 @@
 #include <ABE/stl/Traits.h>
 #include <new>
 #include <string.h>     // memcpy & memmove
-
+#include <math.h>       // abs
 __BEGIN_NAMESPACE_ABE
 
 // TYPE()

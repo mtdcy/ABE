@@ -164,6 +164,14 @@ BASIC_TYPE(Pointer, ptr,        void *);
 
 #undef BASIC_TYPE
 
+#ifdef __MINGW32__
+static __ABE_INLINE char * strndup(const char *s, size_t len) {
+    char * dup = (char *)malloc(len);
+    memcpy(dup, s, len);
+    return dup;
+}
+#endif
+
 void Message::setString( const String& name, const char *s, size_t len) {
     if (!len) len = strlen(s);
     Entry e;

@@ -36,6 +36,7 @@
 #define __ABE_basic_compat_pthread_h
 
 #include <ABE/basic/Types.h>
+#include <pthread.h>
 
 __BEGIN_DECLS
 

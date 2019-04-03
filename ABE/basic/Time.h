@@ -51,10 +51,7 @@ __ABE_EXPORT int64_t SystemTimeNs();
  * @return return true on sleep complete, return false if was interrupted by signal
  * @note not all sleep implementation on different os will have guarantee.
  */
-__ABE_EXPORT bool SleepNs(int64_t ns);
-#define Sleep(ns)           SleepNs(ns)
-#define SleepUs(us)         SleepNs(us * 1000LL)
-#define SleepMs(ms)         SleepNs(ms * 1000000LL)
+__ABE_EXPORT bool SleepForInterval(int64_t ns);
 
 /**
  * suspend thread execution for an interval, guarantee time elapsed

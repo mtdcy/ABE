@@ -36,6 +36,7 @@
 #define _TOOLKIT_HEADERS_MUTEX_H
 
 #include <ABE/basic/Types.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE

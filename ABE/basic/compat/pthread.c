@@ -52,8 +52,8 @@
 
 #ifdef __ANDROID__
 #include <sys/resource.h>
-#elif defined(__MINGW32__)
-// FIMXE
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include <processthreadsapi.h>
 #else
 #include <sys/syscall.h>
 #endif
@@ -106,13 +106,18 @@ pid_t mpx_gettid() {
     return gettid();
 #elif defined(HAVE_PTHREAD_GETTHREADID_NP)
     return pthread_getthreadid_np();
+#elif defined(__MINGW32__)
+    // trick
+    return 10000 + pthread_self();
 #else // glibc
     return syscall(__NR_gettid);
 #endif
 }
 
 void pthread_yield_mpx() {
-#ifdef __ANDROID__ 
+#ifdef __ANDROID__
+    sched_yield();
+#elif defined(__MINGW32__)
     sched_yield();
 #elif defined(__APPLE__)
     pthread_yield_np();
@@ -125,7 +130,7 @@ int pthread_main_mpx() {
 #ifdef __APPLE__
     return pthread_main_np();
 #else
-    return getpid() == gettid_mpx();
+    return getpid() == mpx_gettid();
 #endif
 }
 

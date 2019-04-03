@@ -5,24 +5,27 @@ project (ABE)
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
 add_definitions(-Wall)
 #add_definitions(-O2)
+if (MSVC)
+else()
 add_definitions(-Wno-unused-function)
 add_definitions(-Wno-unused-variable)
 add_definitions(-Werror=non-virtual-dtor)
 add_definitions(-Werror=delete-non-virtual-dtor)
+add_definitions(-fvisibility=hidden)
 #add_definitions(-Wextra)
-add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
 #add_definitions (-Wno-multichar)
 #add_definitions (-Wno-switch)
+set (CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} -std=c++98")
+set (CMAKE_C_FLAGS      "${CMAKE_C_FLAGS} -std=c99")
+endif()
+
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
 add_definitions(-DHAVE_CONFIG_H)
-add_definitions(-fvisibility=hidden)
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     add_definitions(-DDEBUG_MALLOC)
 endif()
-set (CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} -std=c++98")
-set (CMAKE_C_FLAGS      "${CMAKE_C_FLAGS} -std=c99")
 
 if (APPLE)
     set (CMAKE_MACOSX_RPATH TRUE)
@@ -134,8 +137,11 @@ add_executable (test test.cpp)
 target_link_libraries(test ${PROJECT_NAME})
 target_link_libraries(test gtest gtest_main)
 
-add_executable(perf perf.cpp)
-target_link_libraries(perf ${PROJECT_NAME})
-
 add_executable(test_c test_c.c)
 target_link_libraries(test_c ${PROJECT_NAME})
+
+add_executable(perf perf.cpp)
+target_link_libraries(perf ${PROJECT_NAME})
+set_target_properties(perf PROPERTIES
+    EXCLUDE_FROM_ALL TRUE
+    EXCLUDE_FROM_DEFAULT_BUILD TRUE)
