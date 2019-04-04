@@ -532,11 +532,7 @@ sp<Looper> Looper::Current() {
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
 	DEBUG("init main looper");
-#if defined(_WIN32) || defined(__MINGW32__)
-        // pthread_main_mpx is not ready for win32
-#else
         CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
-#endif
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;

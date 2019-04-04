@@ -108,7 +108,7 @@ pid_t mpx_gettid() {
     return pthread_getthreadid_np();
 #elif defined(__MINGW32__)
     // trick
-    return 10000 + pthread_self();
+    return getpid() + pthread_self() - 1;
 #else // glibc
     return syscall(__NR_gettid);
 #endif
