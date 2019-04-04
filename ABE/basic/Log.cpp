@@ -95,12 +95,24 @@ static void _default_callback(const char *tag, int level, const char *text) {
 }
 #endif
 
+static bool __init = false;
+static __ABE_INLINE void _init() {
+#if defined(_WIN32) || defined(__MINGW32__)
+    setvbuf(stdout, 0, _IOLBF, 2048);
+#endif
+    __init = true;
+}
+
+
 void LogPrint(const char *      tag,
         enum eLogLevel    level,
         const char *      func,
         size_t            line,
         const char *      format,
         ...) {
+
+    if (__builtin_expect(__init == false, false)) _init();
+
     va_list ap;
     char buf[1024];
 
@@ -140,6 +152,9 @@ void LogPrint(const char *      tag,
                 line,
                 buf);
     }
+#if defined(_WIN32) || defined(__MINGW32__)
+    fflush(stdout);
+#endif
 
     if (level == LOG_FATAL) {
         BACKTRACE();
