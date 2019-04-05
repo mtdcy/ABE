@@ -16,8 +16,10 @@ add_definitions(-fvisibility=hidden)
 #add_definitions(-Wextra)
 #add_definitions (-Wno-multichar)
 #add_definitions (-Wno-switch)
-set (CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} -std=c++98")
-set (CMAKE_C_FLAGS      "${CMAKE_C_FLAGS} -std=c99")
+set (CMAKE_C_STANDARD   99)     # c98
+set (CMAKE_C_EXTENSIONS OFF)    # no gnu extensions
+set (CMAKE_CXX_STANDARD 98)     # c++98
+set (CMAKE_CXX_EXTENSIONS OFF)  # no gnu extensions
 endif()
 
 add_definitions(-D_POSIX_C_SOURCE=200809L)
