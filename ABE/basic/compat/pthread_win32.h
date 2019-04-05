@@ -32,12 +32,15 @@
 //          1. 20161012     initial version
 //
 
-#ifndef __ABE_basic_compat_pthread_h
-#define __ABE_basic_compat_pthread_h
+#ifndef __ABE_basic_pthread_compat_h
+#define __ABE_basic_pthread_compat_h
 
-#include <ABE/basic/Types.h>
+#define _DARWIN_C_SOURCE
 #include <pthread.h>
-
+#include "Config.h"
+#include <sys/types.h> // for pid_t
+#include <stdint.h>
+#include <sys/cdefs.h> // __BEGIN_DECLS
 __BEGIN_DECLS
 
 // for portable reason, we are not suppose to using the _np part
@@ -45,18 +48,37 @@ __BEGIN_DECLS
 // by removing _np suffix make it won't have name conflict or confusion
 
 // the name is restricted to 16 characters, including the terminating null byte
-__ABE_HIDDEN int pthread_setname_mpx(const char *name);
+static inline int pthread_setname(const char * name) {
+#if defined(HAVE_PTHREAD_SETNAME_NP)
+    return pthread_setname_np(pthread_self(), name);
+#else
+#endif
+}
 
-__ABE_HIDDEN int pthread_getname_mpx(pthread_t thread, char*, size_t);
+static inline int pthread_getname(pthread_t thread, char * name, size_t len) {
+    return pthread_getname_np(thread, name, len);
+}
 
-__ABE_HIDDEN void pthread_yield_mpx();
+// no return value
+#define pthread_yield()                     sched_yield()
+
+// get self tid
+static inline pid_t pthread_gettid() {
+#if defined(__MINGW32__)
+    // trick
+    return getpid() + pthread_self() - 1;
+#else
+#endif
+}
 
 // return 1 if current thread is main thread
-__ABE_HIDDEN int pthread_main_mpx();
+static inline int pthread_main() {
+    return getpid() == pthread_gettid();
+}
 
-__ABE_HIDDEN pid_t mpx_gettid();
+#define pthread_timed_wait_relative         pthread_cond_timedwait_relative_np
 
 __END_DECLS 
 
-#endif // __ABE_basic_compat_pthread_h
+#endif // __ABE_basic_pthread_compat_h
 

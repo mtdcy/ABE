@@ -39,6 +39,9 @@
 #if defined(__APPLE__)
 #include "basic/compat/pthread_macos.h"
 #include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/pthread_win32.h"
+#include "basic/compat/time_win32.h"
 #else
 #endif
 

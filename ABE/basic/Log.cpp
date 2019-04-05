@@ -34,6 +34,9 @@
 #if defined(__APPLE__)
 #include "basic/compat/pthread_macos.h"
 #include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/pthread_win32.h"
+#include "basic/compat/time_win32.h"
 #else
 #endif
 
@@ -43,8 +46,13 @@
 #endif
 
 #include "Log.h"
-#include <pthread.h>
 #include "debug/backtrace.h"
+
+#if defined(_WIN32) || defined(__MINGW32__)
+#define PRIpid_t    "lld"
+#else
+#define PRIpid_t    "d"
+#endif
 
 __BEGIN_DECLS
 
@@ -137,7 +145,7 @@ void LogPrint(const char *      tag,
     char name[32];
     pthread_getname(pthread_self(), name, 32);
     if (name[0] == '\0') {
-        fprintf(stdout, "[%08.03f][%07d][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+        fprintf(stdout, "[%08.03f][%07" PRIpid_t "][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 pthread_gettid(),
                 tag,

@@ -33,20 +33,14 @@
 
 #if defined(__APPLE__)
 #include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/time_win32.h"
 #else
 #endif
 
 #define LOG_TAG "Time"
 #include "Log.h"
 #include "Time.h"
-
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#if defined(__MINGW32__)
-#include "windows.h"
-#endif
 
 __BEGIN_DECLS
 
