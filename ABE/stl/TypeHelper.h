@@ -159,7 +159,7 @@ Helper(type_copy, type_copy_t);
 Helper(type_move, type_move_t);
 
 template <typename TYPE, bool CTOR, bool COPY, bool MOVE>
-__ABE_HIDDEN TypeHelper TypeHelperBuilder() {
+static __ABE_HIDDEN TypeHelper TypeHelperBuilder() {
     return TypeHelper(sizeof(TYPE),
             type_construct_helper<TYPE, CTOR>().get(),
             type_destruct_helper<TYPE, true>().get(),

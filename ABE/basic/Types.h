@@ -75,8 +75,8 @@
 #include <sys/cdefs.h>
 
 #if defined(_WIN32) || defined(__MINGW32__)
-#define __ABE_INLINE                __inline
-#define __ABE_HIDDEN 
+#define __ABE_INLINE                __attribute__ ((__always_inline__)) inline
+#define __ABE_HIDDEN                
 #define __ABE_EXPORT                __declspec(dllexport)
 #else
 //#define __ABE_INLINE                __attribute__ ((__always_inline__))

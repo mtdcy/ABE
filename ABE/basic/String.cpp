@@ -47,7 +47,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-static __ABE_INLINE size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
+static size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     size_t len = vsnprintf((char*)str, size, format, ap);

@@ -23,7 +23,7 @@ add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
 add_definitions(-DHAVE_CONFIG_H)
-if (CMAKE_BUILD_TYPE MATCHES Debug)
+if (CMAKE_BUILD_TYPE MATCHES Debug AND NOT WIN32)
     add_definitions(-DDEBUG_MALLOC)
 endif()
 
