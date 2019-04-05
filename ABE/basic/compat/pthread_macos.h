@@ -25,42 +25,53 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-// File:    Time.h
+
+// File:    pthread.h
 // Author:  mtdcy.chen
 // Changes: 
-//          1. 20160701     initial version
+//          1. 20161012     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_TIME_H
-#define _TOOLKIT_HEADERS_TIME_H
+#ifndef __ABE_basic_pthread_compat_h
+#define __ABE_basic_pthread_compat_h
 
-#include <ABE/basic/Types.h>
+#define _DARWIN_C_SOURCE
+#include <pthread.h>
+#include "Config.h"
+#include <sys/types.h> // for pid_t
+#include <stdint.h>
 
-__BEGIN_DECLS 
+__BEGIN_DECLS
 
-// get system time in usecs an arbitrary point, @see CLOCK_MONOTONIC
-// For time measurement and timmer.
-__ABE_EXPORT int64_t SystemTimeNs();
+// for portable reason, we are not suppose to using the _np part
+// bellow is something we want to make portable.
+// by removing _np suffix make it won't have name conflict or confusion
 
-#define SystemTime()        SystemTimeNs()
-#define SystemTimeUs()      (SystemTimeNs() / 1000)
-#define SystemTimeMs()      (SystemTimeNs() / 1000000)
+// the name is restricted to 16 characters, including the terminating null byte
+static inline int pthread_setname(const char * name) {
+    return pthread_setname_np(name);
+}
 
-/**
- * suspend thread execution for an interval, @see man(2) nanosleep
- * @return return true on sleep complete, return false if was interrupted by signal
- * @note not all sleep implementation on different os will have guarantee.
- */
-__ABE_EXPORT bool SleepForInterval(int64_t ns);
+static inline int pthread_getname(pthread_t thread, char * name, size_t len) {
+    return pthread_getname_np(thread, name, len);
+}
 
-/**
- * suspend thread execution for an interval, guarantee time elapsed
- */
-__ABE_EXPORT void SleepTimeNs(int64_t ns);
-#define SleepTime(ns)       SleepTimeNs(ns)
-#define SleepTimeUs(us)     SleepTimeNs(us * 1000LL)
-#define SleepTimeMs(ms)     SleepTimeNs(ms * 1000000LL)
+// no return value
+#define pthread_yield()                     pthread_yield_np()
 
-__END_DECLS
+// return 1 if current thread is main thread
+#define pthread_main()                      pthread_main_np()
 
-#endif // _TOOLKIT_HEADERS_TIME_H
+// get self tid
+static inline pid_t pthread_gettid() {
+    uint64_t id;
+    pthread_threadid_np(pthread_self(), &id);
+    return id;
+}
+
+#define pthread_timed_wait_relative         pthread_cond_timedwait_relative_np
+
+__END_DECLS 
+
+#endif // __ABE_basic_pthread_compat_h
+

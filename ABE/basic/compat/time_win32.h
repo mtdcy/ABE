@@ -25,42 +25,53 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-// File:    Time.h
+
+// File:    time.h
 // Author:  mtdcy.chen
 // Changes: 
-//          1. 20160701     initial version
+//          1. 20161012     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_TIME_H
-#define _TOOLKIT_HEADERS_TIME_H
 
-#include <ABE/basic/Types.h>
+#ifndef __toolkit_compat_time_h
+#define __toolkit_compat_time_h 
 
-__BEGIN_DECLS 
+#include <ABE/basic/Types.h> 
 
-// get system time in usecs an arbitrary point, @see CLOCK_MONOTONIC
-// For time measurement and timmer.
-__ABE_EXPORT int64_t SystemTimeNs();
+#ifdef __linux__
+#define __need_timespec 
+#endif
+#include <time.h>
+#include <sys/time.h>
 
-#define SystemTime()        SystemTimeNs()
-#define SystemTimeUs()      (SystemTimeNs() / 1000)
-#define SystemTimeMs()      (SystemTimeNs() / 1000000)
+__BEGIN_DECLS
 
-/**
- * suspend thread execution for an interval, @see man(2) nanosleep
- * @return return true on sleep complete, return false if was interrupted by signal
- * @note not all sleep implementation on different os will have guarantee.
- */
-__ABE_EXPORT bool SleepForInterval(int64_t ns);
+// NOTE: 
+// not all sleep implementation on different os will have guarantee.
+// So, we should avoid to use sleep.
+//
+// sleep 
+// usleep
+// nanosleep
 
-/**
- * suspend thread execution for an interval, guarantee time elapsed
- */
-__ABE_EXPORT void SleepTimeNs(int64_t ns);
-#define SleepTime(ns)       SleepTimeNs(ns)
-#define SleepTimeUs(us)     SleepTimeNs(us * 1000LL)
-#define SleepTimeMs(ms)     SleepTimeNs(ms * 1000000LL)
+// for interval measurements
+// get current time since some arbitrary
+// using monotonic clock if supported.
+__ABE_HIDDEN void relative_time(struct timespec *ts);
 
-__END_DECLS
+// get current time since Epoch
+// affected by system time-of-day clock changing, including NTP
+// using CLOCK_REALTIME if supported
+__ABE_HIDDEN void absolute_time(struct timespec *ts);
 
-#endif // _TOOLKIT_HEADERS_TIME_H
+// for function like pthread_cond_timedwait
+__ABE_HIDDEN void absolute_time_later(struct timespec *ts, uint64_t nsecs);
+
+#define         nseconds(ts) ((ts).tv_sec * 1000000000LL + (ts).tv_nsec)
+#define         useconds(ts) ((ts).tv_sec * 1000000LL + (ts).tv_nsec / 1000)
+#define         mseconds(ts) ((ts).tv_sec * 1000LL + (ts).tv_nsec / 1000000LL)
+#define         seconds(ts)  ((ts).tv_sec)
+
+__END_DECLS 
+
+#endif // __toolkit_compat_time_h 

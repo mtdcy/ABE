@@ -25,42 +25,38 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-// File:    Time.h
+
+// File:    pthread.h
 // Author:  mtdcy.chen
 // Changes: 
-//          1. 20160701     initial version
+//          1. 20161012     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_TIME_H
-#define _TOOLKIT_HEADERS_TIME_H
+#ifndef __ABE_basic_compat_pthread_h
+#define __ABE_basic_compat_pthread_h
 
 #include <ABE/basic/Types.h>
+#include <pthread.h>
 
-__BEGIN_DECLS 
+__BEGIN_DECLS
 
-// get system time in usecs an arbitrary point, @see CLOCK_MONOTONIC
-// For time measurement and timmer.
-__ABE_EXPORT int64_t SystemTimeNs();
+// for portable reason, we are not suppose to using the _np part
+// bellow is something we want to make portable.
+// by removing _np suffix make it won't have name conflict or confusion
 
-#define SystemTime()        SystemTimeNs()
-#define SystemTimeUs()      (SystemTimeNs() / 1000)
-#define SystemTimeMs()      (SystemTimeNs() / 1000000)
+// the name is restricted to 16 characters, including the terminating null byte
+__ABE_HIDDEN int pthread_setname_mpx(const char *name);
 
-/**
- * suspend thread execution for an interval, @see man(2) nanosleep
- * @return return true on sleep complete, return false if was interrupted by signal
- * @note not all sleep implementation on different os will have guarantee.
- */
-__ABE_EXPORT bool SleepForInterval(int64_t ns);
+__ABE_HIDDEN int pthread_getname_mpx(pthread_t thread, char*, size_t);
 
-/**
- * suspend thread execution for an interval, guarantee time elapsed
- */
-__ABE_EXPORT void SleepTimeNs(int64_t ns);
-#define SleepTime(ns)       SleepTimeNs(ns)
-#define SleepTimeUs(us)     SleepTimeNs(us * 1000LL)
-#define SleepTimeMs(ms)     SleepTimeNs(ms * 1000000LL)
+__ABE_HIDDEN void pthread_yield_mpx();
 
-__END_DECLS
+// return 1 if current thread is main thread
+__ABE_HIDDEN int pthread_main_mpx();
 
-#endif // _TOOLKIT_HEADERS_TIME_H
+__ABE_HIDDEN pid_t mpx_gettid();
+
+__END_DECLS 
+
+#endif // __ABE_basic_compat_pthread_h
+

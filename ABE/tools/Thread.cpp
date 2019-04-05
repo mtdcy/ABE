@@ -32,10 +32,14 @@
 //          1. 20160701     initial version
 //
 
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#else
+#endif
+
 #define LOG_TAG   "Thread"
 //#define LOG_NDEBUG 0
 #include "basic/Log.h"
-#include "basic/compat/pthread.h"
 
 #include "stl/List.h"
 #include "stl/Vector.h"
@@ -45,11 +49,6 @@
 #include "tools/Thread.h"
 
 #include "basic/private/atomic.h"
-
-// pthread_mutex_t/pthread_cond_t
-#include <pthread.h>
-// https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads
-
 #include <sched.h>
 
 #define JOINABLE 1
@@ -193,13 +192,13 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         }
 
         // set thread properties
-        pthread_setname_mpx(mName.c_str());
+        pthread_setname(mName.c_str());
         if (mType != kThreadDefault) SetThreadType(mName, mType);
 
         setState_l(kThreadIntRunning);
         mLock.unlock();
 
-        pthread_yield_mpx();            // give client chance to hold lock
+        pthread_yield();            // give client chance to hold lock
 
         mLock.lock();
         if (mReadyToRun) {              // in case join() or detach() without run
@@ -427,7 +426,7 @@ Thread::eThreadState Thread::state() const {
 }
 
 void Thread::Yield() {
-    pthread_yield_mpx();
+    pthread_yield();
 }
 
 __END_NAMESPACE_ABE

@@ -38,7 +38,6 @@
 #endif
 
 #include "Config.h"
-#include "basic/compat/pthread.h"
 
 #include <pthread.h>
 
