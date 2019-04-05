@@ -197,11 +197,11 @@ sp<Buffer> Content::read(size_t size) {
 
     sp<Buffer> data = new Buffer(size);
 
-    bool eof = false;
+    //bool eof = false;
     size_t n = size;
 
     while (n > 0) {
-        int remains = mBlock->ready() - mBlockOffset;
+        size_t remains = mBlock->ready() - mBlockOffset;
         char *s = mBlock->data() + mBlockOffset;
         if (remains > 0) {
             size_t m = MIN(remains, n);
@@ -216,7 +216,7 @@ sp<Buffer> Content::read(size_t size) {
 
             // TODO: read directly from protocol 
             if (readBlock() == false) {
-                eof = true;
+                //eof = true;
                 break;
             }
         } 
@@ -360,7 +360,7 @@ int64_t Content::seek(int64_t offset) {
         // read only mode or read & write mode.
         if (mBlock->ready() 
                 && offset < mRangeOffset 
-                && offset >= mRangeOffset - mBlock->ready()) {
+                && offset >= mRangeOffset - (int64_t)mBlock->ready()) {
             DEBUG("seek in cache.");
             mBlockOffset    = 
                 mBlock->ready() - (mRangeOffset - offset);
@@ -370,7 +370,7 @@ int64_t Content::seek(int64_t offset) {
         // write only mode
         if (mBlock->ready() 
                 && offset >= mRangeOffset  
-                && offset < mRangeOffset + mBlock->ready()) {
+                && offset < mRangeOffset + (int64_t)mBlock->ready()) {
             DEBUG("write only mode: seek in cache.");
             mBlockOffset    = offset - mRangeOffset;
             return offset;

@@ -151,7 +151,7 @@ namespace content_protocol {
             return 0;
         }
 
-        if (bytes > remains) {
+        if (bytes > (size_t)remains) {
             DEBUG("read reamins %d bytes", remains);
             bytes = remains;
         }

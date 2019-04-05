@@ -138,7 +138,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
     // static context, only writable during kThreadInitial
     eThreadType             mType;
     String                  mName;
-    pthread_t               mNativeHandler;
+    pthread_t               mNativeHandler;     // no initial value to pthread_t
     sp<Runnable>            mRoutine;
 
     // mutable context, access with lock
@@ -153,7 +153,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
             const eThreadType type,
             const sp<Runnable>& routine) :
         SharedObject(),
-        mType(type), mName(name), mNativeHandler(NULL), mRoutine(routine),
+        mType(type), mName(name), mRoutine(routine),
         mState(kThreadIntNew), mReadyToRun(false), mJoinable(false),
         mRequestExiting(false)
     {
@@ -176,6 +176,7 @@ struct __ABE_HIDDEN SharedThread : public SharedObject {
         thiz->ReleaseObject();
 
         pthread_exit(NULL);
+        return NULL;    // just fix build warnings
     }
 
     __ABE_INLINE void setState_l(eThreadIntState state) {
@@ -425,6 +426,7 @@ Thread::eThreadState Thread::state() const {
         default:
             FATAL("FIXME");
     }
+    return kThreadTerminated; // just fix build warnings
 }
 
 void Thread::Yield() {
