@@ -124,7 +124,7 @@ template <typename TYPE> static __ABE_INLINE void type_move(void * _dest, void *
 
 //////////////////////////////////////////////////////////////////////////////
 // for template wrapper => implementation
-struct __ABE_HIDDEN TypeHelper {
+struct TypeHelper {
     private:
         size_t              type_size;
         type_construct_t    construct;
@@ -150,14 +150,14 @@ struct __ABE_HIDDEN TypeHelper {
 // using template partial specilization
 #define Helper(WHAT, TH0, TH1, TRIVIAL)                                         \
     template <typename TYPE, bool trivail = TRIVIAL<TYPE>::value>               \
-    struct __ABE_HIDDEN WHAT##_helper_;                                         \
+    struct WHAT##_helper_;                                         \
     template <typename TYPE> struct WHAT##_helper_<TYPE, false> {               \
         WHAT operator()(void) { return TH0<TYPE>; }                             \
     };                                                                          \
     template <typename TYPE> struct WHAT##_helper_<TYPE, true> {                \
         WHAT operator()(void) { return TH1<TYPE>; }                             \
     };                                                                          \
-    template <typename TYPE, bool ENABLE> struct __ABE_HIDDEN WHAT##_helper;    \
+    template <typename TYPE, bool ENABLE> struct WHAT##_helper;    \
     template <typename TYPE> struct WHAT##_helper<TYPE, true> {                 \
         WHAT get(void) const { return WHAT##_helper_<TYPE>()(); }               \
     };                                                                          \
@@ -171,7 +171,7 @@ Helper(type_copy_t, type_copy, type_copy_trivial, is_trivial_copy);
 Helper(type_move_t, type_move, type_move_trivial, is_trivial_move);
 
 template <typename TYPE, bool CTOR, bool COPY, bool MOVE>
-static __ABE_HIDDEN TypeHelper TypeHelperBuilder() {
+static TypeHelper TypeHelperBuilder() {
     return TypeHelper(sizeof(TYPE),
             type_construct_t_helper<TYPE, CTOR>().get(),
             type_destruct_t_helper<TYPE, true>().get(),

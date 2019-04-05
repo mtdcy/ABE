@@ -135,13 +135,13 @@ static __ABE_INLINE int real_posix_memalign(void **memptr, size_t alignment, siz
     return _real_posix_memalign(memptr, alignment, n);
 }
 
-struct __ABE_HIDDEN RealAllocator : public Allocator {
+struct RealAllocator : public Allocator {
     virtual void *  allocate(size_t size) { return real_malloc(size); }
     virtual void *  reallocate(void * ptr, size_t size) { return real_realloc(ptr, size); }
     virtual void    deallocate(void * ptr) { return real_free(ptr); }
 };
 
-struct __ABE_HIDDEN MallocBlock {
+struct MallocBlock {
     uint32_t        magic;
     size_t          n;
     uint32_t        flags;

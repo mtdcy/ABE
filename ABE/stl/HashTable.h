@@ -54,7 +54,7 @@ class __ABE_EXPORT HashTableImpl {
         ~HashTableImpl();
 
     protected:
-        struct __ABE_HIDDEN Element {
+        struct Element {
             const size_t    mHash;
             void *          mKey;
             void *          mValue;

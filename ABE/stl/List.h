@@ -45,7 +45,7 @@
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
 class ListImpl;
-class __ABE_HIDDEN ListNodeImpl {
+class ListNodeImpl {
     protected:
         friend class ListImpl;
         void            *mData;

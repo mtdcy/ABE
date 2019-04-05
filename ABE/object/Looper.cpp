@@ -56,7 +56,7 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_HIDDEN Job {
+struct Job {
     sp<Runnable>    mRoutine;
     int64_t         mTime;
 
@@ -69,7 +69,7 @@ struct __ABE_HIDDEN Job {
     }
 };
 
-struct __ABE_HIDDEN Stat {
+struct Stat {
     int64_t     start_time;
     int64_t     sleep_time;
     int64_t     exec_time;
@@ -143,7 +143,7 @@ struct __ABE_HIDDEN Stat {
 };
 
 static __thread Looper * __tls = NULL;
-struct __ABE_HIDDEN JobDispatcher : public Runnable {
+struct JobDispatcher : public Runnable {
     Looper * _interface;    // hack for Looper::Current()
     
     // internal context
@@ -277,7 +277,7 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
     virtual void terminate(bool wait) = 0;
 };
 
-struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
+struct NormalJobDispatcher : public JobDispatcher {
     bool                    mTerminated;
     bool                    mRequestExit;
     bool                    mWaitForJobDidFinished;
@@ -450,7 +450,7 @@ static __ABE_INLINE void init_signals() {
 #endif
 
 // job dispatcher for main looper, also handle signals of the process
-struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
+struct MainJobDispatcher : public JobDispatcher {
     volatile bool   looping;
 
     MainJobDispatcher() : JobDispatcher("main"), looping(false) {
@@ -506,7 +506,7 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
     }
 };
 
-struct __ABE_HIDDEN SharedLooper : public SharedObject {
+struct SharedLooper : public SharedObject {
     sp<JobDispatcher>   mDispatcher;
     Thread *            mThread;
 
@@ -662,7 +662,7 @@ USING_NAMESPACE_ABE
 
 extern "C" {
 
-    struct __ABE_HIDDEN UserRunnable : public Runnable {
+    struct UserRunnable : public Runnable {
         void (*callback)(void *);
         void * user;
         UserRunnable(void (*Callback)(void *), void * User) : Runnable(),

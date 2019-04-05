@@ -134,7 +134,7 @@ static __ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
     }
 }
 
-struct __ABE_HIDDEN SharedThread : public SharedObject {
+struct SharedThread : public SharedObject {
     // static context, only writable during kThreadInitial
     eThreadType             mType;
     String                  mName;

@@ -102,7 +102,7 @@ class __ABE_EXPORT Message : public SharedObject {
 
     private:
         uint32_t                    mWhat;
-        struct __ABE_HIDDEN Entry {
+        struct Entry {
             Type                    mType;
             union {
                 int32_t             i32;
@@ -122,7 +122,7 @@ class __ABE_EXPORT Message : public SharedObject {
         SharedObject *  _findValue(const String& name) const;
 
     public:
-        template <class TYPE> struct __ABE_HIDDEN holder : public SharedObject {
+        template <class TYPE> struct holder : public SharedObject {
             TYPE    value;
             __ABE_INLINE holder(const TYPE& _value) : SharedObject(), value(_value) { }
             __ABE_INLINE virtual ~holder() { }

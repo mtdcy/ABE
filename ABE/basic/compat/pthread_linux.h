@@ -45,16 +45,16 @@ __BEGIN_DECLS
 // by removing _np suffix make it won't have name conflict or confusion
 
 // the name is restricted to 16 characters, including the terminating null byte
-__ABE_HIDDEN int pthread_setname_mpx(const char *name);
+int pthread_setname_mpx(const char *name);
 
-__ABE_HIDDEN int pthread_getname_mpx(pthread_t thread, char*, size_t);
+int pthread_getname_mpx(pthread_t thread, char*, size_t);
 
-__ABE_HIDDEN void pthread_yield_mpx();
+void pthread_yield_mpx();
 
 // return 1 if current thread is main thread
-__ABE_HIDDEN int pthread_main_mpx();
+int pthread_main_mpx();
 
-__ABE_HIDDEN pid_t mpx_gettid();
+pid_t mpx_gettid();
 
 __END_DECLS 
 
