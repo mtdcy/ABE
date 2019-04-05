@@ -30,9 +30,11 @@ endif()
 
 if (APPLE)
     set (CMAKE_MACOSX_RPATH TRUE)
+elseif(WIN32)
+    add_definitions(-DBUILD_ABE_DLL)
 endif()
 
-if ("${CMAKE_GENERATOR}" STREQUAL "Xcode")
+if (XCODE)
     #set (CMAKE_MACOSX_BUNDLE TRUE)
     set (CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     set (CMAKE_XCODE_ATTRIBUTE_SIGN_IDENTITY "macOS Developer")
@@ -42,7 +44,8 @@ endif()
 # detect target OS
 include (BuildEnvCheck.cmake)
 
-set(SOURCE_FILES
+# source files
+set(ABE_SOURCES
     ABE/basic/debug/backtrace.c
     ABE/basic/debug/malloc.cpp
     ABE/basic/CallStack.cpp
@@ -71,59 +74,49 @@ set(SOURCE_FILES
     ABE/stl/Queue.cpp
     )
 
-file (GLOB PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/*.h")
-
-file (GLOB BASIC_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/basic/*.h")
-file (GLOB OBJECT_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/object/*.h")
-file (GLOB TOOLS_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/tools/*.h")
-file (GLOB STL_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/stl/*.h")
-
-add_library (${PROJECT_NAME} SHARED
-    ${SOURCE_FILES}
-    ${PUBLIC_HEADERS}
-    ${BASIC_PUBLIC_HEADERS}
-    ${OBJECT_PUBLIC_HEADERS}
-    ${TOOLS_PUBLIC_HEADERS}
-    ${STL_PUBLIC_HEADERS}
-    )
+add_library (${PROJECT_NAME} SHARED ${ABE_SOURCES})
 
 # includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ABE)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})    # Config.h
 
-if ("${CMAKE_GENERATOR}" STREQUAL "Xcode")
-    # install headers nested
-    set_property(SOURCE ${BASIC_PUBLIC_HEADERS}
-        PROPERTY MACOSX_PACKAGE_LOCATION Headers/basic)
-    set_property(SOURCE ${OBJECT_PUBLIC_HEADERS}
-        PROPERTY MACOSX_PACKAGE_LOCATION Headers/object)
-    set_property(SOURCE ${TOOLS_PUBLIC_HEADERS}
-        PROPERTY MACOSX_PACKAGE_LOCATION Headers/tools)
-    set_property(SOURCE ${STL_PUBLIC_HEADERS}
-        PROPERTY MACOSX_PACKAGE_LOCATION Headers/stl)
+set (ABE_SUBDIRS    basic object tools stl)
+
+# install 
+if (XCODE)
+    foreach (sub ${ABE_SUBDIRS})
+        file (GLOB _HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/${sub}/*.h")
+        target_sources (${PROJECT_NAME} PUBLIC ${_HEADERS})
+        set_property(SOURCE ${_HEADERS} PROPERTY MACOSX_PACKAGE_LOCATION Headers/${sub})
+    endforeach()
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE
         FRAMEWORK_VERSION A
-        PUBLIC_HEADER "${PUBLIC_HEADERS}"   # need this to create Headers link in framework
+        PUBLIC_HEADER "ABE/ABE.h"   # need this to create Headers link in framework
         MACOSX_FRAMEWORK_IDENTIFIER com.mtdcy.media.toolkit
         #MACOSX_FRAMEWORK_INFO_PLIST Info.plist
         )
-else()
-    install (FILES ${PUBLIC_HEADERS} DESTINATION include/ABE)
-    install (FILES ${BASIC_PUBLIC_HEADERS} DESTINATION include/ABE/basic)
-    install (FILES ${OBJECT_PUBLIC_HEADERS} DESTINATION include/ABE/object)
-    install (FILES ${TOOLS_PUBLIC_HEADERS} DESTINATION include/ABE/tools)
-    install (FILES ${STL_PUBLIC_HEADERS} DESTINATION include/ABE/stl)
-endif()
 
-install (TARGETS ${PROJECT_NAME}
-    FRAMEWORK DESTINATION Library/Frameworks
-    RUNTIME DESTINATION bin
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    )
+    install (TARGETS ${PROJECT_NAME}
+        FRAMEWORK       DESTINATION     .
+        PUBLIC_HEADER   DESTINATION     Headers
+        )
+else()
+    install (FILES  ABE/ABE.h   DESTINATION include/ABE)
+    foreach (sub ${ABE_SUBDIRS}) 
+        file (GLOB _HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/${sub}/*.h")
+        install (FILES ${_HEADERS} DESTINATION include/ABE/${sub})
+    endforeach()
+
+    install (TARGETS ${PROJECT_NAME}
+        PUBLIC_HEADER   DESTINATION     include/ABE
+        RUNTIME         DESTINATION     bin
+        ARCHIVE         DESTINATION     lib
+        LIBRARY         DESTINATION     lib
+        )
+endif()
 
 # test
 remove_definitions(-Werror=non-virtual-dtor)

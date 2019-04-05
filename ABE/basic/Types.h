@@ -64,7 +64,12 @@
 #if defined(_WIN32) || defined(__MINGW32__)
 #define __ABE_INLINE                __attribute__ ((__always_inline__)) inline
 #define __ABE_HIDDEN                
+#ifdef BUILD_ABE_DLL
 #define __ABE_EXPORT                __declspec(dllexport)
+#else
+#define __ABE_EXPORT                __declspec(dllimport)
+#endif
+#define __ABE_DEPRECATED            __declspec(deprecated)
 #else
 //#define __ABE_INLINE                __attribute__ ((__always_inline__))
 #define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__))
