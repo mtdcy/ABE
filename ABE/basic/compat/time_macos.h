@@ -25,42 +25,30 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-// File:    Time.h
+
+// File:    time.h
 // Author:  mtdcy.chen
 // Changes: 
-//          1. 20160701     initial version
+//          1. 20161012     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_TIME_H
-#define _TOOLKIT_HEADERS_TIME_H
 
-#include <ABE/basic/Types.h>
+#ifndef __ABE_basic_time_compat_h
+#define __ABE_basic_time_compat_h
 
-__BEGIN_DECLS 
+#include <time.h>
+#include <sys/types.h>
+#include "Config.h"
 
-// get system time in usecs an arbitrary point, @see CLOCK_MONOTONIC
-// For time measurement and timmer.
-__ABE_EXPORT int64_t SystemTimeNs();
+__BEGIN_DECLS
 
-#define SystemTime()        SystemTimeNs()
-#define SystemTimeUs()      (SystemTimeNs() / 1000)
-#define SystemTimeMs()      (SystemTimeNs() / 1000000)
+// macos has clock_gettime and struct timespec
 
-/**
- * suspend thread execution for an interval, @see man(2) nanosleep
- * @return return true on sleep complete, return false if was interrupted by signal
- * @note not all sleep implementation on different os will have guarantee.
- */
-__ABE_EXPORT bool SleepForInterval(int64_t ns);
+#define         nseconds(ts) ((ts).tv_sec * 1000000000LL + (ts).tv_nsec)
+#define         useconds(ts) ((ts).tv_sec * 1000000LL + (ts).tv_nsec / 1000)
+#define         mseconds(ts) ((ts).tv_sec * 1000LL + (ts).tv_nsec / 1000000LL)
+#define         seconds(ts)  ((ts).tv_sec)
 
-/**
- * suspend thread execution for an interval, guarantee time elapsed
- */
-__ABE_EXPORT void SleepTimeNs(int64_t ns);
-#define SleepTime(ns)       SleepTimeNs(ns)
-#define SleepTimeUs(us)     SleepTimeNs(us * 1000LL)
-#define SleepTimeMs(ms)     SleepTimeNs(ms * 1000000LL)
+__END_DECLS 
 
-__END_DECLS
-
-#endif // _TOOLKIT_HEADERS_TIME_H
+#endif // __ABE_basic_time_compat_h

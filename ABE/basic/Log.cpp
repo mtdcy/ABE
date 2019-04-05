@@ -31,6 +31,11 @@
 // Changes: 
 //          1. 20160701     initial version
 //
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#include "basic/compat/time_macos.h"
+#else
+#endif
 
 #include <stdio.h> // printf
 #ifdef __ANDROID__
@@ -38,9 +43,7 @@
 #endif
 
 #include "Log.h"
-#include "compat/time.h"
 #include <pthread.h>
-#include "compat/pthread.h"
 #include "debug/backtrace.h"
 
 __BEGIN_DECLS
@@ -73,13 +76,13 @@ static void _default_callback(const char *tag, int level, const char *text) {
     };
 
     struct timespec ts;
-    absolute_time(&ts);
+    clock_gettime(CLOCK_REALTIME, &ts);
     char name[32];
     pthread_getname_mpx(pthread_self(), name, 32);
     if (name[0] == '\0') {
         fprintf(stdout, "[%08.03f] [%06d] [%-14.14s] [%1s] >> %s\n",
                 nseconds(ts) / 1E9,
-                pthread_threadid_mpx(),
+                pthread_gettid(),
                 tag,
                 LEVELS[level],
                 text);
@@ -130,13 +133,13 @@ void LogPrint(const char *      tag,
     };
 
     struct timespec ts;
-    absolute_time(&ts);
+    clock_gettime(CLOCK_REALTIME, &ts); // time since Epoch.
     char name[32];
-    pthread_getname_mpx(pthread_self(), name, 32);
+    pthread_getname(pthread_self(), name, 32);
     if (name[0] == '\0') {
         fprintf(stdout, "[%08.03f][%07d][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
-                mpx_gettid(),
+                pthread_gettid(),
                 tag,
                 LEVELS[level],
                 func,

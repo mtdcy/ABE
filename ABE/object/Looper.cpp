@@ -32,12 +32,14 @@
 //          1. 20160701     initial version
 //
 
-#define _DARWIN_C_SOURCE    // for sys_signame on APPLE
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#else
+#endif
 
 #define LOG_TAG   "Looper"
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #include "basic/Log.h"
-#include "basic/compat/pthread.h"
 
 #include "stl/List.h"
 #include "stl/Vector.h"
@@ -48,7 +50,6 @@
 #include "Looper.h"
 
 // https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads
-#include <pthread.h>
 #include <signal.h>
 
 __BEGIN_NAMESPACE_ABE
@@ -509,7 +510,7 @@ struct __ABE_HIDDEN SharedLooper : public SharedObject {
 
     // for main looper
     SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(NULL) {
-        pthread_setname_mpx("main");
+        pthread_setname("main");
     }
 
     // for normal looper
@@ -532,7 +533,7 @@ sp<Looper> Looper::Current() {
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
 	DEBUG("init main looper");
-        CHECK_TRUE(pthread_main_mpx(), "main looper must be intialized in main()");
+        CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;

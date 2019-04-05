@@ -44,20 +44,13 @@
 // https://sourceforge.net/p/predef/wiki/Architectures/
 // https://sourceforge.net/p/predef/wiki/OperatingSystems/
 
-// int8_t int16_t int32_t ...
-#include <stdint.h>
-
-// size_t, null
-#include <stddef.h>
-
-// ssize_t
-#include <sys/types.h>
-
-// true, false
-#include <stdbool.h>
-
-// va_list
-#include <stdarg.h>
+#include <sys/types.h>      // all kinds of types define
+#include <stdint.h>         // fixed width integer: int8_t int16_t int32_t ...
+#include <stddef.h>         // size_t, null
+#include <stdbool.h>        // true, false
+#include <stdarg.h>         // va_list
+#include <inttypes.h>       // for PRId32/PRId64/...
+#include <sys/cdefs.h>      // others
 
 // at least these types should be defined.
 // uint8_t  int8_t
@@ -67,12 +60,6 @@
 // size_t ssize_t
 // bool     true false
 // null
-
-// for PRId32/PRId64/...
-#include <inttypes.h>
-
-// others
-#include <sys/cdefs.h>
 
 #if defined(_WIN32) || defined(__MINGW32__)
 #define __ABE_INLINE                __attribute__ ((__always_inline__)) inline

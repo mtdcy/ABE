@@ -42,8 +42,6 @@ endif()
 include (BuildEnvCheck.cmake)
 
 set(SOURCE_FILES
-    ABE/basic/compat/time.c
-    ABE/basic/compat/pthread.c
     ABE/basic/debug/backtrace.c
     ABE/basic/debug/malloc.cpp
     ABE/basic/CallStack.cpp
