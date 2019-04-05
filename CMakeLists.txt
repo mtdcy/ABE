@@ -86,7 +86,7 @@ set (ABE_SUBDIRS    basic object tools stl)
 # install 
 if (XCODE)
     foreach (sub ${ABE_SUBDIRS})
-        file (GLOB _HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/${sub}/*.h")
+        file (GLOB _HEADERS "ABE/${sub}/*.h")
         target_sources (${PROJECT_NAME} PUBLIC ${_HEADERS})
         set_property(SOURCE ${_HEADERS} PROPERTY MACOSX_PACKAGE_LOCATION Headers/${sub})
     endforeach()
