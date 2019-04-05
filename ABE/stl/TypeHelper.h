@@ -40,7 +40,7 @@
 #include <ABE/stl/Traits.h>
 #include <new>
 #include <string.h>     // memcpy & memmove
-#include <math.h>       // abs
+#include <math.h>
 __BEGIN_NAMESPACE_ABE
 
 // TYPE()
@@ -76,26 +76,30 @@ template <typename TYPE> static __ABE_INLINE void type_destruct(void *storage, s
 }
 
 //////////////////////////////////////////////////////////////////////////////
+template <typename TYPE> static __ABE_INLINE void type_copy_trivial(void * storage, const void * from, size_t n) {
+    memcpy(storage, from, n * sizeof(TYPE));
+}
+
 template <typename TYPE> static __ABE_INLINE void type_copy(void *storage, const void *_from, size_t n) {
-    if (is_trivial_copy<TYPE>::value) {
-        memcpy(storage, _from, sizeof(TYPE) * n);
-    } else {
-        TYPE *p = static_cast<TYPE*>(storage);
-        const TYPE *from = static_cast<const TYPE*>(_from);
-        while (n--) { new (p++) TYPE(*from++); }
-    }
+    TYPE *p = static_cast<TYPE*>(storage);
+    const TYPE *from = static_cast<const TYPE*>(_from);
+    while (n--) { new (p++) TYPE(*from++); }
 }
 
 //////////////////////////////////////////////////////////////////////////////
+template <typename TYPE> static __ABE_INLINE void type_move_trivial(void * dest, void * src, size_t n) {
+    memmove(dest, src, n * sizeof(TYPE));
+}
+
 template <typename TYPE> static __ABE_INLINE void type_move(void * _dest, void * _src, size_t n) {
     TYPE * dest = (TYPE *)_dest;
     TYPE * src  = (TYPE *)_src;
-    if (is_trivial_move<TYPE>::value) {
-        // memmove can handle memory overlap
-        memmove(dest, src, n * sizeof(TYPE));
-    } else if (abs(dest - src) > n) {
+    if ((size_t)abs(dest - src) > n) {
         // no overlap
-        type_copy<TYPE>(dest, src, n);
+        if (is_trivial_copy<TYPE>::value) 
+            type_copy_trivial<TYPE>(dest, src, n);
+        else
+            type_copy<TYPE>(dest, src, n);
         type_destruct<TYPE>(src, n);
     } else {
         if (dest > src) {
@@ -144,27 +148,35 @@ struct __ABE_HIDDEN TypeHelper {
 };
 
 // using template partial specilization
-#define Helper(WHO, WHAT)                                                   \
-    template <typename TYPE, bool ENABLE> struct __ABE_HIDDEN WHO##_helper; \
-    template <typename TYPE> struct WHO##_helper<TYPE, true> {              \
-        WHAT get(void) const { return WHO<TYPE>; }                          \
-    };                                                                      \
-    template <typename TYPE> struct WHO##_helper<TYPE, false> {             \
-        WHAT get(void) const { return NULL; }                               \
+#define Helper(WHAT, TH0, TH1, TRIVIAL)                                         \
+    template <typename TYPE, bool trivail = TRIVIAL<TYPE>::value>               \
+    struct __ABE_HIDDEN WHAT##_helper_;                                         \
+    template <typename TYPE> struct WHAT##_helper_<TYPE, false> {               \
+        WHAT operator()(void) { return TH0<TYPE>; }                             \
+    };                                                                          \
+    template <typename TYPE> struct WHAT##_helper_<TYPE, true> {                \
+        WHAT operator()(void) { return TH1<TYPE>; }                             \
+    };                                                                          \
+    template <typename TYPE, bool ENABLE> struct __ABE_HIDDEN WHAT##_helper;    \
+    template <typename TYPE> struct WHAT##_helper<TYPE, true> {                 \
+        WHAT get(void) const { return WHAT##_helper_<TYPE>()(); }               \
+    };                                                                          \
+    template <typename TYPE> struct WHAT##_helper<TYPE, false> {                \
+        WHAT get(void) const { return NULL; }                                   \
     };
 
-Helper(type_construct, type_construct_t);
-Helper(type_destruct, type_destruct_t);
-Helper(type_copy, type_copy_t);
-Helper(type_move, type_move_t);
+Helper(type_construct_t, type_construct, type_construct, is_trivial_ctor);
+Helper(type_destruct_t, type_destruct, type_destruct, is_trivial_dtor);
+Helper(type_copy_t, type_copy, type_copy_trivial, is_trivial_copy);
+Helper(type_move_t, type_move, type_move_trivial, is_trivial_move);
 
 template <typename TYPE, bool CTOR, bool COPY, bool MOVE>
 static __ABE_HIDDEN TypeHelper TypeHelperBuilder() {
     return TypeHelper(sizeof(TYPE),
-            type_construct_helper<TYPE, CTOR>().get(),
-            type_destruct_helper<TYPE, true>().get(),
-            type_copy_helper<TYPE, COPY>().get(),
-            type_move_helper<TYPE, MOVE>().get());
+            type_construct_t_helper<TYPE, CTOR>().get(),
+            type_destruct_t_helper<TYPE, true>().get(),
+            type_copy_t_helper<TYPE, COPY>().get(),
+            type_move_t_helper<TYPE, MOVE>().get());
 }
 #undef Helper
 
