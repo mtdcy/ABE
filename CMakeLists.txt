@@ -77,6 +77,7 @@ set(ABE_SOURCES
     )
 
 add_library (${PROJECT_NAME} SHARED ${ABE_SOURCES})
+add_library (${PROJECT_NAME}_static STATIC ${ABE_SOURCES})
 
 # includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -117,6 +118,10 @@ else()
         RUNTIME         DESTINATION     bin
         ARCHIVE         DESTINATION     lib
         LIBRARY         DESTINATION     lib
+        )
+
+    install (TARGETS ${PROJECT_NAME}_static
+        ARCHIVE         DESTINATION     lib
         )
 endif()
 
