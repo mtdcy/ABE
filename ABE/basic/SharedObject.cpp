@@ -120,13 +120,12 @@ uint32_t SharedObjectGetID(SharedObject * shared) {
 
 __END_DECLS
 
-#define OBJECT_ID           0x100
 #define BUFFER_START_MAGIC  0xbaaddead
 #define BUFFER_END_MAGIC    0xdeadbaad
 
 __BEGIN_NAMESPACE_ABE
 
-SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID),
+SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
     mAllocator(NULL), mData(NULL), mSize(0) { }
 
     SharedBuffer::~SharedBuffer() { mAllocator.clear(); }
@@ -156,7 +155,7 @@ SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID),
     }
 
 void SharedBuffer::deallocate() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
@@ -167,7 +166,7 @@ void SharedBuffer::deallocate() {
 }
 
 size_t SharedBuffer::ReleaseBuffer(bool keep) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
@@ -179,7 +178,7 @@ size_t SharedBuffer::ReleaseBuffer(bool keep) {
 }
 
 SharedBuffer * SharedBuffer::edit() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
     if (IsBufferNotShared()) return this;
@@ -192,7 +191,7 @@ SharedBuffer * SharedBuffer::edit() {
 }
 
 SharedBuffer * SharedBuffer::edit(size_t sz) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 

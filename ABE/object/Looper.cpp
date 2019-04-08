@@ -544,7 +544,7 @@ sp<Looper> Looper::Main() {
     return main_looper;
 }
 
-Looper::Looper(const String& name, const eThreadType& type) : SharedObject(),
+Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER),
     mShared(new SharedLooper(name, type))
 {
     sp<SharedLooper> looper = mShared;

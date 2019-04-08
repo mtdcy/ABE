@@ -81,7 +81,7 @@ static String hexdump(const void *data, uint32_t bytes) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(),
+Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
     mType(kBufferTypeDefault), mReadPos(0), mWritePos(0)
@@ -90,7 +90,7 @@ Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject()
     _alloc();
 }
 
-Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : SharedObject(),
+Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
     mType(type), mReadPos(0), mWritePos(0)
@@ -99,7 +99,7 @@ Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator
     _alloc();
 }
 
-Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : SharedObject(),
+Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(n ? n : strlen(s)),
     mType(type), mReadPos(0), mWritePos(0)

@@ -149,7 +149,7 @@ class __ABE_EXPORT Looper : public SharedObject {
         void flush();
 
     private:
-        Looper() : mShared(NULL) { }
+        Looper() : SharedObject(OBJECT_ID_LOOPER), mShared(NULL) { }
         sp<SharedObject>    mShared;
 
     private:

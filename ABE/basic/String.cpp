@@ -89,7 +89,7 @@ String String::format(const char *format, va_list ap) {
     return result;
 }
 
-String::String() : mData(NULL), mSize(0)
+String::String() : SharedObject(OBJECT_ID_STRING), mData(NULL), mSize(0)
 {
     mData = SharedBuffer::Create(kAllocatorDefault, 1);
     char * buf = mData->data();
@@ -97,7 +97,7 @@ String::String() : mData(NULL), mSize(0)
 }
 
 String::String(const char *s, size_t n)
-    : mData(NULL), mSize(0)
+    : SharedObject(OBJECT_ID_STRING), mData(NULL), mSize(0)
 {
     CHECK_NULL(s);
     if (!n) mSize = strlen(s);
@@ -109,14 +109,14 @@ String::String(const char *s, size_t n)
 }
 
 String::String(const String &from)
-    : mData(NULL), mSize(0)
+    : SharedObject(OBJECT_ID_STRING), mData(NULL), mSize(0)
 {
     mData   = from.mData->RetainBuffer();
     mSize   = from.mSize;
 }
 
 String::String(const char16_t *s, size_t n) 
-    : mData(NULL), mSize(0)
+    : SharedObject(OBJECT_ID_STRING), mData(NULL), mSize(0)
 {
     CHECK_NULL(s);
     if (n == 0)  n = strlen16(s);
@@ -142,7 +142,7 @@ String::String(const char16_t *s, size_t n)
 }
 
 #define STRING_FROM_NUMBER(TYPE, SIZE, PRI)                                 \
-    String::String(const TYPE v) : mData(NULL), mSize(0) {                  \
+    String::String(const TYPE v) : SharedObject(OBJECT_ID_STRING), mData(NULL), mSize(0) {  \
         mData = SharedBuffer::Create(kAllocatorDefault, SIZE + 1);          \
         char * buf = mData->data();                                         \
         int result = CStringPrintf(buf, SIZE, "%" PRI, v);                  \

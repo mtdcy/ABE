@@ -44,7 +44,7 @@ __BEGIN_NAMESPACE_ABE
 
 typedef uint16_t char16_t;
 
-class __ABE_EXPORT String {
+class __ABE_EXPORT String : public SharedObject {
     public:
         /**
          * format a string
