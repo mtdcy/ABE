@@ -37,7 +37,7 @@
 
 #include <list>     // std::list
 #include <vector>   // std::vector
-#if !defined(_WIN32) && !defined(__MINGW32__)
+#if defined(__APPLE__)
 #include <unordered_map>    // std::unordered_map
 #endif
 USING_NAMESPACE_ABE
@@ -433,7 +433,7 @@ void HashTablePerf() {
     INFO("---");
 }
 
-#if !defined(_WIN32) && !defined(__MINGW32__)
+#if defined(__APPLE__)
 void STDHashTablePerf() {
     int64_t now, delta;
     double each;
@@ -540,7 +540,7 @@ int main(int argc, char ** argv) {
     VectorPerf();
     STDVectorPerf();
     HashTablePerf();
-#if !defined(_WIN32) && !defined(__MINGW32__)
+#if defined(__APPLE__)
     STDHashTablePerf();
 #endif    
     LooperPerf();
