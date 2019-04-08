@@ -69,7 +69,7 @@ static inline pid_t pthread_gettid() {
     return id;
 }
 
-#define pthread_timed_wait_relative         pthread_cond_timedwait_relative_np
+#define pthread_cond_timedwait_relative     pthread_cond_timedwait_relative_np
 
 __END_DECLS 
 

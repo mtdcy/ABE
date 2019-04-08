@@ -71,7 +71,7 @@
 #define __ABE_DEPRECATED            __declspec(deprecated)
 #else
 //#define __ABE_INLINE                __attribute__ ((__always_inline__))
-#define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__))
+#define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__)) inline
 #define __ABE_EXPORT                __attribute__ ((__visibility__("default")))
 #define __ABE_DEPRECATED            __attribute__ ((deprecated))
 #endif

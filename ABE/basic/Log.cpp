@@ -38,6 +38,8 @@
 #include "basic/compat/pthread_win32.h"
 #include "basic/compat/time_win32.h"
 #else
+#include "basic/compat/pthread_linux.h"
+#include "basic/compat/time_linux.h"
 #endif
 
 #include <stdio.h> // printf

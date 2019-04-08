@@ -42,7 +42,7 @@
 //#define DEBUG_MALLOC
 #ifdef DEBUG_MALLOC
 #define _DARWIN_C_SOURCE    // for RTLD_NEXT
-#define _GNU_SOURCE         // for RTLD_NEXT on Linux
+//#define _GNU_SOURCE         // for RTLD_NEXT on Linux
 
 #define LOG_TAG  "debug.malloc"
 //#define LOG_NDEBUG 0
@@ -74,21 +74,30 @@
 
 USING_NAMESPACE_ABE
 
+#ifdef __GLIBC__
+#define USING_DLSYM     0
+#else
+#define USING_DLSYM     1
+#endif
+
 typedef void*   (*real_malloc_t)(size_t n);
 typedef void    (*real_free_t)(void *p);
 typedef void*   (*real_realloc_t)(void *p, size_t n);
 typedef int     (*real_posix_memalign_t)(void **, size_t, size_t);
-#ifdef __GLIBC__
+#if USING_DLSYM == 0
 // http://stackoverflow.com/questions/5223971/question-about-overriding-c-standard-library-functions-and-how-to-link-everythin
-extern void *__libc_malloc(size_t);
-extern void  __libc_free(void *);
-extern void *__libc_realloc(void *, size_t);
+//extern void *__libc_malloc(size_t);
+//extern void  __libc_free(void *);
+//extern void *__libc_realloc(void *, size_t);
+extern __typeof (malloc) __libc_malloc;
+extern __typeof (free) __libc_free;
+extern __typeof (realloc) __libc_realloc;
 #endif
 
 // can NOT garentee static global variable initialization order,
 // so put it inside function as static local variable.
 static __ABE_INLINE void * real_malloc(size_t size) {
-#if __GLIBC__
+#if USING_DLSYM == 0
     static real_malloc_t _real_malloc = __libc_malloc;
 #else
     static real_malloc_t _real_malloc = NULL;
@@ -101,7 +110,7 @@ static __ABE_INLINE void * real_malloc(size_t size) {
 }
 
 static __ABE_INLINE void real_free(void *ptr) {
-#if __GLIBC__
+#if USING_DLSYM == 0
     static real_free_t _real_free = __libc_free;
 #else
     static real_free_t _real_free = NULL;
@@ -114,7 +123,7 @@ static __ABE_INLINE void real_free(void *ptr) {
 }
 
 static __ABE_INLINE void * real_realloc(void *ptr, size_t size) {
-#if __GLIBC__
+#if USING_DLSYM == 0
     static real_realloc_t _real_realloc = __libc_realloc;
 #else
     static real_realloc_t _real_realloc = NULL;

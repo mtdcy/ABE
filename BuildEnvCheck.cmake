@@ -47,6 +47,7 @@ check_function_exists (strdup HAVE_STRDUP)
 check_function_exists (strndup HAVE_STRNDUP)
 check_function_exists (nanosleep HAVE_NANOSLEEP)
 check_function_exists (sigaction HAVE_SIGACTION)
+check_function_exists (gettid HAVE_GETTID)
 
 if (BUILD MATCHES linux)
     check_library_exists(rt clock_gettime time.h HAVE_CLOCK_GETTIME)

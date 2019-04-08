@@ -36,6 +36,7 @@
 #elif defined(_WIN32) || defined(__MINGW32__)
 #include "basic/compat/time_win32.h"
 #else
+#include "basic/compat/time_linux.h"
 #endif
 
 #define LOG_TAG "Time"

@@ -32,11 +32,18 @@
 //          1. 20161012     initial version
 //
 
-#ifndef __ABE_basic_compat_pthread_h
-#define __ABE_basic_compat_pthread_h
+#ifndef __ABE_basic_pthread_compat_h
+#define __ABE_basic_pthread_compat_h
 
-#include <ABE/basic/Types.h>
+#define _DARWIN_C_SOURCE
 #include <pthread.h>
+#include "Config.h"
+#include <sys/types.h>  // pid_t gettid
+#include <unistd.h>     // getpid
+
+#ifndef HAVE_GETTID
+#include <sys/syscall.h>
+#endif
 
 __BEGIN_DECLS
 
@@ -45,18 +52,50 @@ __BEGIN_DECLS
 // by removing _np suffix make it won't have name conflict or confusion
 
 // the name is restricted to 16 characters, including the terminating null byte
-int pthread_setname_mpx(const char *name);
+static inline int pthread_setname(const char * name) {
+    return pthread_setname_np(pthread_self(), name);
+}
 
-int pthread_getname_mpx(pthread_t thread, char*, size_t);
+static inline int pthread_getname(pthread_t thread, char * name, size_t len) {
+    return pthread_getname_np(thread, name, len);
+}
 
-void pthread_yield_mpx();
+// no return value
+//#define pthread_yield()                     pthread_yield_np()
+
+// get self tid
+#define pthread_gettid()                      gettid()
+static inline pid_t pthread_gettid() {
+#ifdef HAVE_GETTID
+    return gettid();
+#else
+    return syscall(SYS_gettid);
+#endif
+}
 
 // return 1 if current thread is main thread
-int pthread_main_mpx();
+static inline int pthread_main() {
+    return getpid() == pthread_gettid();
+}
 
-pid_t mpx_gettid();
+static inline int pthread_cond_timedwait_relative(pthread_cond_t * cond, pthread_mutex_t * mutex, 
+                                                    const struct timespec * ts) {
+#ifdef HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE 
+    return pthread_cond_timedwait_relative_np(cond, mutex, ts);
+#else
+    struct timespec abs;
+    clock_gettime(CLOCK_MONOTONIC, &abs);
+    abs.tv_nsec += ts->tv_nsec;
+    abs.tv_sec  += ts->tv_sec;
+    if (abs.tv_nsec >= 1000000000LL) {
+        abs.tv_sec  += abs.tv_nsec / 1000000000LL;
+        abs.tv_nsec %= 1000000000LL;
+    }
+    return pthread_cond_timedwait(cond, mutex, &abs);
+#endif
+}
 
 __END_DECLS 
 
-#endif // __ABE_basic_compat_pthread_h
+#endif // __ABE_basic_pthread_compat_h
 

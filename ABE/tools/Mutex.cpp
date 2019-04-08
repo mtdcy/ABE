@@ -43,6 +43,8 @@
 #include "basic/compat/pthread_win32.h"
 #include "basic/compat/time_win32.h"
 #else
+#include "basic/compat/pthread_linux.h"
+#include "basic/compat/time_linux.h"
 #endif
 
 #define LOG_TAG   "Mutex"
@@ -121,7 +123,7 @@ bool Condition::waitRelative(Mutex& lock, int64_t reltime /* ns */) {
     struct timespec ts;
     ts.tv_sec  = reltime / 1000000000;
     ts.tv_nsec = reltime % 1000000000;
-    int rt = pthread_timed_wait_relative(&mWait, &lock.mLock, &ts);
+    int rt = pthread_cond_timedwait_relative(&mWait, &lock.mLock, &ts);
     if (rt == ETIMEDOUT)    return true;
     else                    return false;
 }

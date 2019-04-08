@@ -20,13 +20,18 @@ set (CMAKE_C_STANDARD   99)     # c98
 set (CMAKE_C_EXTENSIONS OFF)    # no gnu extensions
 set (CMAKE_CXX_STANDARD 98)     # c++98
 set (CMAKE_CXX_EXTENSIONS OFF)  # no gnu extensions
+# gnucc definitions
+if (CMAKE_COMPILER_IS_GNUCC)
+add_definitions(-Wno-attributes)
+add_definitions(-fPIC)
+endif()
 endif()
 
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
 add_definitions(-DHAVE_CONFIG_H)
-if (CMAKE_BUILD_TYPE MATCHES Debug AND NOT WIN32)
+if (CMAKE_BUILD_TYPE MATCHES Debug AND APPLE)   # malloc.cpp is ready only in APPLE
     add_definitions(-DDEBUG_MALLOC)
 endif()
 
@@ -78,6 +83,11 @@ set(ABE_SOURCES
 
 add_library (${PROJECT_NAME} SHARED ${ABE_SOURCES})
 add_library (${PROJECT_NAME}_static STATIC ${ABE_SOURCES})
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    # dlopen & pthread
+    target_link_libraries(${PROJECT_NAME} -ldl -lpthread)
+endif()
 
 # includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

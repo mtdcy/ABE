@@ -37,6 +37,7 @@
 #elif defined(_WIN32) || defined(__MINGW32__)
 #include "basic/compat/pthread_win32.h"
 #else
+#include "basic/compat/pthread_linux.h"
 #endif
 
 #define LOG_TAG   "Looper"

@@ -33,39 +33,16 @@
 //
 
 
-#ifndef __toolkit_compat_time_h
-#define __toolkit_compat_time_h 
+#ifndef __ABE_basic_time_compat_h
+#define __ABE_basic_time_compat_h
 
-#include <ABE/basic/Types.h> 
-
-#ifdef __linux__
-#define __need_timespec 
-#endif
 #include <time.h>
-#include <sys/time.h>
+#include <sys/types.h>
+#include "Config.h"
 
 __BEGIN_DECLS
 
-// NOTE: 
-// not all sleep implementation on different os will have guarantee.
-// So, we should avoid to use sleep.
-//
-// sleep 
-// usleep
-// nanosleep
-
-// for interval measurements
-// get current time since some arbitrary
-// using monotonic clock if supported.
-void relative_time(struct timespec *ts);
-
-// get current time since Epoch
-// affected by system time-of-day clock changing, including NTP
-// using CLOCK_REALTIME if supported
-void absolute_time(struct timespec *ts);
-
-// for function like pthread_cond_timedwait
-void absolute_time_later(struct timespec *ts, uint64_t nsecs);
+// macos has clock_gettime and struct timespec
 
 #define         nseconds(ts) ((ts).tv_sec * 1000000000LL + (ts).tv_nsec)
 #define         useconds(ts) ((ts).tv_sec * 1000000LL + (ts).tv_nsec / 1000)
@@ -74,4 +51,5 @@ void absolute_time_later(struct timespec *ts, uint64_t nsecs);
 
 __END_DECLS 
 
-#endif // __toolkit_compat_time_h 
+#endif // __ABE_basic_time_compat_h
+
