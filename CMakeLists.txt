@@ -88,6 +88,8 @@ set (ABE_SUBDIRS    basic object tools stl)
 
 # install 
 if (XCODE)
+    # public headers, xcode need these
+    target_sources (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ABE/ABE.h)
     foreach (sub ${ABE_SUBDIRS})
         file (GLOB _HEADERS "ABE/${sub}/*.h")
         target_sources (${PROJECT_NAME} PUBLIC ${_HEADERS})
