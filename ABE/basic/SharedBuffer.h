@@ -50,7 +50,7 @@ struct __ABE_EXPORT SharedBuffer : protected SharedObject {
         ~SharedBuffer();
 
     public:
-        static SharedBuffer * Create(const sp<Allocator>&, size_t);
+        static SharedBuffer * Create(const Object<Allocator>&, size_t);
         void            deallocate();
 
     public:
@@ -70,9 +70,9 @@ struct __ABE_EXPORT SharedBuffer : protected SharedObject {
         SharedBuffer *  edit(size_t);
 
     private:
-        sp<Allocator>   mAllocator;
-        char *          mData;
-        size_t          mSize;
+        Object<Allocator>   mAllocator;
+        char *              mData;
+        size_t              mSize;
 };
 
 __END_NAMESPACE_ABE

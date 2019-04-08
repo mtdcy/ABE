@@ -49,7 +49,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 static const size_t kDefaultCapacity = 4;
 
-VectorImpl::VectorImpl(const sp<Allocator>& allocator,
+VectorImpl::VectorImpl(const Object<Allocator>& allocator,
         size_t capacity,
         const TypeHelper& helper) :
     mTypeHelper(helper),

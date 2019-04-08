@@ -70,7 +70,7 @@ class ListNodeImpl {
 
 class __ABE_EXPORT ListImpl {
     public:
-        ListImpl(const sp<Allocator>& allocator, const TypeHelper& helper);
+        ListImpl(const Object<Allocator>& allocator, const TypeHelper& helper);
 
         ListImpl(const ListImpl& rhs);
 
@@ -95,13 +95,13 @@ class __ABE_EXPORT ListImpl {
         ListNodeImpl*       allocateNode();
         void                freeNode(ListNodeImpl* node);
 
-        void                _prepare(const sp<Allocator>& allocator);
+        void                _prepare(const Object<Allocator>& allocator);
         ListNodeImpl*       _edit();
         void                _clear();
 
     private:
         TypeHelper          mTypeHelper;
-        sp<Allocator>       mAllocator;
+        Object<Allocator>   mAllocator;
         SharedBuffer *      mStorage;
         size_t              mListLength;
 };
@@ -140,7 +140,7 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl 
         typedef Iterator<const __NAMESPACE_ABE_PRIVATE::ListNodeImpl *, const TYPE> const_iterator;
 
     public:
-        __ABE_INLINE List(const sp<Allocator>& allocator = kAllocatorDefault) :
+        __ABE_INLINE List(const Object<Allocator>& allocator = kAllocatorDefault) :
             ListImpl(allocator, TypeHelperBuilder<TYPE, false, true, false>()) { }
 
         __ABE_INLINE ~List() { }

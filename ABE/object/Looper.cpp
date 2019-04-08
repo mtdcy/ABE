@@ -58,11 +58,11 @@
 __BEGIN_NAMESPACE_ABE
 
 struct Job {
-    sp<Runnable>    mRoutine;
-    int64_t         mTime;
+    Object<Runnable>    mRoutine;
+    int64_t             mTime;
 
     Job() : mRoutine(NULL), mTime(0) { }
-    Job(const sp<Runnable>& routine, int64_t delay) : mRoutine(routine),
+    Job(const Object<Runnable>& routine, int64_t delay) : mRoutine(routine),
     mTime(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 
     bool operator<(const Job& rhs) const {
@@ -163,7 +163,7 @@ struct JobDispatcher : public Runnable {
         mStat.profile(interval);
     }
 
-    void post(const sp<Runnable>& routine, int64_t delay = 0) {
+    void post(const Object<Runnable>& routine, int64_t delay = 0) {
         Job job(routine, delay);
 
         // using lockfree queue to speed up post()
@@ -220,7 +220,7 @@ struct JobDispatcher : public Runnable {
         }
     }
 
-    void remove(const sp<Runnable>& routine) {
+    void remove(const Object<Runnable>& routine) {
         AutoLock _l(mJobLock);
 
         // move mJobs -> mTimedJobs
@@ -246,7 +246,7 @@ struct JobDispatcher : public Runnable {
         if (head) signal();
     }
 
-    bool exists(const sp<Runnable>& routine) const {
+    bool exists(const Object<Runnable>& routine) const {
         AutoLock _l(mJobLock);
 
         // move mJobs -> mTimedJobs
@@ -508,8 +508,8 @@ struct MainJobDispatcher : public JobDispatcher {
 };
 
 struct SharedLooper : public SharedObject {
-    sp<JobDispatcher>   mDispatcher;
-    Thread *            mThread;
+    Object<JobDispatcher>   mDispatcher;
+    Thread *                mThread;
 
     // for main looper
     SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(NULL) {
@@ -528,17 +528,17 @@ struct SharedLooper : public SharedObject {
 //////////////////////////////////////////////////////////////////////////////////
 static Looper * main_looper = NULL;
 
-sp<Looper> Looper::Current() {
+Object<Looper> Looper::Current() {
     return __tls;
 }
 
 // main looper without backend thread
-sp<Looper> Looper::Main() {
+Object<Looper> Looper::Main() {
     if (main_looper == NULL) {
         DEBUG("init main looper");
         CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
         main_looper = new Looper;
-        sp<SharedLooper> looper = new SharedLooper;
+        Object<SharedLooper> looper = new SharedLooper;
         main_looper->mShared = looper;
     }
     return main_looper;
@@ -547,7 +547,7 @@ sp<Looper> Looper::Main() {
 Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER),
     mShared(new SharedLooper(name, type))
 {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->_interface = this;     // hack for Looper::Current
 }
 
@@ -556,18 +556,18 @@ Looper::~Looper() {
 }
 
 String& Looper::name() const {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     return looper->mDispatcher->mName;
 }
 
 Thread& Looper::thread() const {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     if (looper->mThread)    return *looper->mThread;
     else                    return Thread::Null;
 }
 
 void Looper::loop() {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     if (looper->mThread) {
         looper->mThread->run();
     } else {
@@ -576,7 +576,7 @@ void Looper::loop() {
 }
 
 void Looper::terminate(bool wait) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->terminate(wait);
     if (looper->mThread) {
         if (wait)   looper->mThread->join();
@@ -585,32 +585,32 @@ void Looper::terminate(bool wait) {
 }
 
 void Looper::profile(int64_t interval) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->profile(interval);
 }
 
-void Looper::post(const sp<Runnable>& routine, int64_t delayUs) {
-    sp<SharedLooper> looper = mShared;
+void Looper::post(const Object<Runnable>& routine, int64_t delayUs) {
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->post(routine, delayUs);
 }
 
-void Looper::remove(const sp<Runnable>& routine) {
-    sp<SharedLooper> looper = mShared;
+void Looper::remove(const Object<Runnable>& routine) {
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->remove(routine);
 }
 
-bool Looper::exists(const sp<Runnable>& routine) const {
-    sp<SharedLooper> looper = mShared;
+bool Looper::exists(const Object<Runnable>& routine) const {
+    Object<SharedLooper> looper = mShared;
     return looper->mDispatcher->exists(routine);
 }
 
 void Looper::flush() {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->clear();
 }
 
 String Looper::string() const {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     String info = String::format("looper %s: jobs %zu",
             looper->mDispatcher->mName.c_str(),
@@ -628,7 +628,7 @@ String Looper::string() const {
 }
 
 size_t Looper::bind(void * user) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     looper->mDispatcher->mUserContext.push(user);
@@ -636,7 +636,7 @@ size_t Looper::bind(void * user) {
 }
 
 void Looper::bind(size_t id, void *user) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     CHECK_LE(id, looper->mDispatcher->mUserContext.size());
@@ -648,7 +648,7 @@ void Looper::bind(size_t id, void *user) {
 }
 
 void * Looper::user(size_t id) const {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     if (id >= looper->mDispatcher->mUserContext.size())
@@ -677,7 +677,7 @@ extern "C" {
     }
 
     Looper * SharedLooperCreate(const char * name) {
-        sp<Looper> shared = Looper::Create(name);
+        Object<Looper> shared = Looper::Create(name);
         return (Looper *)shared->RetainObject();
     }
 

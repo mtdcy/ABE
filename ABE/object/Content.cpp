@@ -121,10 +121,10 @@ bool Content::writeBlockBack() {
 
 ///////////////////////////////////////////////////////////////////////////
 // static
-sp<Content> Content::Create(const String& url, uint32_t mode) {
+Object<Content> Content::Create(const String& url, uint32_t mode) {
     INFO("Open content %s", url.c_str());
 
-    sp<Protocol> proto;
+    Object<Protocol> proto;
     if (url.startsWithIgnoreCase("file://") || 
             url.startsWithIgnoreCase("/") ||
             url.startsWithIgnoreCase("android://") ||
@@ -139,7 +139,7 @@ sp<Content> Content::Create(const String& url, uint32_t mode) {
     }
 
     if (proto.get()) {
-        sp<Content> pipe = new Content(proto);
+        Object<Content> pipe = new Content(proto);
         if (pipe->status() == 0) return pipe;
     }
 
@@ -150,7 +150,7 @@ sp<Content> Content::Create(const String& url, uint32_t mode) {
 // read mode: read - read - read
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
-Content::Content(const sp<Protocol>& proto, size_t blockLength)
+Content::Content(const Object<Protocol>& proto, size_t blockLength)
     :
         mProto(proto),
         mRangeStart(0),
@@ -192,10 +192,10 @@ void Content::flush() {
     mBlockOffset = 0;
 }
 
-sp<Buffer> Content::read(size_t size) {
+Object<Buffer> Content::read(size_t size) {
     CHECK_TRUE(mProto->flags() & Protocol::READ);
 
-    sp<Buffer> data = new Buffer(size);
+    Object<Buffer> data = new Buffer(size);
 
     //bool eof = false;
     size_t n = size;
@@ -234,10 +234,10 @@ sp<Buffer> Content::read(size_t size) {
     return data;
 }
 
-sp<Buffer> Content::readLine() {
+Object<Buffer> Content::readLine() {
     CHECK_TRUE(mProto->flags() & Protocol::READ);
 
-    sp<Buffer> line = new Buffer(kMaxLineLength);
+    Object<Buffer> line = new Buffer(kMaxLineLength);
 
     char *s = mBlock->data() + mBlockOffset;
     size_t m = mBlock->ready() - mBlockOffset; 

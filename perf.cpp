@@ -120,7 +120,7 @@ void QueuePerf() {
 #if MULTI_THREAD
     // single producer & single consumer test
     INFO("Queue single producer & single consumer");
-    sp<QueueSingleConsumer> consumer = new QueueSingleConsumer;
+    Object<QueueSingleConsumer> consumer = new QueueSingleConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -134,7 +134,7 @@ void QueuePerf() {
 
     // multi producer & single consumer test
     INFO("Queue multi producer & single consumer");
-    sp<QueueProducer> producer = new QueueProducer;
+    Object<QueueProducer> producer = new QueueProducer;
     Thread * threads[PERF_PRODUCER];
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
@@ -237,7 +237,7 @@ void ListPerf() {
 #if MULTI_THREAD
     // compare to LockFree::Queue
     INFO("List single producer & single consumer");
-    sp<ListConsumer> consumer = new ListConsumer;
+    Object<ListConsumer> consumer = new ListConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -251,7 +251,7 @@ void ListPerf() {
     INFO("---");
 
     INFO("List multi producer & single consumer");
-    sp<ListProducer> producer = new ListProducer;
+    Object<ListProducer> producer = new ListProducer;
     Thread * threads[PERF_PRODUCER];
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
@@ -509,9 +509,9 @@ void LooperPerf() {
     INFO("Runnable::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
 #endif
     
-    sp<Looper> looper = Looper::Create("LooperPerf");
+    Object<Looper> looper = Looper::Create("LooperPerf");
     looper->loop();
-    sp<EmptyRunnable> routine = new EmptyRunnable;
+    Object<EmptyRunnable> routine = new EmptyRunnable;
     routine->count = 0;
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {

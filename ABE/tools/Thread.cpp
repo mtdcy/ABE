@@ -140,7 +140,7 @@ struct SharedThread : public SharedObject {
     eThreadType             mType;
     String                  mName;
     pthread_t               mNativeHandler;     // no initial value to pthread_t
-    sp<Runnable>            mRoutine;
+    Object<Runnable>        mRoutine;
 
     // mutable context, access with lock
     Mutex                   mLock;
@@ -152,7 +152,7 @@ struct SharedThread : public SharedObject {
 
     __ABE_INLINE SharedThread(const String& name,
             const eThreadType type,
-            const sp<Runnable>& routine) :
+            const Object<Runnable>& routine) :
         SharedObject(),
         mType(type), mName(name), mRoutine(routine),
         mState(kThreadIntNew), mReadyToRun(false), mJoinable(false),
@@ -323,11 +323,11 @@ struct SharedThread : public SharedObject {
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-static sp<Runnable> once_runnable;
+static Object<Runnable> once_runnable;
 static void once_routine() {
     once_runnable->run();
 }
-void Thread::Once(const sp<Runnable>& runnable) {
+void Thread::Once(const Object<Runnable>& runnable) {
     once_runnable = runnable;
     pthread_once_t once = PTHREAD_ONCE_INIT;
     // FIXME: put runnable in global variable is not right
@@ -343,7 +343,7 @@ static String MakeThreadName() {
 
 Thread Thread::Null = Thread();
 
-Thread::Thread(const sp<Runnable>& runnable, const eThreadType type) : mShared(NULL)
+Thread::Thread(const Object<Runnable>& runnable, const eThreadType type) : mShared(NULL)
 {
     SharedThread *shared = new SharedThread(MakeThreadName(), type, runnable);
     mShared = shared;   // must retain object before start
@@ -356,7 +356,7 @@ Thread::~Thread() {
 }
 
 Thread& Thread::setName(const String& name) {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     CHECK_TRUE(shared->mState <= kThreadIntReady);
     shared->mName = name;
@@ -364,13 +364,13 @@ Thread& Thread::setName(const String& name) {
 }
 
 String& Thread::name() const {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     return shared->mName;
 }
 
 Thread& Thread::setType(const eThreadType type) {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     CHECK_TRUE(shared->mState <= kThreadIntReady);
     shared->mType = type;
@@ -378,41 +378,41 @@ Thread& Thread::setType(const eThreadType type) {
 }
 
 eThreadType Thread::type() const {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     return shared->mType;
 }
 
 Thread& Thread::run() {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     shared->run();
     return *this;
 }
 
 bool Thread::joinable() const {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     return shared->mJoinable;
 }
 
 void Thread::join() {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     shared->join();
 }
 
 void Thread::detach() {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     shared->detach();
 }
 
 pthread_t Thread::native_thread_handle() const {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     return shared->mNativeHandler;
 }
 
 Thread::eThreadState Thread::state() const {
-    sp<SharedThread> shared = mShared;
+    Object<SharedThread> shared = mShared;
     AutoLock _l(shared->mLock);
     switch (shared->mState) {
         case kThreadIntNew:

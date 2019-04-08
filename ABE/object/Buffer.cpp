@@ -81,7 +81,7 @@ static String hexdump(const void *data, uint32_t bytes) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
+Buffer::Buffer(size_t capacity, const Object<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
     mType(kBufferTypeDefault), mReadPos(0), mWritePos(0)
@@ -90,7 +90,7 @@ Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(O
     _alloc();
 }
 
-Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
+Buffer::Buffer(size_t capacity, eBufferType type, const Object<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(capacity),
     mType(type), mReadPos(0), mWritePos(0)
@@ -99,7 +99,7 @@ Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator
     _alloc();
 }
 
-Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
+Buffer::Buffer(const char *s, size_t n, eBufferType type, const Object<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
     mAllocator(allocator),
     mData(NULL), mCapacity(n ? n : strlen(s)),
     mType(type), mReadPos(0), mWritePos(0)
@@ -206,11 +206,11 @@ size_t Buffer::read(char *buf, size_t n) {
     return n;
 }
 
-sp<Buffer> Buffer::read(size_t n) {
+Object<Buffer> Buffer::read(size_t n) {
     CHECK_GT(n, 0);
     if (ready() == 0) return NULL;
     n = MIN(n, ready());
-    sp<Buffer> buf = new Buffer(data(), n);
+    Object<Buffer> buf = new Buffer(data(), n);
     mReadPos += n;
     _rewind();
     return buf;
@@ -225,10 +225,10 @@ void Buffer::skip(size_t n) {
     _rewind();
 }
 
-sp<Buffer> Buffer::split(size_t pos, size_t n) const {
+Object<Buffer> Buffer::split(size_t pos, size_t n) const {
     CHECK_GT(n, 0);
     CHECK_LE(pos + n, ready());
-    sp<Buffer> buf = new Buffer(n);
+    Object<Buffer> buf = new Buffer(n);
     buf->write(data() + pos, n);
     return buf;
 }

@@ -148,14 +148,14 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE
 
 #define COMPARE(_op_)                                                   \
-    __ABE_INLINE bool operator _op_ (const sp<T>& o) const {            \
+    __ABE_INLINE bool operator _op_ (const Object<T>& o) const {        \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
     __ABE_INLINE bool operator _op_ (const T* o) const {                \
         return mShared _op_ o;                                          \
     }                                                                   \
     template<typename U>                                                \
-    __ABE_INLINE bool operator _op_ (const sp<U>& o) const {            \
+    __ABE_INLINE bool operator _op_ (const Object<U>& o) const {        \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
     template<typename U>                                                \
@@ -163,25 +163,25 @@ __BEGIN_NAMESPACE_ABE
         return mShared _op_ o;                                          \
     }                                                                   \
 
-template <class T> class __ABE_EXPORT sp {
+template <class T> class __ABE_EXPORT Object {
     public:
         // constructors
-        __ABE_INLINE sp() : mShared(NULL) { }
-        __ABE_INLINE sp(T* rhs);
-        __ABE_INLINE sp(const sp<T>& rhs);
+        __ABE_INLINE Object() : mShared(NULL) { }
+        __ABE_INLINE Object(T* rhs);
+        __ABE_INLINE Object(const Object<T>& rhs);
 
-        template<typename U> __ABE_INLINE sp(U* rhs);
-        template<typename U> __ABE_INLINE sp(const sp<U>& rhs);
+        template<typename U> __ABE_INLINE Object(U* rhs);
+        template<typename U> __ABE_INLINE Object(const Object<U>& rhs);
 
         // destructors
-        __ABE_INLINE ~sp();
+        __ABE_INLINE ~Object();
 
         // copy assignments
-        __ABE_INLINE sp& operator=(T* rhs);
-        __ABE_INLINE sp& operator=(const sp<T>& rhs);
+        __ABE_INLINE Object& operator=(T* rhs);
+        __ABE_INLINE Object& operator=(const Object<T>& rhs);
 
-        template<typename U> __ABE_INLINE sp& operator=(U* rhs);
-        template<typename U> __ABE_INLINE sp& operator=(const sp<U>& rhs);
+        template<typename U> __ABE_INLINE Object& operator=(U* rhs);
+        template<typename U> __ABE_INLINE Object& operator=(const Object<U>& rhs);
 
         // clear
         __ABE_INLINE void clear();
@@ -207,35 +207,35 @@ template <class T> class __ABE_EXPORT sp {
         __ABE_INLINE size_t      refsCount() const   { return mShared->GetRetainCount();         }
 
     private:
-        template<typename U> friend class sp;
+        template<typename U> friend class Object;
         T *                 mShared;
 };
 #undef COMPARE
 
 ///////////////////////////////////////////////////////////////////////////
-template <typename T> sp<T>::sp(T* rhs) : mShared(rhs)
+template <typename T> Object<T>::Object(T* rhs) : mShared(rhs)
 {
     if (mShared) { mShared->RetainObject(); }
 }
 
-template <typename T> sp<T>::sp(const sp<T>& rhs) : mShared(rhs.mShared)
+template <typename T> Object<T>::Object(const Object<T>& rhs) : mShared(rhs.mShared)
 {
     if (mShared) { mShared->RetainObject(); }
 }
 
-template<typename T> template<typename U> sp<T>::sp(U* rhs) :
+template<typename T> template<typename U> Object<T>::Object(U* rhs) :
     mShared(static_cast<T*>(rhs))
 {
     if (mShared) { mShared->RetainObject(); }
 }
 
-template<typename T> template<typename U> sp<T>::sp(const sp<U>& rhs) :
+template<typename T> template<typename U> Object<T>::Object(const Object<U>& rhs) :
     mShared(static_cast<T*>(rhs.mShared))
 {
     if (mShared) { mShared->RetainObject(); }
 }
 
-template<typename T> sp<T>& sp<T>::operator=(T* rhs) {
+template<typename T> Object<T>& Object<T>::operator=(T* rhs) {
     if (mShared == rhs) return *this;
     if (mShared)    mShared->ReleaseObject();
     mShared         = rhs;
@@ -243,7 +243,7 @@ template<typename T> sp<T>& sp<T>::operator=(T* rhs) {
     return *this;
 }
 
-template<typename T> sp<T>& sp<T>::operator=(const sp<T>& rhs) {
+template<typename T> Object<T>& Object<T>::operator=(const Object<T>& rhs) {
     if (mShared == rhs.mShared) return *this;
     if (mShared)    mShared->ReleaseObject();
     mShared         = rhs.mShared;
@@ -251,7 +251,7 @@ template<typename T> sp<T>& sp<T>::operator=(const sp<T>& rhs) {
     return *this;
 }
 
-template<typename T> template<typename U> sp<T>& sp<T>::operator=(U* rhs) {
+template<typename T> template<typename U> Object<T>& Object<T>::operator=(U* rhs) {
     if (mShared == rhs) return *this;
     if (mShared)    mShared->ReleaseObject();
     mShared         = static_cast<T*>(rhs);
@@ -259,7 +259,7 @@ template<typename T> template<typename U> sp<T>& sp<T>::operator=(U* rhs) {
     return *this;
 }
 
-template<typename T> template<typename U> sp<T>& sp<T>::operator=(const sp<U>& rhs) {
+template<typename T> template<typename U> Object<T>& Object<T>::operator=(const Object<U>& rhs) {
     if (mShared == rhs.mShared) return *this;
     if (mShared)    mShared->ReleaseObject();
     mShared         = static_cast<T*>(rhs.mShared);
@@ -267,8 +267,8 @@ template<typename T> template<typename U> sp<T>& sp<T>::operator=(const sp<U>& r
     return *this;
 }
 
-template<typename T> sp<T>::~sp() { clear(); }
-template<typename T> void sp<T>::clear() {
+template<typename T> Object<T>::~Object() { clear(); }
+template<typename T> void Object<T>::clear() {
     if (mShared) {
         T * tmp = mShared;
         // clear mShared before release(), avoid loop in object destruction

@@ -53,8 +53,8 @@ class __ABE_EXPORT Event : public SharedObject {
          * @param looper    if provided, event will run async
          */
         Event();
-        Event(const sp<Looper>& looper);
-        Event(const String& name, const sp<Looper>& looper);
+        Event(const Object<Looper>& looper);
+        Event(const String& name, const Object<Looper>& looper);
 
         /**
          * FIXME: NOT thread safe
@@ -90,8 +90,8 @@ class __ABE_EXPORT Event : public SharedObject {
 template <class TYPE> class TypedEvent : public Event {
     public:
         __ABE_INLINE TypedEvent() : Event() { }
-        __ABE_INLINE TypedEvent(const sp<Looper>& looper) : Event(looper) { }
-        __ABE_INLINE TypedEvent(const String& name, const sp<Looper>& looper) : Event(name, looper) { }
+        __ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
+        __ABE_INLINE TypedEvent(const String& name, const Object<Looper>& looper) : Event(name, looper) { }
 
         __ABE_INLINE virtual ~TypedEvent() { }
 

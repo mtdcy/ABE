@@ -44,7 +44,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 class __ABE_EXPORT HashTableImpl {
     public:
-        HashTableImpl(const sp<Allocator>& allocator,
+        HashTableImpl(const Object<Allocator>& allocator,
                 size_t tableLength,
                 const TypeHelper& keyHelper,
                 const TypeHelper& valueHelper,
@@ -97,13 +97,13 @@ class __ABE_EXPORT HashTableImpl {
         void            _release(SharedBuffer *);
 
     private:
-        TypeHelper      mKeyHelper;
-        TypeHelper      mValueHelper;
-        type_compare_t  mKeyCompare;  // make sure element is unique
-        sp<Allocator>   mAllocator;
-        SharedBuffer *  mStorage;
-        size_t          mTableLength;
-        size_t          mNumElements;
+        TypeHelper          mKeyHelper;
+        TypeHelper          mValueHelper;
+        type_compare_t      mKeyCompare;  // make sure element is unique
+        Object<Allocator>   mAllocator;
+        SharedBuffer *      mStorage;
+        size_t              mTableLength;
+        size_t              mNumElements;
 };
 
 __END_NAMESPACE_ABE_PRIVATE
@@ -187,7 +187,7 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
         typedef Iterator<const HashTable<KEY, VALUE> *, const VALUE, const Element *> const_iterator;
 
     public:
-        __ABE_INLINE HashTable(size_t tableLength = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
+        __ABE_INLINE HashTable(size_t tableLength = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
             HashTableImpl(allocator, tableLength,
                     TypeHelperBuilder<KEY, false, true, false>(),
                     TypeHelperBuilder<VALUE, false, true, false>(),

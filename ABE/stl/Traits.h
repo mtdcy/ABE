@@ -68,7 +68,7 @@ template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
 #ifdef _TOOLKIT_HEADERS_SHARED_BUFFER_H
-template <typename T> struct is_trivial_move<sp<T> >    { enum { value = true }; };
+template <typename T> struct is_trivial_move<Object<T> >    { enum { value = true }; };
 #endif
 
 #ifdef _TOOLKIT_HEADERS_STRING_H    // String.h

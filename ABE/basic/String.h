@@ -42,7 +42,9 @@
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
+#ifndef __APPLE__
 typedef uint16_t char16_t;
+#endif
 
 class __ABE_EXPORT String : public SharedObject {
     public:

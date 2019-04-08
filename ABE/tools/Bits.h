@@ -102,7 +102,7 @@ class __ABE_EXPORT BitReader {
          * @param nbytes    number bytes to read
          * @return return a buffer reference contains the data
          */
-        sp<Buffer>  readB(size_t nbytes) const;
+        Object<Buffer>  readB(size_t nbytes) const;
 
         /**
          * skip n bits at most of the data

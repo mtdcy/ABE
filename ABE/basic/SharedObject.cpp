@@ -130,12 +130,12 @@ SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
 
     SharedBuffer::~SharedBuffer() { mAllocator.clear(); }
 
-    SharedBuffer * SharedBuffer::Create(const sp<Allocator> & _allocator, size_t sz) {
+    SharedBuffer * SharedBuffer::Create(const Object<Allocator> & _allocator, size_t sz) {
         // FIXME: if allocator is aligned, make sure data is also aligned
         const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
 
         // keep a strong ref local
-        sp<Allocator> allocator = _allocator;
+        Object<Allocator> allocator = _allocator;
         SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
         memset((void*)shared, 0, sizeof(SharedBuffer));
         new (shared) SharedBuffer();
@@ -160,7 +160,7 @@ void SharedBuffer::deallocate() {
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
     // keep a strong ref local
-    sp<Allocator> allocator = mAllocator;
+    Object<Allocator> allocator = mAllocator;
     this->~SharedBuffer();
     allocator->deallocate(this);
 }
@@ -200,7 +200,7 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
     if (IsBufferNotShared()) {
         // reallocate
         // keep a strong ref local
-        sp<Allocator> allocator = mAllocator;
+        Object<Allocator> allocator = mAllocator;
         const size_t allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(uint32_t);
         SharedBuffer * shared = (SharedBuffer *)allocator->reallocate(this, allocLength);
         // fix context

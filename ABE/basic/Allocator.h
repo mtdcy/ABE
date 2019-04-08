@@ -49,8 +49,8 @@ struct __ABE_EXPORT Allocator : public SharedObject {
     virtual void *  reallocate(void * ptr, size_t size) = 0;
     virtual void    deallocate(void * ptr) = 0;
 };
-__ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
-__ABE_EXPORT sp<Allocator> GetAlignedAllocator(size_t alignment);
+__ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
+__ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
 #endif   // __cplusplus

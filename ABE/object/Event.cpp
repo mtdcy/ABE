@@ -41,14 +41,14 @@
 __BEGIN_NAMESPACE_ABE
 
 struct SharedEvent : public SharedObject {
-    String      mName;
-    Event *     mEvent;
-    sp<Looper>  mLooper;
+    String          mName;
+    Event *         mEvent;
+    Object<Looper>  mLooper;
 
-    SharedEvent(Event * event, const sp<Looper>& looper) :
+    SharedEvent(Event * event, const Object<Looper>& looper) :
         SharedObject(),
         mEvent(event), mLooper(looper) { }
-    SharedEvent(const String& name, Event * event, const sp<Looper>& looper) :
+    SharedEvent(const String& name, Event * event, const Object<Looper>& looper) :
         SharedObject(), mName(name),
         mEvent(event), mLooper(looper) { }
 };
@@ -76,12 +76,12 @@ struct Event::EventRunnable : public Runnable {
 Event::Event() : mShared(NULL) {
 }
 
-Event::Event(const sp<Looper>& looper) :
+Event::Event(const Object<Looper>& looper) :
     mShared(new SharedEvent(this, looper))  {
         mShared->RetainObject();
     }
 
-Event::Event(const String& name, const sp<Looper>& looper) :
+Event::Event(const String& name, const Object<Looper>& looper) :
     mShared(new SharedEvent(name, this, looper)) {
         mShared->RetainObject();
     }

@@ -41,6 +41,8 @@
 #include <ABE/basic/Hardware.h>
 #include <ABE/basic/Time.h>
 #include <ABE/basic/SharedObject.h>
+#define sp  Object  // for api compatible, keep for sometime
+
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/SharedBuffer.h>
 #include <ABE/basic/String.h>

@@ -74,9 +74,9 @@ class __ABE_EXPORT Content : public SharedObject {
         };
 
     public: 
-        static sp<Content> Create(const String& url, uint32_t mode = Protocol::READ);
+        static Object<Content> Create(const String& url, uint32_t mode = Protocol::READ);
 
-        Content(const sp<Protocol>& proto, size_t blockLength = 4096);
+        Content(const Object<Protocol>& proto, size_t blockLength = 4096);
 
         ~Content();
 
@@ -88,14 +88,14 @@ class __ABE_EXPORT Content : public SharedObject {
 
     public:
         //! read bytes from content 
-        sp<Buffer>      read(size_t size);
+        Object<Buffer>  read(size_t size);
 
         //! write bytes to content
         ssize_t         write(const Buffer& buffer);
 
         //! read line from content including the terminating null byte 
         //! excluding the return byte 
-        sp<Buffer>      readLine();
+        Object<Buffer>  readLine();
 
         //! write line to content
         ssize_t         writeLine(const Buffer& line);
@@ -118,13 +118,13 @@ class __ABE_EXPORT Content : public SharedObject {
         void            reset();
 
     private:
-        sp<Protocol>            mProto;
+        Object<Protocol>        mProto;
 
         int64_t                 mRangeStart;
         int64_t                 mRangeLength;
         int64_t                 mRangeOffset;
 
-        sp<Buffer>              mBlock;         // cache block
+        Object<Buffer>          mBlock;         // cache block
         size_t                  mBlockOffset;   // offset shared by read and write
         size_t                  mBlockLength;   // how may bytes of cache in mBlock
         // which need to write back

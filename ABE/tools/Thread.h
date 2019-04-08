@@ -84,7 +84,7 @@ class __ABE_EXPORT Thread {
         /**
          *
          */
-        static void         Once(const sp<Runnable>&);
+        static void         Once(const Object<Runnable>&);
 
     public:
         /**
@@ -92,7 +92,7 @@ class __ABE_EXPORT Thread {
          * @param runnable  reference to runnable object
          * @note thread is joinable until join() or detach()
          */
-        Thread(const sp<Runnable>& runnable, const eThreadType type = kThreadDefault);
+        Thread(const Object<Runnable>& runnable, const eThreadType type = kThreadDefault);
         ~Thread();
 
         /**
@@ -165,7 +165,7 @@ class __ABE_EXPORT Thread {
 
     private:
         Thread() : mShared(NULL) { }
-        sp<SharedObject> mShared;
+        Object<SharedObject> mShared;
 
     private:
         DISALLOW_EVILS(Thread);

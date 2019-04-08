@@ -85,7 +85,7 @@ class __ABE_EXPORT Message : public SharedObject {
         void            setString   (const String& name, const char *s, size_t len = 0);    // kTypeString
         void            setObject   (const String& name, SharedObject * object);            // kTypeObject
 
-        template <class T> __ABE_INLINE void setObject(const String& name, const sp<T>& o)
+        template <class T> __ABE_INLINE void setObject(const String& name, const Object<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
         int32_t         findInt32   (const String& name, int32_t def = 0) const;            // kTypeInt32
