@@ -38,7 +38,7 @@
 #include "SharedObject.h"
 #include "SharedBuffer.h"
 
-#include "private/atomic.h"
+#include "Atomic.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -73,25 +73,24 @@ SharedObject::~SharedObject() {
 
 SharedObject *  SharedObject::RetainObject() {
     DEBUG("retain %" PRIu32, mID);
-    atomic_add(&mRefs, 1);
+    ++mRefs;
     return this;
 }
 
 size_t SharedObject::ReleaseObject(bool keep) {
     DEBUG("release %" PRIu32, mID);
-    int old = atomic_sub(&mRefs, 1);
-    FATAL_CHECK_GT(old, 0);
-    if (old == 1 && !keep) {
+    size_t refs = --mRefs;
+    if (refs == 0 && !keep) {
         delete this;
     }
-    return (size_t)old;
+    return (size_t)refs;
 }
 
 size_t SharedObject::GetRetainCount() const {
-    return (size_t)atomic_load(&mRefs);
+    return mRefs.load();
 }
 
-SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(rhs.mRefs) {
+SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(0) {
 }
 
 SharedObject& SharedObject::operator=(const SharedObject &rhs) {
@@ -172,11 +171,11 @@ size_t SharedBuffer::ReleaseBuffer(bool keep) {
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
-    size_t old = SharedObject::ReleaseObject(true);
-    if (old == 1 && !keep) {
+    size_t refs = SharedObject::ReleaseObject(true);
+    if (refs == 0 && !keep) {
         deallocate();
     }
-    return old;
+    return refs;
 }
 
 SharedBuffer * SharedBuffer::edit() {

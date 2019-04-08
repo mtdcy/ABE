@@ -76,8 +76,9 @@ private:
     volatile T value;
     
 public:
-    Atomic() : value(static_cast<T>(0)) { }
-    explicit Atomic(const T& _value) : value(_value) { }
+    Atomic()                                    { ABE_ATOMIC_STORE(&value, static_cast<T>(0));  }
+    explicit Atomic(T _value)                   { ABE_ATOMIC_STORE(&value, _value);             }
+    T operator=(T _value)                       { return ABE_ATOMIC_STORE(&value, _value);      }
     
     __ABE_INLINE void   store(T val)            { ABE_ATOMIC_STORE(&value, val);                }
     __ABE_INLINE T      load() const            { return ABE_ATOMIC_LOAD(&value);               }

@@ -161,7 +161,7 @@ ListNodeImpl* ListImpl::_edit() {
         }
 
         // free old nodes when it is onlyOwnByUs
-        if (old->ReleaseBuffer(true) == 1) {
+        if (old->ReleaseBuffer(true) == 0) {
             ListNodeImpl* node = list0->mNext;
             while (node != list0) {
                 ListNodeImpl * next = node->mNext;
@@ -178,7 +178,7 @@ ListNodeImpl* ListImpl::_edit() {
 }
 
 void ListImpl::_clear() {
-    if (mStorage->ReleaseBuffer(true) == 1) {
+    if (mStorage->ReleaseBuffer(true) == 0) {
         ListNodeImpl * list = (ListNodeImpl *)mStorage->data();
         ListNodeImpl * node = list->mNext;
         while (node != list) {

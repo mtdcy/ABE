@@ -106,7 +106,7 @@ void HashTableImpl::clear() {
 
 // clear both Elements and bucket storage
 void HashTableImpl::_release(SharedBuffer * storage) {
-    if (storage->ReleaseBuffer(true) == 1) {
+    if (storage->ReleaseBuffer(true) == 0) {
         Element ** buck = (Element **)storage->data();
         for (size_t index = 0; index < mTableLength; ++index) {
             Element * e = buck[index];

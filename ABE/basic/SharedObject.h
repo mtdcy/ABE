@@ -34,6 +34,7 @@
 #ifndef _TOOLKIT_HEADERS_OBJECT_H
 #define _TOOLKIT_HEADERS_OBJECT_H
 #include <ABE/basic/Types.h>
+#include <ABE/basic/Atomic.h>
 
 __BEGIN_DECLS
 
@@ -57,7 +58,7 @@ __BEGIN_NAMESPACE_ABE
 struct __ABE_EXPORT SharedObject {
     private:
         const uint32_t  mID;
-        volatile int    mRefs;
+        Atomic<size_t>  mRefs;
 
     protected:
         SharedObject();
@@ -80,7 +81,7 @@ struct __ABE_EXPORT SharedObject {
          * release this object by decrease reference count
          * if reference count reach 0, this object will be deleted
          * @param keep  whether to keep the memory if this is the last ref
-         * @return return old reference count
+         * @return return new reference count
          * @note keep the memory if subclass need to do extra destruction work
          */
         size_t          ReleaseObject(bool keep = false);

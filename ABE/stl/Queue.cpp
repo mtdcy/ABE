@@ -34,9 +34,9 @@
 
 #define LOG_TAG "Queue"
 //#define LOG_NDEBUG 0
-#include "ABE/basic/Log.h"
+#include "basic/Log.h"
 
-#include "basic/private/atomic.h"
+#include "basic/Atomic.h"
 
 #include "Queue.h"
 #include <stdlib.h>
@@ -71,10 +71,10 @@ LockFreeQueueImpl::~LockFreeQueueImpl() {
 }
 
 void LockFreeQueueImpl::clear() {
-    volatile NodeImpl *head = atomic_load(&mHead);
-    while (atomic_load(&mLength)) {
-        if (atomic_compare_exchange(&mHead, &head, mHead->mNext)) {
-            atomic_sub(&mLength, 1);
+    volatile NodeImpl *head = ABE_ATOMIC_LOAD(&mHead);
+    while (ABE_ATOMIC_LOAD(&mLength)) {
+        if (ABE_ATOMIC_CAS(&mHead, &head, mHead->mNext)) {
+            ABE_ATOMIC_SUB(&mLength, 1);
 
             atomic_fence();
             mTypeHelper.do_destruct(head->mNext->mData, 1);
@@ -84,7 +84,7 @@ void LockFreeQueueImpl::clear() {
 }
 
 size_t LockFreeQueueImpl::size() const {
-    return atomic_load(&mLength);
+    return ABE_ATOMIC_LOAD(&mLength);
 }
 
 LockFreeQueueImpl::NodeImpl * LockFreeQueueImpl::allocateNode() {
@@ -108,9 +108,9 @@ void LockFreeQueueImpl::push1(const void * what) {
     mTypeHelper.do_copy(node->mData, what, 1);
 
     atomic_fence();
-    atomic_store(&mTail->mNext, node);
-    atomic_store(&mTail, node);
-    atomic_add(&mLength, 1);
+    ABE_ATOMIC_STORE(&mTail->mNext, node);
+    ABE_ATOMIC_STORE(&mTail, node);
+    ABE_ATOMIC_ADD(&mLength, 1);
 }
 
 void LockFreeQueueImpl::pushN(const void * what) {
@@ -119,13 +119,13 @@ void LockFreeQueueImpl::pushN(const void * what) {
     mTypeHelper.do_copy(node->mData, what, 1);
 
     atomic_fence();
-    volatile NodeImpl *tail = atomic_load(&mTail);  // old tail
+    volatile NodeImpl *tail = ABE_ATOMIC_LOAD(&mTail);  // old tail
     // mTail = node;
     do {
-        if (atomic_compare_exchange(&mTail, &tail, node)) {
+        if (ABE_ATOMIC_CAS(&mTail, &tail, node)) {
             // fix next: tail->mNext = node
-            atomic_store(&tail->mNext, node);
-            atomic_add(&mLength, 1);
+            ABE_ATOMIC_STORE(&tail->mNext, node);
+            ABE_ATOMIC_ADD(&mLength, 1);
             break;
         }
     } while (1);
@@ -136,10 +136,10 @@ void LockFreeQueueImpl::pushN(const void * what) {
 // do_destruct
 // freeNode();
 bool LockFreeQueueImpl::pop1(void * where) {
-    if (atomic_load(&mLength)) {
-        volatile NodeImpl * head = atomic_load(&mHead);
-        atomic_store(&mHead, mHead->mNext);
-        atomic_sub(&mLength, 1);
+    if (ABE_ATOMIC_LOAD(&mLength)) {
+        volatile NodeImpl * head = ABE_ATOMIC_LOAD(&mHead);
+        ABE_ATOMIC_STORE(&mHead, mHead->mNext);
+        ABE_ATOMIC_SUB(&mLength, 1);
 
         atomic_fence();
         if (where) {
@@ -156,11 +156,11 @@ bool LockFreeQueueImpl::pop1(void * where) {
 
 bool LockFreeQueueImpl::popN(void * where) {
     bool success = false;
-    volatile NodeImpl *head = atomic_load(&mHead);
-    while (atomic_load(&mLength)) {
+    volatile NodeImpl *head = ABE_ATOMIC_LOAD(&mHead);
+    while (ABE_ATOMIC_LOAD(&mLength)) {
         // mHead = mHead->mNext
-        if (atomic_compare_exchange(&mHead, &head, mHead->mNext)) {
-            atomic_sub(&mLength, 1);
+        if (ABE_ATOMIC_CAS(&mHead, &head, mHead->mNext)) {
+            ABE_ATOMIC_SUB(&mLength, 1);
             success = true;
             break;
         }

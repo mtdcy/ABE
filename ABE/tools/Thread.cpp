@@ -50,7 +50,7 @@
 #include "tools/Mutex.h"
 #include "tools/Thread.h"
 
-#include "basic/private/atomic.h"
+#include "basic/Atomic.h"
 #include <sched.h>
 
 #define JOINABLE 1
@@ -335,9 +335,9 @@ void Thread::Once(const sp<Runnable>& runnable) {
     once_runnable.clear();
 }
 
-static volatile int g_thread_id = 0;
+static Atomic<int> g_thread_id;
 static String MakeThreadName() {
-    return String::format("thread%zu", (size_t)atomic_add(&g_thread_id, 1));
+    return String::format("thread%zu", ++g_thread_id);
 }
 
 Thread Thread::Null = Thread();

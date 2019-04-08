@@ -32,6 +32,7 @@
 // basic [c & c++]
 #include <ABE/basic/Version.h>
 #include <ABE/basic/Types.h>
+#include <ABE/basic/Atomic.h>
 
 #ifdef LOG_TAG
 #include <ABE/basic/Log.h>

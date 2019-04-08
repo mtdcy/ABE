@@ -76,31 +76,6 @@
 #define __ABE_DEPRECATED            __attribute__ ((deprecated))
 #endif
 
-#ifndef REMOVE_ATOMICS
-#ifndef ATOMIC_MEMMODEL
-#define ATOMIC_MEMMODEL __ATOMIC_SEQ_CST
-#endif
-
-// return old value on macro
-#define atomic_store(ptr, val)  __atomic_exchange_n(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_load(ptr)        __atomic_load_n(ptr, ATOMIC_MEMMODEL)
-#define atomic_add(ptr, val)    __atomic_fetch_add(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_sub(ptr, val)    __atomic_fetch_sub(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_and(ptr, val)    __atomic_fetch_and(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_or(ptr, val)     __atomic_fetch_or(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_xor(ptr, val)    __atomic_fetch_xor(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_nand(ptr, val)   __atomic_fetch_nand(ptr, val, ATOMIC_MEMMODEL)
-
-
-// return true on success
-//  if *p0 == *p1: val => *p0 : return true
-//  else: *p0 => *p1 : return false
-#define atomic_compare_exchange(p0, p1, val) \
-    __atomic_compare_exchange_n(p0, p1, val, false, ATOMIC_MEMMODEL, ATOMIC_MEMMODEL)
-// fence
-#define atomic_fence()          __atomic_thread_fence(ATOMIC_MEMMODEL)
-#endif
-
 #ifdef __cplusplus
 #define __BEGIN_NAMESPACE(x)            namespace x {
 #define __END_NAMESPACE(x)              }

@@ -253,7 +253,7 @@ void VectorImpl::erase(size_t first, size_t last) {
 }
 
 void VectorImpl::_release(SharedBuffer *sb, size_t count, bool moved) {
-    if (sb->ReleaseBuffer(true) == 1) {
+    if (sb->ReleaseBuffer(true) == 0) {
         if (count && !moved) {
             mTypeHelper.do_destruct(sb->data(), count);
         }

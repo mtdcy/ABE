@@ -534,7 +534,7 @@ sp<Looper> Looper::Current() {
 // main looper without backend thread
 sp<Looper> Looper::Main() {
     if (main_looper == NULL) {
-	DEBUG("init main looper");
+        DEBUG("init main looper");
         CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
         main_looper = new Looper;
         sp<SharedLooper> looper = new SharedLooper;
