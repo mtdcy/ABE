@@ -527,7 +527,6 @@ struct SharedLooper : public SharedObject {
 
 //////////////////////////////////////////////////////////////////////////////////
 static Looper * main_looper = NULL;
-
 Object<Looper> Looper::Current() {
     return __tls;
 }
@@ -543,6 +542,10 @@ Object<Looper> Looper::Main() {
     }
     return main_looper;
 }
+
+static Object<Looper> __global = NULL;
+Object<Looper> Looper::Global() { return __global; }
+void Looper::SetGlobal(const Object<Looper>& lp) { __global = lp; }
 
 Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER),
     mShared(new SharedLooper(name, type))

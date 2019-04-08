@@ -53,6 +53,12 @@ class __ABE_EXPORT Looper : public SharedObject {
          * @return return reference to current looper
          */
         static Object<Looper>   Current();
+    
+        /**
+         * set and get a global looper
+         */
+        static Object<Looper>   Global();
+        static void             SetGlobal(const Object<Looper>&);
 
         /**
          * create a looper
