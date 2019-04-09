@@ -79,7 +79,21 @@ struct __ABE_EXPORT SharedObject {
     protected:
         SharedObject();
         SharedObject(const uint32_t id);
-        virtual ~SharedObject();
+        /**
+         * @note it is a good practice to leave virtual destruction empty
+         */
+        virtual ~SharedObject() { }
+    
+    protected:
+        /**
+         * been called when first retain the object
+         */
+        virtual void    onFirstRetain() { }
+        /**
+         * been called when last retain released
+         * @note put code here to avoid 'Pure virtual function called!'.
+         */
+        virtual void    onLastRetain() { }
 
     public:
         __ABE_INLINE uint32_t    GetObjectID() const { return mID; }

@@ -68,20 +68,19 @@ SharedObject::SharedObject() : mID(ID_UNKNOWN), mRefs(0) {
 SharedObject::SharedObject(const uint32_t id) : mID(id), mRefs(0) {
 }
 
-SharedObject::~SharedObject() {
-}
-
 SharedObject *  SharedObject::RetainObject() {
     DEBUG("retain %" PRIu32, mID);
-    ++mRefs;
+    size_t refs = ++mRefs;
+    if (refs == 1) onFirstRetain();
     return this;
 }
 
 size_t SharedObject::ReleaseObject(bool keep) {
     DEBUG("release %" PRIu32, mID);
     size_t refs = --mRefs;
-    if (refs == 0 && !keep) {
-        delete this;
+    if (refs == 0) {
+        onLastRetain();
+        if (!keep) delete this;
     }
     return (size_t)refs;
 }
