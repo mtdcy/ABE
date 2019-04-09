@@ -73,6 +73,9 @@ struct __ABE_EXPORT SharedBuffer : protected SharedObject {
         Object<Allocator>   mAllocator;
         char *              mData;
         size_t              mSize;
+    
+    private:
+        DISALLOW_EVILS(SharedBuffer);
 };
 
 __END_NAMESPACE_ABE

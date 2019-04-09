@@ -42,7 +42,7 @@ __BEGIN_NAMESPACE_ABE
  * read bits from data
  * @note always do in-place operation
  */
-class __ABE_EXPORT BitReader {
+class __ABE_EXPORT BitReader : public NonSharedObject {
     public:
         /**
          * create a bit reader based on data.
@@ -186,7 +186,7 @@ class __ABE_EXPORT BitReader {
         DISALLOW_EVILS(BitReader);
 };
 
-class __ABE_EXPORT BitWriter {
+class __ABE_EXPORT BitWriter : public NonSharedObject {
     public:
         BitWriter(char *data, size_t n);
 

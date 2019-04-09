@@ -55,6 +55,16 @@ __END_DECLS
 
 __BEGIN_NAMESPACE_ABE
 
+// https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
+struct __ABE_EXPORT NonSharedObject {
+    public:
+        NonSharedObject() { }
+        ~NonSharedObject() { }
+    
+    private:
+        DISALLOW_DYNAMIC(NonSharedObject);
+};
+
 /**
  * all members of SharedObject use static member function style start with capital
  * to avoid overload by subclass
@@ -70,9 +80,6 @@ struct __ABE_EXPORT SharedObject {
         SharedObject();
         SharedObject(const uint32_t id);
         virtual ~SharedObject();
-
-        SharedObject(const SharedObject& rhs);
-        SharedObject& operator=(const SharedObject& rhs);
 
     public:
         __ABE_INLINE uint32_t    GetObjectID() const { return mID; }
@@ -105,6 +112,9 @@ struct __ABE_EXPORT SharedObject {
          */
         __ABE_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
         __ABE_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
+    
+    private:
+        DISALLOW_EVILS(SharedObject);
 };
 
 __END_NAMESPACE_ABE
@@ -167,21 +177,17 @@ template <class T> class __ABE_EXPORT Object {
     public:
         // constructors
         __ABE_INLINE Object() : mShared(NULL) { }
-        __ABE_INLINE Object(T* rhs);
-        __ABE_INLINE Object(const Object<T>& rhs);
-
-        template<typename U> __ABE_INLINE Object(U* rhs);
-        template<typename U> __ABE_INLINE Object(const Object<U>& rhs);
+        __ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);         }
+        __ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared); }
+        template<typename U> __ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared); }
 
         // destructors
-        __ABE_INLINE ~Object();
+        __ABE_INLINE ~Object() { clear(); }
 
         // copy assignments
-        __ABE_INLINE Object& operator=(T* rhs);
-        __ABE_INLINE Object& operator=(const Object<T>& rhs);
-
-        template<typename U> __ABE_INLINE Object& operator=(U* rhs);
-        template<typename U> __ABE_INLINE Object& operator=(const Object<U>& rhs);
+        __ABE_INLINE Object& operator=(SharedObject * rhs)                          { clear(); set(rhs); return *this;          }
+        __ABE_INLINE Object& operator=(const Object<T>& rhs)                        { clear(); set(rhs.mShared); return *this;  }
+        template<typename U> __ABE_INLINE Object& operator=(const Object<U>& rhs)   { clear(); set(rhs.mShared); return *this;  }
 
         // clear
         __ABE_INLINE void clear();
@@ -195,82 +201,35 @@ template <class T> class __ABE_EXPORT Object {
 
     public:
         // access
-        __ABE_INLINE  T*         operator->()        { return static_cast<T*>(mShared);          }
-        __ABE_INLINE  const T*   operator->() const  { return static_cast<const T*>(mShared);    }
+        __ABE_INLINE  T*         operator->()       { return static_cast<T*>(mShared);          }
+        __ABE_INLINE  const T*   operator->() const { return static_cast<const T*>(mShared);    }
 
-        __ABE_INLINE  T&         operator*()         { return *static_cast<T*>(mShared);         }
-        __ABE_INLINE  const T&   operator*() const   { return *static_cast<const T*>(mShared);   }
+        __ABE_INLINE  T&         operator*()        { return *static_cast<T*>(mShared);         }
+        __ABE_INLINE  const T&   operator*() const  { return *static_cast<const T*>(mShared);   }
 
-        __ABE_INLINE  T*         get() const         { return static_cast<T*>(mShared);          }
+        __ABE_INLINE  T*         get() const        { return static_cast<T*>(mShared);          }
 
     public:
-        __ABE_INLINE size_t      refsCount() const   { return mShared->GetRetainCount();         }
+        __ABE_INLINE size_t      refsCount() const  { return mShared->GetRetainCount();         }
 
     private:
+        DISALLOW_DYNAMIC(Object);
+    
         template<typename U> friend class Object;
-        T *                 mShared;
+        __ABE_INLINE void       set(SharedObject *);
+        SharedObject *  mShared;
 };
 #undef COMPARE
 
 ///////////////////////////////////////////////////////////////////////////
-template <typename T> Object<T>::Object(T* rhs) : mShared(rhs)
-{
+template <typename T> void Object<T>::set(SharedObject * shared) {
+    mShared = shared;
     if (mShared) { mShared->RetainObject(); }
 }
 
-template <typename T> Object<T>::Object(const Object<T>& rhs) : mShared(rhs.mShared)
-{
-    if (mShared) { mShared->RetainObject(); }
-}
-
-template<typename T> template<typename U> Object<T>::Object(U* rhs) :
-    mShared(static_cast<T*>(rhs))
-{
-    if (mShared) { mShared->RetainObject(); }
-}
-
-template<typename T> template<typename U> Object<T>::Object(const Object<U>& rhs) :
-    mShared(static_cast<T*>(rhs.mShared))
-{
-    if (mShared) { mShared->RetainObject(); }
-}
-
-template<typename T> Object<T>& Object<T>::operator=(T* rhs) {
-    if (mShared == rhs) return *this;
-    if (mShared)    mShared->ReleaseObject();
-    mShared         = rhs;
-    if (mShared)    mShared->RetainObject();
-    return *this;
-}
-
-template<typename T> Object<T>& Object<T>::operator=(const Object<T>& rhs) {
-    if (mShared == rhs.mShared) return *this;
-    if (mShared)    mShared->ReleaseObject();
-    mShared         = rhs.mShared;
-    if (mShared)    mShared->RetainObject();
-    return *this;
-}
-
-template<typename T> template<typename U> Object<T>& Object<T>::operator=(U* rhs) {
-    if (mShared == rhs) return *this;
-    if (mShared)    mShared->ReleaseObject();
-    mShared         = static_cast<T*>(rhs);
-    if (mShared)    mShared->RetainObject();
-    return *this;
-}
-
-template<typename T> template<typename U> Object<T>& Object<T>::operator=(const Object<U>& rhs) {
-    if (mShared == rhs.mShared) return *this;
-    if (mShared)    mShared->ReleaseObject();
-    mShared         = static_cast<T*>(rhs.mShared);
-    if (mShared)    mShared->RetainObject();
-    return *this;
-}
-
-template<typename T> Object<T>::~Object() { clear(); }
 template<typename T> void Object<T>::clear() {
     if (mShared) {
-        T * tmp = mShared;
+        SharedObject * tmp = mShared;
         // clear mShared before release(), avoid loop in object destruction
         mShared = NULL;
         tmp->ReleaseObject();

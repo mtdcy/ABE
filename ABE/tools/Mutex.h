@@ -42,7 +42,7 @@
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
-class __ABE_EXPORT Mutex {
+class __ABE_EXPORT Mutex : public NonSharedObject {
     public:
         Mutex(bool recursive = false);
         ~Mutex();
@@ -61,7 +61,7 @@ class __ABE_EXPORT Mutex {
         DISALLOW_EVILS(Mutex);
 };
 
-class __ABE_EXPORT AutoLock {
+class __ABE_EXPORT AutoLock : public NonSharedObject {
     public:
         __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
         __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
@@ -74,7 +74,7 @@ class __ABE_EXPORT AutoLock {
         DISALLOW_EVILS(AutoLock);
 };
 
-class __ABE_EXPORT Condition {
+class __ABE_EXPORT Condition : public NonSharedObject {
     public:
         Condition();
         ~Condition();
@@ -94,7 +94,7 @@ class __ABE_EXPORT Condition {
         DISALLOW_EVILS(Condition);
 };
 
-class __ABE_EXPORT RWLock {
+class __ABE_EXPORT RWLock : public NonSharedObject {
     public:
         RWLock();
         ~RWLock();

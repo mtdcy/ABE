@@ -104,6 +104,7 @@ public:
     __ABE_INLINE T      fetch_xor(T val)        { return ABE_ATOMIC_FETCH_XOR(&value, val);     }
     
 private:
+    DISALLOW_DYNAMIC(Atomic);
     DISALLOW_EVILS(Atomic);
 };
 __END_NAMESPACE_ABE

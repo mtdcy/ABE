@@ -74,7 +74,7 @@ __BEGIN_NAMESPACE_ABE
  * Thread(new MyRunnable()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
-class __ABE_EXPORT Thread {
+class __ABE_EXPORT Thread : public NonSharedObject {
     public:
         /**
          * yield current thread
@@ -161,14 +161,15 @@ class __ABE_EXPORT Thread {
         pthread_t native_thread_handle() const;
     
     public:
+        __ABE_INLINE bool operator == (const Thread& rhs) const { return mShared == rhs.mShared; }
+        __ABE_INLINE bool operator != (const Thread& rhs) const { return mShared != rhs.mShared; }
+    
+    public:
         static Thread Null;
 
     private:
         Thread() : mShared(NULL) { }
         Object<SharedObject> mShared;
-
-    private:
-        DISALLOW_EVILS(Thread);
 };
 
 __END_NAMESPACE_ABE

@@ -124,7 +124,7 @@ template <typename TYPE> static __ABE_INLINE void type_move(void * _dest, void *
 
 //////////////////////////////////////////////////////////////////////////////
 // for template wrapper => implementation
-struct TypeHelper {
+struct TypeHelper : public NonSharedObject {
     private:
         size_t              type_size;
         type_construct_t    construct;

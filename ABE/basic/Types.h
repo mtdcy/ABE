@@ -101,12 +101,15 @@
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
-// In most case, copy constructor and operator= is not neccessary, 
+// In most case, copy constructor and operator= is not neccessary,
 // and it may cause problem if you don't declare it or misuse it.
 #define DISALLOW_EVILS(TypeName)                \
     TypeName(const TypeName&);                  \
     TypeName& operator=(const TypeName&)
 
+#define DISALLOW_DYNAMIC(TypeName)              \
+    void *  operator new(size_t);               \
+    void    operator delete(void *)
 #endif // __cplusplus
 
 #include <errno.h>

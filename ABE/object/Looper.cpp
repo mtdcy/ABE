@@ -509,20 +509,20 @@ struct MainJobDispatcher : public JobDispatcher {
 
 struct SharedLooper : public SharedObject {
     Object<JobDispatcher>   mDispatcher;
-    Thread *                mThread;
+    Thread                  mThread;
 
     // for main looper
-    SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(NULL) {
+    SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(Thread::Null) {
         pthread_setname("main");
     }
 
     // for normal looper
     SharedLooper(const String& name, eThreadType type) :
-        SharedObject(), mDispatcher(new NormalJobDispatcher(name)), mThread(new Thread(mDispatcher)) {
-            mThread->setName(name).setType(type);
+        SharedObject(), mDispatcher(new NormalJobDispatcher(name)), mThread(Thread(mDispatcher)) {
+            mThread.setName(name).setType(type);
         }
 
-    virtual ~SharedLooper() { if (mThread) delete mThread; }
+    virtual ~SharedLooper() { }
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -565,14 +565,13 @@ String& Looper::name() const {
 
 Thread& Looper::thread() const {
     Object<SharedLooper> looper = mShared;
-    if (looper->mThread)    return *looper->mThread;
-    else                    return Thread::Null;
+    return looper->mThread;
 }
 
 void Looper::loop() {
     Object<SharedLooper> looper = mShared;
-    if (looper->mThread) {
-        looper->mThread->run();
+    if (looper->mThread != Thread::Null) {
+        looper->mThread.run();
     } else {
         looper->mDispatcher->run();
     }
@@ -581,9 +580,9 @@ void Looper::loop() {
 void Looper::terminate(bool wait) {
     Object<SharedLooper> looper = mShared;
     looper->mDispatcher->terminate(wait);
-    if (looper->mThread) {
-        if (wait)   looper->mThread->join();
-        else        looper->mThread->detach();
+    if (looper->mThread != Thread::Null) {
+        if (wait)   looper->mThread.join();
+        else        looper->mThread.detach();
     }
 }
 
