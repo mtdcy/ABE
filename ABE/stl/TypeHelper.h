@@ -61,7 +61,7 @@ template <typename TYPE> static __ABE_INLINE void type_construct(void *storage, 
         // NOTHING
     } else {
         TYPE *p = static_cast<TYPE*>(storage);
-        while (n--) { new (p++) TYPE; }
+        while (n--) { ::new (p++) TYPE; }
     }
 }
 
@@ -83,7 +83,7 @@ template <typename TYPE> static __ABE_INLINE void type_copy_trivial(void * stora
 template <typename TYPE> static __ABE_INLINE void type_copy(void *storage, const void *_from, size_t n) {
     TYPE *p = static_cast<TYPE*>(storage);
     const TYPE *from = static_cast<const TYPE*>(_from);
-    while (n--) { new (p++) TYPE(*from++); }
+    while (n--) { ::new (p++) TYPE(*from++); }
 }
 
 //////////////////////////////////////////////////////////////////////////////

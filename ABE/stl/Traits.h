@@ -39,6 +39,9 @@
 
 __BEGIN_NAMESPACE_ABE
 
+template <typename T, typename U> struct is_same    { enum { value = false }; };
+template <typename T> struct is_same<T, T>          { enum { value = true  }; };
+
 //////////////////////////////////////////////////////////////////////////////
 template <typename TYPE> struct is_pointer          { enum { value = false }; };
 template <typename TYPE> struct is_pointer<TYPE *>  { enum { value = true  }; };

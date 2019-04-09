@@ -177,9 +177,10 @@ template <class T> class __ABE_EXPORT Object {
     public:
         // constructors
         __ABE_INLINE Object() : mShared(NULL) { }
-        __ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);         }
-        __ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared); }
-        template<typename U> __ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared); }
+        __ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);             }
+        __ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared);     }
+        template<typename U> __ABE_INLINE Object(U * rhs)               { set(rhs);             }
+        template<typename U> __ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared);     }
 
         // destructors
         __ABE_INLINE ~Object() { clear(); }
@@ -187,6 +188,7 @@ template <class T> class __ABE_EXPORT Object {
         // copy assignments
         __ABE_INLINE Object& operator=(SharedObject * rhs)                          { clear(); set(rhs); return *this;          }
         __ABE_INLINE Object& operator=(const Object<T>& rhs)                        { clear(); set(rhs.mShared); return *this;  }
+        template<typename U> __ABE_INLINE Object& operator=(U * rhs)                { clear(); set(rhs); return *this;          }
         template<typename U> __ABE_INLINE Object& operator=(const Object<U>& rhs)   { clear(); set(rhs.mShared); return *this;  }
 
         // clear
@@ -216,7 +218,8 @@ template <class T> class __ABE_EXPORT Object {
         DISALLOW_DYNAMIC(Object);
     
         template<typename U> friend class Object;
-        __ABE_INLINE void       set(SharedObject *);
+        __ABE_INLINE void                       set(SharedObject *);
+        template<typename U> __ABE_INLINE void  set(U * );
         SharedObject *  mShared;
 };
 #undef COMPARE
@@ -224,6 +227,11 @@ template <class T> class __ABE_EXPORT Object {
 ///////////////////////////////////////////////////////////////////////////
 template <typename T> void Object<T>::set(SharedObject * shared) {
     mShared = shared;
+    if (mShared) { mShared->RetainObject(); }
+}
+
+template<typename T> template<typename U> void Object<T>::set(U * shared) {
+    mShared = static_cast<SharedObject *>(shared);
     if (mShared) { mShared->RetainObject(); }
 }
 
