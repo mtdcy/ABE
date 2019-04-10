@@ -135,9 +135,9 @@ void QueuePerf() {
     // multi producer & single consumer test
     INFO("Queue multi producer & single consumer");
     Object<QueueProducer> producer = new QueueProducer;
-    Thread * threads[PERF_PRODUCER];
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
+    Vector<Thread> threads;
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -151,9 +151,9 @@ void QueuePerf() {
     delta = SystemTimeUs() - now;
     INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
     for (size_t i = 0; i < PERF_PRODUCER; ++i) {
-        threads[i]->join();
-        delete threads[i];
+        threads[i].join();
     }
+    threads.clear();
     INFO("---");
 #endif
 }
@@ -252,9 +252,9 @@ void ListPerf() {
 
     INFO("List multi producer & single consumer");
     Object<ListProducer> producer = new ListProducer;
-    Thread * threads[PERF_PRODUCER];
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
+    Vector<Thread> threads;
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -270,9 +270,9 @@ void ListPerf() {
     delta = SystemTimeUs() - now;
     INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / (PERF_TEST_COUNT * PERF_PRODUCER));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) {
-        threads[i]->join();
-        delete threads[i];
+        threads[i].join();
     }
+    threads.clear();
     INFO("---");
 #endif
 }
