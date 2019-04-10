@@ -95,7 +95,7 @@ class __ABE_EXPORT Content : public SharedObject {
 
         //! read line from content including the terminating null byte 
         //! excluding the return byte 
-        Object<Buffer>  readLine();
+        String          readLine();
 
         //! write line to content
         ssize_t         writeLine(const Buffer& line);

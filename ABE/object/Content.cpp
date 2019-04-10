@@ -234,10 +234,10 @@ Object<Buffer> Content::read(size_t size) {
     return data;
 }
 
-Object<Buffer> Content::readLine() {
+String Content::readLine() {
     CHECK_TRUE(mProto->flags() & Protocol::READ);
 
-    Object<Buffer> line = new Buffer(kMaxLineLength);
+    String line("");
 
     char *s = mBlock->data() + mBlockOffset;
     size_t m = mBlock->ready() - mBlockOffset; 
@@ -248,8 +248,8 @@ Object<Buffer> Content::readLine() {
     for (;;) {
 
         if (i == m || !m) {
-            INFO("prepare next block");
-            if (m) line->write(s, m);
+            DEBUG("prepare next block");
+            if (m) line.append(String(s, m));
 
             flush();
 
@@ -265,21 +265,21 @@ Object<Buffer> Content::readLine() {
 
         if (++j == kMaxLineLength) {
             // beyond max line range.
-            INFO("beyond max line range.");
-            if (i) line->write(s, i);
+            DEBUG("beyond max line range.");
+            if (i) line.append(String(s, i));
 
             // we suppose to use line->size() as this condition, but 
             // it is bad for performance
-            CHECK_EQ(line->ready(), kMaxLineLength - 1);
+            //CHECK_EQ(line.size(), kMaxLineLength - 1);
 
             mBlockOffset += i;
             break;
         }
 
         if (s[i] == '\n') {
-            INFO("find return byte at %zu", i);
+            DEBUG("find return byte at %zu", i);
 
-            if (i) line->write(s, i);     
+            if (i) line.append(String(s, i));     
 
             mBlockOffset += i + 1;    // +1 to including the return byte
 
@@ -290,11 +290,12 @@ Object<Buffer> Content::readLine() {
     }
 
     // EOF
-    if (eof && line->ready() == 0) return NULL;
+    if (eof) return String::Null;
+    //if (eof && line->ready() == 0) return NULL;
 
-    line->write('\0', 1);         // null-terminate 
+    //line->write('\0', 1);         // null-terminate 
 
-    INFO("line: %s", line->data());
+    DEBUG("line: %s", line.c_str());
 
     return line;
 }
