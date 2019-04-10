@@ -108,7 +108,12 @@ void RWLock::unlock(bool write) {
 
 ///////////////////////////////////////////////////////////////////////////
 Condition::Condition() {
-    CHECK_EQ(pthread_cond_init(&mWait, NULL), 0);
+    pthread_condattr_t attr;
+    CHECK_EQ(pthread_condattr_init(&attr), 0);
+#ifdef PTHREAD_COND_CLOCK_ID
+    CHECK_EQ(pthread_condattr_setclock(&attr, PTHREAD_COND_CLOCK_ID), 0);
+#endif
+    CHECK_EQ(pthread_cond_init(&mWait, &attr), 0);
 }
 
 Condition::~Condition() {

@@ -78,13 +78,14 @@ static inline int pthread_main() {
     return getpid() == pthread_gettid();
 }
 
+#define PTHREAD_COND_CLOCK_ID   CLOCK_MONOTONIC
 static inline int pthread_cond_timedwait_relative(pthread_cond_t * cond, pthread_mutex_t * mutex, 
                                                     const struct timespec * ts) {
 #ifdef HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE 
     return pthread_cond_timedwait_relative_np(cond, mutex, ts);
 #else
     struct timespec abs;
-    clock_gettime(CLOCK_MONOTONIC, &abs);
+    clock_gettime(PTHREAD_COND_CLOCK_ID, &abs);
     abs.tv_nsec += ts->tv_nsec;
     abs.tv_sec  += ts->tv_sec;
     if (abs.tv_nsec >= 1000000000LL) {
