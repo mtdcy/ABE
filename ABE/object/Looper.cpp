@@ -49,7 +49,7 @@
 #include "stl/Queue.h"
 
 #include "basic/Time.h"
-#include "tools/Mutex.h"
+#include "basic/Mutex.h"
 #include "Looper.h"
 
 // https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads

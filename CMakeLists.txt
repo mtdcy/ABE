@@ -63,6 +63,8 @@ set(ABE_SOURCES
     ABE/basic/Allocator.cpp
     ABE/basic/private/ConvertUTF.c
     ABE/basic/String.cpp
+    ABE/basic/Mutex.cpp
+    ABE/basic/Thread.cpp
 
     ABE/object/Message.cpp
     ABE/object/Buffer.cpp
@@ -72,8 +74,6 @@ set(ABE_SOURCES
     ABE/object/Event.cpp
 
     ABE/tools/Bits.cpp
-    ABE/tools/Mutex.cpp
-    ABE/tools/Thread.cpp
 
     ABE/stl/List.cpp
     ABE/stl/Vector.cpp

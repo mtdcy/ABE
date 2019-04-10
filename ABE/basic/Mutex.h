@@ -57,8 +57,7 @@ class __ABE_EXPORT Mutex : public NonSharedObject {
 
         pthread_mutex_t mLock;
 
-    private: 
-        DISALLOW_EVILS(Mutex);
+    DISALLOW_EVILS(Mutex);
 };
 
 class __ABE_EXPORT AutoLock : public NonSharedObject {
@@ -70,8 +69,7 @@ class __ABE_EXPORT AutoLock : public NonSharedObject {
     private:
         Mutex&  mLock;
 
-    private:
-        DISALLOW_EVILS(AutoLock);
+    DISALLOW_EVILS(AutoLock);
 };
 
 class __ABE_EXPORT Condition : public NonSharedObject {
@@ -90,8 +88,7 @@ class __ABE_EXPORT Condition : public NonSharedObject {
     private:
         pthread_cond_t  mWait;
 
-    private:
-        DISALLOW_EVILS(Condition);
+    DISALLOW_EVILS(Condition);
 };
 
 class __ABE_EXPORT RWLock : public NonSharedObject {
@@ -106,8 +103,7 @@ class __ABE_EXPORT RWLock : public NonSharedObject {
     private:
         pthread_rwlock_t    mLock;
 
-    private:
-        DISALLOW_EVILS(RWLock);
+    DISALLOW_EVILS(RWLock);
 };
 
 __END_NAMESPACE_ABE

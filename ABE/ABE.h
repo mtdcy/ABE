@@ -46,6 +46,8 @@
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/SharedBuffer.h>
 #include <ABE/basic/String.h>
+#include <ABE/basic/Mutex.h>
+#include <ABE/basic/Thread.h>
 
 // object types [SharedObject] [c & c++]
 #include <ABE/object/Buffer.h>
@@ -58,8 +60,6 @@
 #ifdef __cplusplus  // only available for c++
 
 // tools [non-SharedObject]
-#include <ABE/tools/Mutex.h>
-#include <ABE/tools/Thread.h>
 #include <ABE/tools/Bits.h>
 
 // containers [non-SharedObject]

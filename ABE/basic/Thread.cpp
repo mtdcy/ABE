@@ -48,8 +48,8 @@
 #include "stl/Vector.h"
 
 #include "basic/Time.h"
-#include "tools/Mutex.h"
-#include "tools/Thread.h"
+#include "basic/Mutex.h"
+#include "basic/Thread.h"
 
 #include "basic/Atomic.h"
 #include <sched.h>

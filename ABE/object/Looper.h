@@ -37,7 +37,7 @@
 
 #ifdef __cplusplus
 #include <ABE/object/Runnable.h>
-#include <ABE/tools/Thread.h>
+#include <ABE/basic/Thread.h>
 __BEGIN_NAMESPACE_ABE
 
 class __ABE_EXPORT Looper : public SharedObject {

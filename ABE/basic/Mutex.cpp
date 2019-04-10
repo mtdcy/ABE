@@ -49,7 +49,7 @@
 
 #define LOG_TAG   "Mutex"
 #include "ABE/basic/Log.h"
-#include "ABE/tools/Mutex.h"
+#include "ABE/basic/Mutex.h"
 
 __BEGIN_NAMESPACE_ABE
 

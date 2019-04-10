@@ -37,7 +37,7 @@
 
 #ifdef __cplusplus
 #include <ABE/basic/SharedObject.h>
-#include <ABE/tools/Mutex.h>
+#include <ABE/basic/Mutex.h>
 __BEGIN_NAMESPACE_ABE
 
 struct __ABE_EXPORT Runnable : public SharedObject {
