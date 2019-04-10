@@ -58,6 +58,10 @@
 
 __BEGIN_NAMESPACE_ABE
 
+Runnable::Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
+void Runnable::onFirstRetain() { }
+void Runnable::onLastRetain() { }
+
 enum eThreadIntState {
     kThreadIntNew,
     kThreadIntReady,

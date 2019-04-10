@@ -148,7 +148,6 @@ struct JobDispatcher : public Runnable {
     Looper * _interface;    // hack for Looper::Current()
     
     // internal context
-    String                          mName;
     Stat                            mStat;  // only used inside looper
 
     // mutable context, access with lock
@@ -157,7 +156,7 @@ struct JobDispatcher : public Runnable {
     mutable List<Job>               mTimedJobs;
     Vector<void *>                  mUserContext;
 
-    JobDispatcher(const String& name) : Runnable(), mName(name) { }
+    JobDispatcher() : Runnable() { }
 
     void profile(int64_t interval = 5 * 1000000LL) {
         mStat.profile(interval);
@@ -285,7 +284,7 @@ struct NormalJobDispatcher : public JobDispatcher {
     mutable Mutex           mLock;
     Condition               mWait;
 
-    NormalJobDispatcher(const String& name) : JobDispatcher(name),
+    NormalJobDispatcher() : JobDispatcher(),
     mTerminated(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
 
     virtual void signal() {
@@ -454,7 +453,7 @@ static __ABE_INLINE void init_signals() {
 struct MainJobDispatcher : public JobDispatcher {
     volatile bool   looping;
 
-    MainJobDispatcher() : JobDispatcher("main"), looping(false) {
+    MainJobDispatcher() : JobDispatcher(), looping(false) {
         init_signals();
     }
 
@@ -512,55 +511,57 @@ struct SharedLooper : public SharedObject {
     Thread                  mThread;
 
     // for main looper
-    SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(Thread::Null) {
-        pthread_setname("main");
+    SharedLooper() : SharedObject(), mThread(Thread::Null) {
     }
-
-    // for normal looper
-    SharedLooper(const String& name, eThreadType type) :
-        SharedObject(), mDispatcher(new NormalJobDispatcher(name)), mThread(Thread(mDispatcher)) {
-            mThread.setName(name).setType(type);
-        }
-
-    virtual ~SharedLooper() { }
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-static Looper * main_looper = NULL;
 Object<Looper> Looper::Current() {
     return __tls;
 }
 
 // main looper without backend thread
+static Object<Looper> __main = NULL;
 Object<Looper> Looper::Main() {
-    if (main_looper == NULL) {
+    if (__main == NULL) {   // it is ok without lock
         DEBUG("init main looper");
         CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
-        main_looper = new Looper;
-        Object<SharedLooper> looper = new SharedLooper;
-        main_looper->mShared = looper;
+        __main = new Looper;
+        Object<SharedLooper> shared = new SharedLooper;
+        shared->mDispatcher     = new MainJobDispatcher;
+        shared->mThread         = Thread::Null;
+        __main->mShared         = shared;
+        pthread_setname("main");
     }
-    return main_looper;
+    return __main;
 }
 
 static Object<Looper> __global = NULL;
 Object<Looper> Looper::Global() { return __global; }
 void Looper::SetGlobal(const Object<Looper>& lp) { __global = lp; }
 
-Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER),
-    mShared(new SharedLooper(name, type))
-{
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->_interface = this;     // hack for Looper::Current
+Object<Looper> Looper::Create(const String& name, const eThreadType& type) {
+    Object<Looper> looper = new Looper;
+    looper->thread().setName(name).setType(type);
+    return looper;
 }
 
-Looper::~Looper() {
-    if (this == main_looper)    main_looper = NULL;
+Looper::Looper() : SharedObject(OBJECT_ID_LOOPER) { }
+
+void Looper::onFirstRetain() {
+    if (mShared == NULL) {
+        Object<SharedLooper> shared = new SharedLooper;
+        shared->mDispatcher = new NormalJobDispatcher;
+        shared->mThread = Thread(shared->mDispatcher);
+        shared->mDispatcher->_interface = this;     // hack for Looper::Current
+        mShared = shared;
+    }
 }
 
-String& Looper::name() const {
+void Looper::onLastRetain() {
     Object<SharedLooper> looper = mShared;
-    return looper->mDispatcher->mName;
+    looper->mDispatcher->clear();
+    mShared.clear();
 }
 
 Thread& Looper::thread() const {
@@ -613,11 +614,12 @@ void Looper::flush() {
 
 String Looper::string() const {
     Object<SharedLooper> looper = mShared;
-
+    String info;
+#if 0
     String info = String::format("looper %s: jobs %zu",
             looper->mDispatcher->mName.c_str(),
             looper->mDispatcher->mJobs.size());
-#if 0
+
     size_t index = 0;
     List<Job>::const_iterator it = shared->mJobs.cbegin();
     for (; it != shared->mJobs.cend(); ++it) {

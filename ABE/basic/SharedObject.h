@@ -65,6 +65,15 @@ struct __ABE_EXPORT NonSharedObject {
         DISALLOW_DYNAMIC(NonSharedObject);
 };
 
+
+// put this at the very end of object class/struct
+#define __OBJECT_DECLS(TypeName)            \
+    protected:                              \
+        TypeName();                         \
+        virtual ~TypeName() { }             \
+        virtual void onFirstRetain();       \
+        virtual void onLastRetain();
+
 /**
  * all members of SharedObject use static member function style start with capital
  * to avoid overload by subclass

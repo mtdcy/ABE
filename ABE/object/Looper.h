@@ -63,22 +63,7 @@ class __ABE_EXPORT Looper : public SharedObject {
         /**
          * create a looper
          */
-        static __ABE_INLINE Object<Looper> Create(const String& name, const eThreadType& type = kThreadNormal)
-        { return new Looper(name, type); }
-
-    protected:
-        /**
-         * create a looper with given name
-         * @note using Thread::Current() to enable extra control of backend thread
-         */
-        Looper(const String& name, const eThreadType& type);
-
-        /**
-         * delete looper object
-         * if runnable is independent from looper object, it is ok to
-         * delete without terminate()
-         */
-        virtual ~Looper();
+        static Object<Looper>   Create(const String& name, const eThreadType& type = kThreadNormal);
 
     public:
         /**
@@ -86,11 +71,6 @@ class __ABE_EXPORT Looper : public SharedObject {
          * @note no backend thread for main looper, return Thread::Null for main looper
          */
         Thread& thread() const;
-
-        /**
-         * get looper name
-         */
-        String& name() const;
 
         /**
          * run current looper
@@ -155,11 +135,12 @@ class __ABE_EXPORT Looper : public SharedObject {
         void flush();
 
     private:
-        Looper() : SharedObject(OBJECT_ID_LOOPER), mShared(NULL) { }
         Object<SharedObject>    mShared;
 
     private:
         DISALLOW_EVILS(Looper);
+    
+    __OBJECT_DECLS(Looper);
 };
 __END_NAMESPACE_ABE
 #endif // __cplusplus

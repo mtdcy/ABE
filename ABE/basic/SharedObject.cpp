@@ -125,33 +125,35 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE
 
 SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
-    mAllocator(NULL), mData(NULL), mSize(0) { }
+mAllocator(NULL), mData(NULL), mSize(0) { }
 
-    SharedBuffer::~SharedBuffer() { mAllocator.clear(); }
+void SharedBuffer::onLastRetain() {
+    // 
+}
 
-    SharedBuffer * SharedBuffer::Create(const Object<Allocator> & _allocator, size_t sz) {
-        // FIXME: if allocator is aligned, make sure data is also aligned
-        const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
-
-        // keep a strong ref local
-        Object<Allocator> allocator = _allocator;
-        SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
-        memset((void*)shared, 0, sizeof(SharedBuffer));
-        new (shared) SharedBuffer();
-
-        shared->mAllocator  = allocator;
-        shared->mSize       = sz;
-
-        // put magic guard before and after data
-        char * data = (char *)&shared[1];
-        *(uint32_t *)data           = BUFFER_START_MAGIC;
-        data                        += sizeof(uint32_t);
-        *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
-        shared->mData               = data;
-
-        shared->RetainObject();
-        return shared;
-    }
+SharedBuffer * SharedBuffer::Create(const Object<Allocator> & _allocator, size_t sz) {
+    // FIXME: if allocator is aligned, make sure data is also aligned
+    const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
+    
+    // keep a strong ref local
+    Object<Allocator> allocator = _allocator;
+    SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
+    memset((void*)shared, 0, sizeof(SharedBuffer));
+    new (shared) SharedBuffer();
+    
+    shared->mAllocator  = allocator;
+    shared->mSize       = sz;
+    
+    // put magic guard before and after data
+    char * data = (char *)&shared[1];
+    *(uint32_t *)data           = BUFFER_START_MAGIC;
+    data                        += sizeof(uint32_t);
+    *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
+    shared->mData               = data;
+    
+    shared->RetainObject();
+    return shared;
+}
 
 void SharedBuffer::deallocate() {
     FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);

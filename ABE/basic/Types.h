@@ -104,10 +104,12 @@
 // In most case, copy constructor and operator= is not neccessary,
 // and it may cause problem if you don't declare it or misuse it.
 #define DISALLOW_EVILS(TypeName)                \
+    private:                                    \
     TypeName(const TypeName&);                  \
     TypeName& operator=(const TypeName&)
 
 #define DISALLOW_DYNAMIC(TypeName)              \
+    private:                                    \
     void *  operator new(size_t);               \
     void    operator delete(void *)
 #endif // __cplusplus

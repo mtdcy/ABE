@@ -47,7 +47,8 @@ __BEGIN_NAMESPACE_ABE
 struct __ABE_EXPORT SharedBuffer : protected SharedObject {
     protected:
         SharedBuffer();
-        ~SharedBuffer();
+        ~SharedBuffer() { }
+        virtual void onLastRetain();
 
     public:
         static SharedBuffer * Create(const Object<Allocator>&, size_t);
