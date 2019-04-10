@@ -57,7 +57,7 @@ __BEGIN_NAMESPACE_ABE
 
 // https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
 struct __ABE_EXPORT NonSharedObject {
-    public:
+    protected:
         NonSharedObject() { }
         ~NonSharedObject() { }
     
