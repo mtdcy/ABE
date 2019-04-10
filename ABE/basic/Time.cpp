@@ -45,7 +45,13 @@
 
 __BEGIN_DECLS
 
-int64_t SystemTimeNs() {
+int64_t SystemTimeEpoch() {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+int64_t SystemTimeMonotonic() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
@@ -71,7 +77,7 @@ bool SleepForInterval(int64_t ns) {
     return _Sleep(ns, NULL);
 }
 
-void SleepTimeNs(int64_t ns) {
+void SleepForIntervalWithoutInterrupt(int64_t ns) {
     while (_Sleep(ns, &ns) == false) { }
 }
 
