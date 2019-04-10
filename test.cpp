@@ -118,9 +118,9 @@ void testString() {
     // check on empty string
     ASSERT_EQ(s0.size(), 0);
     ASSERT_TRUE(s0.empty());
-    ASSERT_EQ(s0[0], '\0');
-    ASSERT_TRUE(s0.c_str() != NULL);
-    ASSERT_STREQ(s0.c_str(), "");
+    //ASSERT_EQ(s0[0], '\0');
+    //ASSERT_TRUE(s0.c_str() != NULL);
+    //ASSERT_STREQ(s0.c_str(), "");
 
     // check on non-empty string
     ASSERT_EQ(s1.size(), 14);

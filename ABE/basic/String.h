@@ -46,7 +46,10 @@ __BEGIN_NAMESPACE_ABE
 typedef uint16_t char16_t;
 #endif
 
-class __ABE_EXPORT String : public SharedObject {
+/**
+ * a cow string wrapper with all kinds of operations
+ */
+class __ABE_EXPORT String : public NonSharedObject {
     public:
         /**
          * format a string
@@ -56,6 +59,12 @@ class __ABE_EXPORT String : public SharedObject {
 
     public:
         /**
+         * access to Null string will assert
+         * @note String::Null can only be used in compare
+         */
+        static String Null;
+    
+        /**
          * create an empty string
          */
         String();
@@ -64,6 +73,7 @@ class __ABE_EXPORT String : public SharedObject {
          * @param s     reference of another string
          */
         String(const String& s);
+    
         /**
          * duplicate a null terminated c-style string
          * @param s     pointer to a c-style string
@@ -101,11 +111,22 @@ class __ABE_EXPORT String : public SharedObject {
     public:
         // edit
         String&     set(const String& s);
+        String&     set(const char * s, size_t n = 0);
         String&     append(const String &s);
+        String&     append(const char * s, size_t n = 0);
         String&     insert(size_t pos, const String &s);
+        String&     insert(size_t pos, const char * s, size_t n = 0);
         String&     erase(size_t pos, size_t n);
-        String&     replace(const String& s0, const String& s1);
-        String&     replaceAll(const String& s0, const String& s1);
+        String&     replace(const char * s0, const char * s1);
+        String&     replaceAll(const char * s0, const char * s1);
+    
+        __ABE_INLINE String& replace(const String& s0, const String& s1)    { return replace(s0.c_str(), s1.c_str());       }
+        __ABE_INLINE String& replace(const String& s0, const char * s1)     { return replace(s0.c_str(), s1);               }
+        __ABE_INLINE String& replace(const char * s0, const String& s1)     { return replace(s0, s1.c_str());               }
+        __ABE_INLINE String& replaceAll(const String& s0, const String& s1) { return replaceAll(s0.c_str(), s1.c_str());    }
+        __ABE_INLINE String& replaceAll(const String& s0, const char * s1)  { return replaceAll(s0.c_str(), s1);            }
+        __ABE_INLINE String& replaceAll(const char * s0, const String& s1)  { return replaceAll(s0, s1.c_str());            }
+    
         String&     trim();
         void        clear();
         String      substring(size_t pos, size_t n = 0) const;
@@ -114,9 +135,12 @@ class __ABE_EXPORT String : public SharedObject {
         String&     upper();
 
     public:
-        __ABE_INLINE String& operator=(const String &s)  { set(s); return *this;                 }
-        __ABE_INLINE String& operator+=(const String &s) { append(s); return *this;              }
-        __ABE_INLINE String  operator+(const String &s)  { String a(*this); return a.append(s);  }
+        __ABE_INLINE String& operator=(const String &s)     { set(s); return *this;                 }
+        __ABE_INLINE String& operator+=(const String &s)    { append(s); return *this;              }
+        __ABE_INLINE String  operator+(const String &s)     { String a(*this); return a.append(s);  }
+        __ABE_INLINE String& operator=(const char * s)      { set(s); return *this;                 }
+        __ABE_INLINE String& operator+=(const char * s)     { append(s); return *this;              }
+        __ABE_INLINE String  operator+(const char * s)      { String a(*this); return a.append(s);  }
 
     public:
         /**
@@ -130,7 +154,7 @@ class __ABE_EXPORT String : public SharedObject {
     public:
         /**
          * return a pointer to null-terminated c-stype string
-         * @note always non-null, even size() == 0
+         * @note always non-null, even size() == 0, except String::Null
          * @note no non-const version of c_str()
          */
         __ABE_INLINE const char * c_str() const  { return mData->data(); }
@@ -138,40 +162,57 @@ class __ABE_EXPORT String : public SharedObject {
         __ABE_INLINE bool    empty() const       { return mSize == 0;    }
 
     public:
-        ssize_t     indexOf(size_t start, const String& s) const;
+        ssize_t     indexOf(size_t start, const char * s) const;
         ssize_t     indexOf(size_t start, int c) const;
-        ssize_t     lastIndexOf(const String& s) const;
-        ssize_t     lastIndexOf(int c) const;
 
-        __ABE_INLINE ssize_t indexOf(const String& s) const  { return indexOf(0, s); }
-        __ABE_INLINE ssize_t indexOf(int c) const            { return indexOf(0, c); }
+        __ABE_INLINE ssize_t indexOf(size_t start, const String& s) const   { return indexOf(start, s.c_str()); }
+        __ABE_INLINE ssize_t indexOf(const String& s) const                 { return indexOf(0, s.c_str());     }
+        __ABE_INLINE ssize_t indexOf(const char * s) const                  { return indexOf(0, s);             }
+        __ABE_INLINE ssize_t indexOf(int c) const                           { return indexOf(0, c);             }
+    
+        ssize_t     lastIndexOf(const char * s) const;
+        ssize_t     lastIndexOf(int c) const;
+    
+        __ABE_INLINE ssize_t lastIndexOf(const String& s) const             { return lastIndexOf(s.c_str());    }
 
     public:
         size_t      hash() const;
 
     public:
-        int         compare(const String &s) const ;
+        int         compare(const char * s) const;
+        int         compare(const String &s) const;
+        int         compareIgnoreCase(const char * s) const;
         int         compareIgnoreCase(const String &s) const;
+    
+    public:
+        __ABE_INLINE bool equals(const String &s) const             { return !compare(s);                   }
+        __ABE_INLINE bool equals(const char * s) const              { return !compare(s);                   }
+        __ABE_INLINE bool equalsIgnoreCase(const String &s) const   { return !compareIgnoreCase(s);         }
+        __ABE_INLINE bool equalsIgnoreCase(const char * s) const    { return !compareIgnoreCase(s);         }
 
     public:
-        __ABE_INLINE bool equals(const String &s) const { return !compare(s); }
-        __ABE_INLINE bool equalsIgnoreCase(const String &s) const { return !compareIgnoreCase(s); }
-
-    public:
-#define OPERATOR(op) __ABE_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }
-        OPERATOR(==);
-        OPERATOR(!=);
-        OPERATOR(<);
-        OPERATOR(<=);
-        OPERATOR(>);
-        OPERATOR(>=);
+#define OPERATOR(op) \
+__ABE_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }    \
+__ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0; }
+    OPERATOR(==)
+    OPERATOR(!=)
+    OPERATOR(<)
+    OPERATOR(<=)
+    OPERATOR(>)
+    OPERATOR(>=)
 #undef OPERATOR
 
     public:
-        bool        startsWith(const String &s) const;
-        bool        startsWithIgnoreCase(const String &s) const;
-        bool        endsWith(const String &s) const;
-        bool        endsWithIgnoreCase(const String &s) const;
+        bool        startsWith(const char * s, size_t n = 0) const;
+        bool        startsWithIgnoreCase(const char * s, size_t n = 0) const;
+        bool        endsWith(const char * s, size_t n = 0) const;
+        bool        endsWithIgnoreCase(const char * s, size_t n = 0) const;
+    
+    public:
+        __ABE_INLINE bool startsWith(const String &s) const             { return startsWith(s.c_str(), s.size());           }
+        __ABE_INLINE bool startsWithIgnoreCase(const String &s) const   { return startsWithIgnoreCase(s.c_str(), s.size()); }
+        __ABE_INLINE bool endsWith(const String &s) const               { return endsWith(s.c_str(), s.size());             }
+        __ABE_INLINE bool endsWithIgnoreCase(const String &s) const     { return endsWithIgnoreCase(s.c_str(), s.size());   }
 
     public:
         int32_t     toInt32() const;
@@ -184,7 +225,7 @@ class __ABE_EXPORT String : public SharedObject {
         String      basename() const;
 
     private:
-        SharedBuffer*   mData;
+        SharedBuffer *  mData;
         size_t          mSize;
 };
 
