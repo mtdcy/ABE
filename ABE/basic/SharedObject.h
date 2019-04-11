@@ -145,9 +145,9 @@ __END_NAMESPACE_ABE
 #endif   // __cplusplus
 
 #ifdef __cplusplus
-using __NAMESPACE_ABE::SharedObject;
+typedef __NAMESPACE_ABE::SharedObject * SharedObjectRef;
 #else
-typedef struct SharedObject SharedObject;
+typedef void * SharedObjectRef;
 #endif
 
 __BEGIN_DECLS
@@ -155,24 +155,24 @@ __BEGIN_DECLS
 /**
  * retain a shared object
  */
-__ABE_EXPORT SharedObject *  SharedObjectRetain(SharedObject *);
+__ABE_EXPORT SharedObjectRef SharedObjectRetain(SharedObjectRef);
 
 /**
  * release a shared object
  */
-__ABE_EXPORT void            SharedObjectRelease(SharedObject *);
+__ABE_EXPORT void            SharedObjectRelease(SharedObjectRef);
 
 /**
  * get a shared object retain count
  */
-__ABE_EXPORT size_t          SharedObjectGetRetainCount(SharedObject *);
+__ABE_EXPORT size_t          SharedObjectGetRetainCount(SharedObjectRef);
 #define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
 #define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
 
 /**
  * get a shread object id
  */
-__ABE_EXPORT uint32_t        SharedObjectGetID(SharedObject *);
+__ABE_EXPORT uint32_t        SharedObjectGetID(SharedObjectRef);
 
 __END_DECLS
 

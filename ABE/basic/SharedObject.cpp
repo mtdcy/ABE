@@ -101,19 +101,19 @@ __END_NAMESPACE_ABE
 
 __BEGIN_DECLS
 
-SharedObject * SharedObjectRetain(SharedObject * shared) {
+SharedObjectRef SharedObjectRetain(SharedObjectRef shared) {
     return shared->RetainObject();
 }
 
-void SharedObjectRelease(SharedObject * shared) {
+void SharedObjectRelease(SharedObjectRef shared) {
     shared->ReleaseObject();
 }
 
-size_t SharedObjectGetRetainCount(SharedObject * shared) {
+size_t SharedObjectGetRetainCount(SharedObjectRef shared) {
     return shared->GetRetainCount();
 }
 
-uint32_t SharedObjectGetID(SharedObject * shared) {
+uint32_t SharedObjectGetID(SharedObjectRef shared) {
     return shared->GetObjectID();
 }
 
@@ -227,35 +227,35 @@ __END_NAMESPACE_ABE
 
 __BEGIN_DECLS
 
-SharedBuffer * SharedBufferCreate(Allocator * _allocator, size_t sz) {
-    return SharedBuffer::Create(_allocator, sz);
+SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
+    return __NAMESPACE_ABE::SharedBuffer::Create(_allocator, sz);
 }
 
-void SharedBufferRelease(SharedBuffer * shared) {
+void SharedBufferRelease(SharedBufferRef shared) {
     shared->ReleaseBuffer(false);
 }
 
-char * SharedBufferGetData(const SharedBuffer * shared) {
+char * SharedBufferGetData(const SharedBufferRef shared) {
     return (char *)shared->data();
 }
 
-size_t SharedBufferGetSize(const SharedBuffer * shared) {
+size_t SharedBufferGetSize(const SharedBufferRef shared) {
     return shared->size();
 }
 
-SharedBuffer * SharedBufferEdit(SharedBuffer * shared) {
+SharedBufferRef SharedBufferEdit(SharedBufferRef shared) {
     return shared->edit();
 }
 
-SharedBuffer * SharedBufferEditWithSize(SharedBuffer * shared, size_t sz) {
+SharedBufferRef SharedBufferEditWithSize(SharedBufferRef shared, size_t sz) {
     return shared->edit(sz);
 }
 
-size_t SharedBufferReleaseWithoutDeallocate(SharedBuffer * shared) {
+size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef shared) {
     return shared->ReleaseBuffer(true);
 }
 
-void SharedBufferDeallocate(SharedBuffer * shared) {
+void SharedBufferDeallocate(SharedBufferRef shared) {
     shared->deallocate();
 }
 

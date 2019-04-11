@@ -339,65 +339,66 @@ String Message::getEntryNameAt(size_t index, Type *type) const {
 __END_NAMESPACE_ABE
 
 extern "C" {
+    USING_NAMESPACE_ABE
 
-    Message * SharedMessageCreate() {
-        Message * shared = new Message;
-        return (Message *)shared->RetainObject();
+    MessageRef SharedMessageCreate() {
+        MessageRef shared = new Message;
+        return (MessageRef)shared->RetainObject();
     }
 
-    Message * SharedMessageCreateWithId(uint32_t id) {
-        Message * shared = new Message(id);
-        return (Message *)shared->RetainObject();
+    MessageRef SharedMessageCreateWithId(uint32_t id) {
+        MessageRef shared = new Message(id);
+        return (MessageRef)shared->RetainObject();
     }
 
-    Message * SharedMessageCopy(Message * shared) {
-        Message * copy = new Message(*shared);
-        return (Message *)copy->RetainObject();
+    MessageRef SharedMessageCopy(MessageRef shared) {
+        MessageRef copy = new Message(*shared);
+        return (MessageRef)copy->RetainObject();
     }
 
-    uint32_t SharedMessageGetId(Message * shared) {
+    uint32_t SharedMessageGetId(MessageRef shared) {
         return shared->what();
     }
 
-    size_t SharedMessageGetCount(Message * shared) {
+    size_t SharedMessageGetCount(MessageRef shared) {
         return shared->countEntries();
     }
 
-    bool SharedMessageContains(Message * shared, const char * name) {
+    bool SharedMessageContains(MessageRef shared, const char * name) {
         return shared->contains(name);
     }
 
-    bool SharedMessageRemove(Message * shared, const char * name) {
+    bool SharedMessageRemove(MessageRef shared, const char * name) {
         return shared->remove(name);
     }
 
-    void SharedMessageClear(Message * shared) {
+    void SharedMessageClear(MessageRef shared) {
         shared->clear();
     }
 
 #define SharedMessagePut(SUFFIX, DATA_TYPE)                                                 \
-    void SharedMessagePut##SUFFIX(Message * shared, const char * name, DATA_TYPE data) {    \
+    void SharedMessagePut##SUFFIX(MessageRef shared, const char * name, DATA_TYPE data) {   \
         shared->set##SUFFIX(name, data);                                                    \
     }
-
-    SharedMessagePut(Int32,     int32_t)
-        SharedMessagePut(Int64,     int64_t)
-        SharedMessagePut(Float,     float)
-        SharedMessagePut(Double,    double)
-        SharedMessagePut(Pointer,   void *)
-        SharedMessagePut(String,    const char *)
-        SharedMessagePut(Object,    SharedObject *)
-
+    
+    SharedMessagePut(Int32,     int32_t);
+    SharedMessagePut(Int64,     int64_t);
+    SharedMessagePut(Float,     float);
+    SharedMessagePut(Double,    double);
+    SharedMessagePut(Pointer,   void *);
+    SharedMessagePut(String,    const char *);
+    SharedMessagePut(Object,    SharedObjectRef);
+    
 #define SharedMessageGet(SUFFIX, DATA_TYPE)                                                     \
-        DATA_TYPE SharedMessageGet##SUFFIX(Message * shared, const char * name, DATA_TYPE def) {    \
-            return shared->find##SUFFIX(name, def);                                                 \
-        }
-
-        SharedMessageGet(Int32,     int32_t)
-        SharedMessageGet(Int64,     int64_t)
-        SharedMessageGet(Float,     float)
-        SharedMessageGet(Double,    double)
-        SharedMessageGet(Pointer,   void *)
-        SharedMessageGet(String,    const char *)
-        SharedMessageGet(Object,    SharedObject *)
+    DATA_TYPE SharedMessageGet##SUFFIX(MessageRef shared, const char * name, DATA_TYPE def) {   \
+        return shared->find##SUFFIX(name, def);                                                 \
+    }
+    
+    SharedMessageGet(Int32,     int32_t);
+    SharedMessageGet(Int64,     int64_t);
+    SharedMessageGet(Float,     float);
+    SharedMessageGet(Double,    double);
+    SharedMessageGet(Pointer,   void *);
+    SharedMessageGet(String,    const char *);
+    SharedMessageGet(Object,    SharedObjectRef);
 }

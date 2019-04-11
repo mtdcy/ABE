@@ -84,9 +84,9 @@ __END_NAMESPACE_ABE
 #endif   // __cplusplus
 
 #ifdef __cplusplus
-using __NAMESPACE_ABE::SharedBuffer;
+typedef __NAMESPACE_ABE::SharedBuffer * SharedBufferRef;
 #else
-typedef struct SharedBuffer SharedBuffer;
+typedef void * SharedBufferRef;
 #endif
 
 __BEGIN_DECLS
@@ -95,18 +95,18 @@ __BEGIN_DECLS
  * create a shared buffer & retain it
  * @param allocator     if allocator is NULL, default one will be used
  */
-__ABE_EXPORT SharedBuffer *  SharedBufferCreate(Allocator * allocator, size_t);
+__ABE_EXPORT SharedBufferRef    SharedBufferCreate(AllocatorRef allocator, size_t);
 
 /**
  * release this shared buffer
  */
-__ABE_EXPORT void            SharedBufferRelease(SharedBuffer *);
+__ABE_EXPORT void               SharedBufferRelease(SharedBufferRef);
 
 /**
  * retain this shared buffer
  */
-#define SharedBufferRetain(s)           (SharedBuffer *)SharedObjectRetain((SharedObject *)s)
-#define SharedBufferGetRetainCount(s)   SharedObjectGetRetainCount((SharedObject *)s)
+#define SharedBufferRetain(s)           (SharedBufferRef)SharedObjectRetain((SharedObjectRef)s)
+#define SharedBufferGetRetainCount(s)   SharedObjectGetRetainCount((SharedObjectRef)s)
 
 /**
  * is this shared buffer shared with others
@@ -117,22 +117,22 @@ __ABE_EXPORT void            SharedBufferRelease(SharedBuffer *);
 /**
  * get shared buffer data pointer and size
  */
-__ABE_EXPORT char *          SharedBufferGetData(const SharedBuffer *);
-__ABE_EXPORT size_t          SharedBufferGetSize(const SharedBuffer *);
+__ABE_EXPORT char *             SharedBufferGetData(const SharedBufferRef);
+__ABE_EXPORT size_t             SharedBufferGetSize(const SharedBufferRef);
 
 /**
  * make a shared buffer editable
  */
-__ABE_EXPORT SharedBuffer *  SharedBufferEdit(SharedBuffer *);
-__ABE_EXPORT SharedBuffer *  SharedBufferEditWithSize(SharedBuffer *, size_t);
+__ABE_EXPORT SharedBufferRef    SharedBufferEdit(SharedBufferRef);
+__ABE_EXPORT SharedBufferRef    SharedBufferEditWithSize(SharedBufferRef, size_t);
 
 /**
  * release a shared buffer without deallocate its memory
  * @return  return old ref count, if this is the last reference,
  *          deallocate its memory manually
  */
-__ABE_EXPORT size_t          SharedBufferReleaseWithoutDeallocate(SharedBuffer *);
-__ABE_EXPORT void            SharedBufferDeallocate(SharedBuffer *);
+__ABE_EXPORT size_t             SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
+__ABE_EXPORT void               SharedBufferDeallocate(SharedBufferRef);
 
 __END_DECLS
 

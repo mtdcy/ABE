@@ -132,25 +132,25 @@ __END_NAMESPACE_ABE
 extern "C" {
     //using mtdcy::Allocator;
 
-    Allocator * AllocatorGetDefault(void) {
-        Allocator * shared = __NAMESPACE_ABE::kAllocatorDefault.get();
-        return static_cast<Allocator*>(shared->RetainObject());
+    AllocatorRef AllocatorGetDefault(void) {
+        AllocatorRef shared = __NAMESPACE_ABE::kAllocatorDefault.get();
+        return (AllocatorRef)shared->RetainObject();
     }
 
-    Allocator * AllocatorGetDefaultAligned(size_t alignment) {
-        Allocator * shared = new __NAMESPACE_ABE::AllocatorDefaultAligned(alignment);
-        return static_cast<Allocator*>(shared->RetainObject());
+    AllocatorRef AllocatorGetDefaultAligned(size_t alignment) {
+        AllocatorRef shared = new __NAMESPACE_ABE::AllocatorDefaultAligned(alignment);
+        return (AllocatorRef)shared->RetainObject();
     }
 
-    void * AllocatorAllocate(Allocator * shared, size_t n) {
+    void * AllocatorAllocate(AllocatorRef shared, size_t n) {
         return shared->allocate(n);
     }
 
-    void * AllocatorReallocate(Allocator * shared, void * p, size_t n) {
+    void * AllocatorReallocate(AllocatorRef shared, void * p, size_t n) {
         return shared->reallocate(p, n);
     }
 
-    void AllocatorDeallocate(Allocator * shared, void * p) {
+    void AllocatorDeallocate(AllocatorRef shared, void * p) {
         shared->deallocate(p);
     }
 }
