@@ -116,6 +116,10 @@ static __ABE_INLINE void _init() {
     __init = true;
 }
 
+typedef void (*Callback_t)(const char *);
+static Callback_t   __callback = NULL;
+
+void LogSetCallback(Callback_t cb) { __callback = cb; }
 
 void LogPrint(const char *      tag,
         enum eLogLevel    level,
@@ -132,6 +136,11 @@ void LogPrint(const char *      tag,
     va_start(ap, format);
     vsnprintf(buf, 1024, format, ap);
     va_end(ap);
+    
+    if (__callback) {
+        __callback(buf);
+        return;
+    }
 
     static const char * LEVELS[] = {
         "F",
