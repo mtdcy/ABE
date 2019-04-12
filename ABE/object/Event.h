@@ -52,9 +52,8 @@ class __ABE_EXPORT Event : public SharedObject {
          * construct a event
          * @param looper    if provided, event will run async
          */
-        Event();
-        Event(const Object<Looper>& looper);
-        Event(const String& name, const Object<Looper>& looper);
+        Event(const Object<Looper>& looper = Looper::Current());
+        Event(const String& name, const Object<Looper>& looper = Looper::Current());
 
         /**
          * FIXME: NOT thread safe
@@ -71,6 +70,9 @@ class __ABE_EXPORT Event : public SharedObject {
         void fire(int64_t delay = 0);
 
     protected:
+        virtual void onFirstRetain();
+        virtual void onLastRetain();
+    
         /**
          * handle this event after it been triggled.
          * @note thread safe
@@ -78,7 +80,7 @@ class __ABE_EXPORT Event : public SharedObject {
         virtual void onEvent() = 0;
 
     protected:
-        SharedObject *  mShared;
+        Object<SharedObject> mShared;
 
     private:
         struct EventRunnable;
@@ -89,9 +91,8 @@ class __ABE_EXPORT Event : public SharedObject {
 
 template <class TYPE> class TypedEvent : public Event {
     public:
-        __ABE_INLINE TypedEvent() : Event() { }
-        __ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
-        __ABE_INLINE TypedEvent(const String& name, const Object<Looper>& looper) : Event(name, looper) { }
+        __ABE_INLINE TypedEvent(const Object<Looper>& looper = Looper::Current()) : Event(looper) { }
+        __ABE_INLINE TypedEvent(const String& name, const Object<Looper>& looper = Looper::Current()) : Event(name, looper) { }
 
         __ABE_INLINE virtual ~TypedEvent() { }
 

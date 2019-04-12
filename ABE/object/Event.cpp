@@ -54,16 +54,14 @@ struct SharedEvent : public SharedObject {
 };
 
 struct Event::EventRunnable : public Runnable {
-    SharedEvent *  mShared;
-    EventRunnable(SharedEvent *shared) : Runnable(), mShared(shared) {
-        mShared->RetainObject();
+    Object<SharedEvent>     mShared;
+    EventRunnable(const Object<SharedEvent>& shared) : Runnable(), mShared(shared) {
     }
-    virtual ~EventRunnable() { mShared->ReleaseObject(); }
-
+    
     virtual void run() {
         // this only fix the 'Pure virtual function called!' problem
         // it is still NOT thread safe.
-        if (!mShared->IsObjectShared()) {
+        if (mShared->IsObjectNotShared()) {
             ERROR("context[%s] went away before execution", mShared->mName.c_str());
         } else {
             // FIXME: NOT thread safe
@@ -73,30 +71,29 @@ struct Event::EventRunnable : public Runnable {
     }
 };
 
-Event::Event() : mShared(NULL) {
-}
-
 Event::Event(const Object<Looper>& looper) :
-    mShared(new SharedEvent(this, looper))  {
-        mShared->RetainObject();
-    }
+    mShared(new SharedEvent(this, looper))  { }
 
 Event::Event(const String& name, const Object<Looper>& looper) :
-    mShared(new SharedEvent(name, this, looper)) {
-        mShared->RetainObject();
-    }
+    mShared(new SharedEvent(name, this, looper)) { }
 
 Event::~Event() {
-    if (mShared) {
-        mShared->ReleaseObject();
-        mShared = NULL;
-    }
+    CHECK_TRUE(mShared == NULL);
+}
+
+void Event::onFirstRetain() {
+    // NOTHING
+}
+
+void Event::onLastRetain() {
+    CHECK_TRUE(mShared != NULL);
+    mShared.clear();
 }
 
 void Event::fire(int64_t delay) {
-    SharedEvent *shared = static_cast<SharedEvent*>(mShared);
+    Object<SharedEvent> shared = mShared;
     if (shared != NULL && shared->mLooper != NULL) {
-        shared->mLooper->post(new EventRunnable((SharedEvent *)mShared), delay);
+        shared->mLooper->post(new EventRunnable(shared), delay);
     } else {
         onEvent();
     }
