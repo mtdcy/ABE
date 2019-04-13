@@ -174,7 +174,7 @@ void LogPrint(const char *      tag,
     if (__callback) {
         __callback(buf1);
     } else {
-        fprintf(stdout, buf1);
+        fprintf(stdout, "%s", buf1);
 #if defined(_WIN32) || defined(__MINGW32__)
         fflush(stdout);
 #endif
