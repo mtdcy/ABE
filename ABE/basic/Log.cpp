@@ -131,16 +131,12 @@ void LogPrint(const char *      tag,
     if (__builtin_expect(__init == false, false)) _init();
 
     va_list ap;
-    char buf[1024];
+    char buf0[1024];
+    char buf1[1024];
 
     va_start(ap, format);
-    vsnprintf(buf, 1024, format, ap);
+    vsnprintf(buf0, 1024, format, ap);
     va_end(ap);
-    
-    if (__callback) {
-        __callback(buf);
-        return;
-    }
 
     static const char * LEVELS[] = {
         "F",
@@ -156,27 +152,33 @@ void LogPrint(const char *      tag,
     char name[32];
     pthread_getname(pthread_self(), name, 32);
     if (name[0] == '\0') {
-        fprintf(stdout, "[%08.03f][%07" PRIpid_t "][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+        snprintf(buf1, 1024, "[%08.03f][%07" PRIpid_t "][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 pthread_gettid(),
                 tag,
                 LEVELS[level],
                 func,
                 line,
-                buf);
+                buf0);
     } else {
-        fprintf(stdout, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+        snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 name,
                 tag,
                 LEVELS[level],
                 func,
                 line,
-                buf);
+                buf0);
     }
+    
+    if (__callback) {
+        __callback(buf1);
+    } else {
+        fprintf(stdout, buf1);
 #if defined(_WIN32) || defined(__MINGW32__)
-    fflush(stdout);
+        fflush(stdout);
 #endif
+    }
 
     if (level == LOG_FATAL) {
         BACKTRACE();
