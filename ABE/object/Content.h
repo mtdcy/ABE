@@ -160,5 +160,19 @@ class __ABE_EXPORT Content : public SharedObject {
 __END_NAMESPACE_ABE
 
 #endif // __cplusplus
+
+__BEGIN_DECLS
+
+typedef SharedObjectRef     ContentObjectRef;
+
+__ABE_EXPORT ContentObjectRef   ContentObjectCreate(const char *);
+#define ContentObjectRelease(x) SharedObjectRelease((SharedObjectRef)x)
+
+size_t                          ContentObjectLength(ContentObjectRef);
+BufferRef                       ContentObjectRead(ContentObjectRef, size_t);
+void                            ContentObjectReset(ContentObjectRef);
+
+__END_DECLS
+
 #endif // _TOOLKIT_HEADERS_CONTENT_H
 

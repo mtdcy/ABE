@@ -182,6 +182,14 @@ __END_NAMESPACE_ABE
 
 #endif // __cplusplus 
 
+__BEGIN_DECLS
+typedef SharedObjectRef     BufferRef;
+
+__ABE_EXPORT BufferRef      BufferCreate(size_t);
+#define BufferRelease(x)    BufferRelease((SharedObjectRef)x);
+
+__END_DECLS
+
 #endif // _TOOLKIT_HEADERS_BUFFER_H 
 
 
