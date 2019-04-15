@@ -299,16 +299,20 @@ class __ABE_EXPORT BitWriter : public NonSharedObject {
         DISALLOW_EVILS(BitWriter);
 };
 
-class __ABE_EXPORT Bitmask : public NonSharedObject {
+class __ABE_EXPORT BitSet : public NonSharedObject {
     public:
-        Bitmask() : mValue(0) { }
-        Bitmask(const Bitmask& rhs) : mValue(rhs.mValue) { }
-        Bitmask& operator=(const Bitmask& rhs) { mValue = rhs.mValue; return *this; }
+        __ABE_INLINE BitSet() : mValue(0) { }
+        __ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
+         __ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
     
     public:
-        uint64_t    set(size_t n)   { mValue |= (1LL << n); return mValue;  }
-        uint64_t    clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
-        bool        test(size_t n)  { return mValue & (1LL << n);           }
+        __ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
+        __ABE_INLINE uint64_t   clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
+        __ABE_INLINE void       clear()         { mValue = 0;                           }
+        __ABE_INLINE bool       test(size_t n)  { return mValue & (1LL << n);           }
+        __ABE_INLINE uint64_t   flip(size_t n)  { mValue ^= (1LL << n); return mValue;  }
+        __ABE_INLINE bool       empty() const   { return mValue == 0;                   }
+        __ABE_INLINE uint64_t   value() const   { return mValue;                        }
     
     private:
         uint64_t    mValue;
