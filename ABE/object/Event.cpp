@@ -40,62 +40,34 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct SharedEvent : public SharedObject {
-    String          mName;
-    Event *         mEvent;
-    Object<Looper>  mLooper;
-
-    SharedEvent(Event * event, const Object<Looper>& looper) :
-        SharedObject(),
-        mEvent(event), mLooper(looper) { }
-    SharedEvent(const String& name, Event * event, const Object<Looper>& looper) :
-        SharedObject(), mName(name),
-        mEvent(event), mLooper(looper) { }
-};
-
 struct Event::EventRunnable : public Runnable {
-    Object<SharedEvent>     mShared;
-    EventRunnable(const Object<SharedEvent>& shared) : Runnable(), mShared(shared) {
+    Object<Event>   mEvent;
+    EventRunnable(const Object<Event>& event) : Runnable(), mEvent(event) {
     }
     
     virtual void run() {
-        // this only fix the 'Pure virtual function called!' problem
-        // it is still NOT thread safe.
-        if (mShared->IsObjectNotShared()) {
-            ERROR("context[%s] went away before execution", mShared->mName.c_str());
+        if (mEvent->IsObjectNotShared()) {
+            ERROR("context[%p] went away before execution", mEvent.get());
+            // avoid loop refs
+            mEvent.clear();
         } else {
-            // FIXME: NOT thread safe
-            // mEvent may be released by others at this moment
-            mShared->mEvent->onEvent();
+            mEvent->onEvent();
         }
     }
 };
 
-Event::Event(const Object<Looper>& looper) :
-    mShared(new SharedEvent(this, looper))  { }
-
-Event::Event(const String& name, const Object<Looper>& looper) :
-    mShared(new SharedEvent(name, this, looper)) { }
-
-Event::~Event() {
-    CHECK_TRUE(mShared == NULL);
-}
-
 void Event::onFirstRetain() {
-    // NOTHING
 }
 
 void Event::onLastRetain() {
-    CHECK_TRUE(mShared != NULL);
-    mShared.clear();
+    mLooper.clear();
 }
 
 void Event::fire(int64_t delay) {
-    Object<SharedEvent> shared = mShared;
-    if (shared != NULL && shared->mLooper != NULL) {
-        shared->mLooper->post(new EventRunnable(shared), delay);
-    } else {
+    if (mLooper == NULL) {
         onEvent();
+    } else {
+        mLooper->post(new EventRunnable(this));
     }
 }
 

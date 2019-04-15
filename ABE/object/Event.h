@@ -47,18 +47,14 @@ __BEGIN_NAMESPACE_ABE
  * otherwise it run directly and blocked.
  */
 class __ABE_EXPORT Event : public SharedObject {
-    public:
+    protected:
         /**
          * construct a event
          * @param looper    if provided, event will run async
          */
-        Event(const Object<Looper>& looper = Looper::Current());
-        Event(const String& name, const Object<Looper>& looper = Looper::Current());
-
-        /**
-         * FIXME: NOT thread safe
-         */
-        virtual ~Event();
+        Event() : mLooper(Looper::Current()) { }
+        Event(const Object<Looper>& looper) : mLooper(looper) { }
+        virtual ~Event() { }
 
     public:
         /**
@@ -80,7 +76,7 @@ class __ABE_EXPORT Event : public SharedObject {
         virtual void onEvent() = 0;
 
     protected:
-        Object<SharedObject> mShared;
+        Object<Looper>  mLooper;
 
     private:
         struct EventRunnable;
@@ -90,12 +86,12 @@ class __ABE_EXPORT Event : public SharedObject {
 };
 
 template <class TYPE> class TypedEvent : public Event {
-    public:
-        __ABE_INLINE TypedEvent(const Object<Looper>& looper = Looper::Current()) : Event(looper) { }
-        __ABE_INLINE TypedEvent(const String& name, const Object<Looper>& looper = Looper::Current()) : Event(name, looper) { }
-
+    protected:
+        __ABE_INLINE TypedEvent() : Event() { }
+        __ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
         __ABE_INLINE virtual ~TypedEvent() { }
-
+    
+    public:
         __ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
 
     protected:
