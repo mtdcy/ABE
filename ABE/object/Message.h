@@ -47,9 +47,9 @@ class __ABE_EXPORT Message : public SharedObject {
     public:
         Message(uint32_t what = 0);
         virtual ~Message();
-        Message(const Message&);
-        Message& operator=(const Message&);
-
+    
+        Object<Message> dup() const;
+    
     public:
         enum Type {
             kTypeInt32,
@@ -135,18 +135,15 @@ class __ABE_EXPORT Message : public SharedObject {
         template <class TYPE> __ABE_INLINE const TYPE& find(const String& name) const
         { return (static_cast<holder<TYPE> *>(_findValue(name)))->value; }
 #endif
+    
+    DISALLOW_EVILS(Message);
 };
 
 __END_NAMESPACE_ABE
 #endif   // __cplusplus
 
-#ifdef __cplusplus
-typedef __NAMESPACE_ABE::Message * MessageRef;
-#else
-typedef void * MessageRef;
-#endif
-
 __BEGIN_DECLS
+typedef SharedObjectRef MessageRef;
 
 __ABE_EXPORT MessageRef         SharedMessageCreate();
 __ABE_EXPORT MessageRef         SharedMessageCreateWithId(uint32_t id);

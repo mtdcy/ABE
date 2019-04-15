@@ -57,10 +57,9 @@ Message::Message(uint32_t what)
 {
 }
 
-Message::Message(const Message& rhs) :
-    mWhat(rhs.mWhat), mEntries()
-{
-    HashTable<String, Entry>::const_iterator it = rhs.mEntries.cbegin();
+Object<Message> Message::dup() const {
+    Object<Message> message = new Message;
+    HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
         const String& name  = it.key();
         Entry copy          = it.value(); // copy value
@@ -75,31 +74,9 @@ Message::Message(const Message& rhs) :
             default:
                 break;
         }
-        mEntries.insert(name, copy);
+        message->mEntries.insert(name, copy);
     }
-}
-
-Message& Message::operator=(const Message& rhs) {
-    clear();
-
-    HashTable<String, Entry>::const_iterator it = rhs.mEntries.cbegin();
-    for (; it != mEntries.cend(); ++it) {
-        const String& name  = it.key();
-        Entry copy          = it.value(); // copy value
-        switch (copy.mType) {
-            case kTypeString:
-                copy.u.ptr = strdup((const char *)copy.u.ptr);
-                break;
-            case kTypeObject:
-            case kTypeValue:
-                copy.u.obj->RetainObject();
-                break;
-            default:
-                break;
-        }
-        mEntries.insert(name, copy);
-    }
-    return *this;
+    return message;
 }
 
 Message::~Message() {
@@ -351,33 +328,40 @@ extern "C" {
         return (MessageRef)shared->RetainObject();
     }
 
-    MessageRef SharedMessageCopy(MessageRef shared) {
-        MessageRef copy = new Message(*shared);
+    MessageRef SharedMessageCopy(MessageRef ref) {
+        Object<Message> shared = ref;
+        Object<Message> copy = shared->dup();
         return (MessageRef)copy->RetainObject();
     }
 
-    uint32_t SharedMessageGetId(MessageRef shared) {
+    uint32_t SharedMessageGetId(MessageRef ref) {
+        Object<Message> shared = ref;
         return shared->what();
     }
 
-    size_t SharedMessageGetCount(MessageRef shared) {
+    size_t SharedMessageGetCount(MessageRef ref) {
+        Object<Message> shared = ref;
         return shared->countEntries();
     }
 
-    bool SharedMessageContains(MessageRef shared, const char * name) {
+    bool SharedMessageContains(MessageRef ref, const char * name) {
+        Object<Message> shared = ref;
         return shared->contains(name);
     }
 
-    bool SharedMessageRemove(MessageRef shared, const char * name) {
+    bool SharedMessageRemove(MessageRef ref, const char * name) {
+        Object<Message> shared = ref;
         return shared->remove(name);
     }
 
-    void SharedMessageClear(MessageRef shared) {
+    void SharedMessageClear(MessageRef ref) {
+        Object<Message> shared = ref;
         shared->clear();
     }
 
 #define SharedMessagePut(SUFFIX, DATA_TYPE)                                                 \
-    void SharedMessagePut##SUFFIX(MessageRef shared, const char * name, DATA_TYPE data) {   \
+    void SharedMessagePut##SUFFIX(MessageRef ref, const char * name, DATA_TYPE data) {      \
+        Object<Message> shared = ref;                                                       \
         shared->set##SUFFIX(name, data);                                                    \
     }
     
@@ -390,7 +374,8 @@ extern "C" {
     SharedMessagePut(Object,    SharedObjectRef);
     
 #define SharedMessageGet(SUFFIX, DATA_TYPE)                                                     \
-    DATA_TYPE SharedMessageGet##SUFFIX(MessageRef shared, const char * name, DATA_TYPE def) {   \
+    DATA_TYPE SharedMessageGet##SUFFIX(MessageRef ref, const char * name, DATA_TYPE def) {      \
+        Object<Message> shared = ref;                                                           \
         return shared->find##SUFFIX(name, def);                                                 \
     }
     
