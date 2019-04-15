@@ -298,6 +298,21 @@ class __ABE_EXPORT BitWriter : public NonSharedObject {
     private:
         DISALLOW_EVILS(BitWriter);
 };
+
+class __ABE_EXPORT Bitmask : public NonSharedObject {
+    public:
+        Bitmask() : mValue(0) { }
+        Bitmask(const Bitmask& rhs) : mValue(rhs.mValue) { }
+        Bitmask& operator=(const Bitmask& rhs) { mValue = rhs.mValue; return *this; }
+    
+    public:
+        uint64_t    set(size_t n)   { mValue |= (1LL << n); return mValue;  }
+        uint64_t    clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
+        bool        test(size_t n)  { return mValue & (1LL << n);           }
+    
+    private:
+        uint64_t    mValue;
+};
 __END_NAMESPACE_ABE
 #endif // __cplusplus
 
