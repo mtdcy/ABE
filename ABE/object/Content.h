@@ -168,9 +168,9 @@ typedef SharedObjectRef     ContentObjectRef;
 __ABE_EXPORT ContentObjectRef   ContentObjectCreate(const char *);
 #define ContentObjectRelease(x) SharedObjectRelease((SharedObjectRef)x)
 
-size_t                          ContentObjectLength(ContentObjectRef);
-BufferRef                       ContentObjectRead(ContentObjectRef, size_t);
-void                            ContentObjectReset(ContentObjectRef);
+__ABE_EXPORT size_t             ContentObjectLength(ContentObjectRef);
+__ABE_EXPORT BufferRef          ContentObjectRead(ContentObjectRef, size_t);
+__ABE_EXPORT void               ContentObjectReset(ContentObjectRef);
 
 __END_DECLS
 
