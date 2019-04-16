@@ -188,6 +188,9 @@ typedef SharedObjectRef     BufferRef;
 __ABE_EXPORT BufferRef      BufferCreate(size_t);
 #define BufferRelease(x)    BufferRelease((SharedObjectRef)x);
 
+__ABE_EXPORT size_t         BufferCapacity(const BufferRef);
+__ABE_EXPORT size_t         BufferSize(const BufferRef);
+
 __END_DECLS
 
 #endif // _TOOLKIT_HEADERS_BUFFER_H 
