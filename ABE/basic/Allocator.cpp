@@ -43,10 +43,8 @@
 #define POW_2(x)    (1 << (32 - __builtin_clz((x)-1)))
 #define ALIGN (32)
 
-static int posix_memalign_mpx(void **ptr, size_t alignment, size_t size) {
-#ifdef HAVE_POSIX_MEMALIGN
-    return posix_memalign(ptr, alignment, size);
-#else
+#if 0
+static int posix_memalign(void **ptr, size_t alignment, size_t size) {
     if (alignment < ALIGN) alignment = ALIGN;
 
     *ptr = NULL;
@@ -64,8 +62,8 @@ static int posix_memalign_mpx(void **ptr, size_t alignment, size_t size) {
     *ptr = malloc(size);
     return 0;
 #endif
-#endif // HAVE_POSIX_MEMALIGN
 }
+#endif
 
 __BEGIN_NAMESPACE_ABE
 
@@ -96,7 +94,7 @@ struct AllocatorDefaultAligned : public Allocator {
     virtual ~AllocatorDefaultAligned() { }
     virtual void * allocate(size_t size) {
         void * ptr;
-        CHECK_EQ(posix_memalign_mpx(&ptr, mAlignment, size), 0);
+        CHECK_EQ(posix_memalign(&ptr, mAlignment, size), 0);
         CHECK_NULL(ptr);
         mSize = size;
         return ptr;
@@ -109,7 +107,7 @@ struct AllocatorDefaultAligned : public Allocator {
         // by realloc(3) or reallocf(3) is not guaranteed to preserve
         // the original alignment).
         void * _ptr;
-        CHECK_EQ(posix_memalign_mpx(&_ptr, mAlignment, size), 0);
+        CHECK_EQ(posix_memalign(&_ptr, mAlignment, size), 0);
         CHECK_NULL(_ptr);
         memcpy(_ptr, ptr, MIN(size, mSize));
         mSize = size;

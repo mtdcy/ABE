@@ -30,7 +30,6 @@ endif()
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
-add_definitions(-DHAVE_CONFIG_H)
 if (CMAKE_BUILD_TYPE MATCHES Debug AND APPLE)   # malloc.cpp is ready only in APPLE
     add_definitions(-DDEBUG_MALLOC)
 endif()
@@ -46,9 +45,6 @@ if (XCODE)
     set (CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     set (CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
 endif()
-
-# detect target OS
-include (BuildEnvCheck.cmake)
 
 # source files
 set(ABE_SOURCES
@@ -91,7 +87,6 @@ endif()
 # includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ABE)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})    # Config.h
 
 set (ABE_SUBDIRS    basic object tools stl)
 

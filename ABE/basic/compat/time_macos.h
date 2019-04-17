@@ -38,7 +38,6 @@
 
 #include <time.h>
 #include <sys/types.h>
-#include "Config.h"
 
 __BEGIN_DECLS
 

@@ -36,7 +36,6 @@
 #include "ABE/basic/Log.h"
 #include "ABE/object/Content.h"
 
-#include "Config.h" 
 #include "File.h" 
 
 #include <unistd.h>

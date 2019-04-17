@@ -37,7 +37,6 @@
 
 #define _DARWIN_C_SOURCE
 #include <pthread.h>
-#include "Config.h"
 #include <sys/types.h> // for pid_t
 #include <stdint.h>
 
