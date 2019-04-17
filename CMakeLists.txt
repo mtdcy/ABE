@@ -44,8 +44,7 @@ endif()
 if (XCODE)
     #set (CMAKE_MACOSX_BUNDLE TRUE)
     set (CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    set (CMAKE_XCODE_ATTRIBUTE_SIGN_IDENTITY "macOS Developer")
-    #set (CMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET 10.8)
+    set (CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
 endif()
 
 # detect target OS
@@ -110,8 +109,8 @@ if (XCODE)
         FRAMEWORK TRUE
         FRAMEWORK_VERSION A
         PUBLIC_HEADER "ABE/ABE.h"   # need this to create Headers link in framework
-        MACOSX_FRAMEWORK_IDENTIFIER com.mtdcy.media.toolkit
-        #MACOSX_FRAMEWORK_INFO_PLIST Info.plist
+        MACOSX_FRAMEWORK_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Mac Developer"
         )
 
     install (TARGETS ${PROJECT_NAME}
