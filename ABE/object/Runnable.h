@@ -35,7 +35,6 @@
 #ifndef _TOOLKIT_HEADERS_RUNNABLE_H
 #define _TOOLKIT_HEADERS_RUNNABLE_H
 
-#ifdef __cplusplus
 #include <ABE/basic/SharedObject.h>
 #include <ABE/basic/Mutex.h>
 __BEGIN_NAMESPACE_ABE
@@ -88,6 +87,5 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
 
 #endif // _TOOLKIT_HEADERS_RUNNABLE_H

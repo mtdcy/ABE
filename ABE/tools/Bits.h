@@ -36,7 +36,6 @@
 #define _TOOLKIT_HEADERS_BITS_H
 
 #include <ABE/object/Buffer.h>
-#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 /**
  * read bits from data
@@ -318,6 +317,4 @@ class __ABE_EXPORT BitSet : public NonSharedObject {
         uint64_t    mValue;
 };
 __END_NAMESPACE_ABE
-#endif // __cplusplus
-
 #endif // _TOOLKIT_HEADERS_BITS_H 

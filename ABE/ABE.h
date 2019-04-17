@@ -40,6 +40,8 @@
 
 #include <ABE/basic/Hardware.h>
 #include <ABE/basic/Time.h>
+
+#ifdef __cplusplus  // only available for c++
 #include <ABE/basic/SharedObject.h>
 #define sp  Object  // for api compatible, keep for sometime
 
@@ -57,8 +59,6 @@
 #include <ABE/object/Looper.h>
 #include <ABE/object/Event.h>
 
-#ifdef __cplusplus  // only available for c++
-
 // tools [non-SharedObject]
 #include <ABE/tools/Bits.h>
 
@@ -70,5 +70,89 @@
 #include <ABE/stl/Queue.h>
 
 #endif //  __cplusplus
+
+// c bindings
+__BEGIN_DECLS
+typedef void *                  SharedObjectRef;
+__ABE_EXPORT SharedObjectRef    SharedObjectRetain(SharedObjectRef);
+__ABE_EXPORT void               SharedObjectRelease(SharedObjectRef);
+__ABE_EXPORT size_t             SharedObjectGetRetainCount(SharedObjectRef);
+#define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
+#define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
+__ABE_EXPORT uint32_t           SharedObjectGetID(SharedObjectRef);
+
+
+typedef SharedObjectRef         AllocatorRef;
+__ABE_EXPORT AllocatorRef       AllocatorGetDefault(void);
+__ABE_EXPORT AllocatorRef       AllocatorGetDefaultAligned(size_t);
+__ABE_EXPORT size_t             AllocatorGetAlignment(AllocatorRef);
+__ABE_EXPORT void *             AllocatorAllocate(AllocatorRef, size_t);
+__ABE_EXPORT void *             AllocatorReallocate(AllocatorRef, void *, size_t);
+__ABE_EXPORT void               AllocatorDeallocate(AllocatorRef, void *);
+
+
+typedef SharedObjectRef         SharedBufferRef;
+__ABE_EXPORT SharedBufferRef    SharedBufferCreate(AllocatorRef allocator, size_t);
+__ABE_EXPORT void               SharedBufferRelease(SharedBufferRef);
+__ABE_EXPORT char *             SharedBufferGetData(const SharedBufferRef);
+__ABE_EXPORT size_t             SharedBufferGetLength(const SharedBufferRef);
+__ABE_EXPORT SharedBufferRef    SharedBufferEdit(SharedBufferRef);
+__ABE_EXPORT SharedBufferRef    SharedBufferEditWithSize(SharedBufferRef, size_t);
+__ABE_EXPORT size_t             SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
+__ABE_EXPORT void               SharedBufferDeallocate(SharedBufferRef);
+
+
+typedef SharedObjectRef         BufferObjectRef;
+__ABE_EXPORT BufferObjectRef    BufferObjectCreate(size_t);
+__ABE_EXPORT const char *       BufferObjectGetData(const BufferObjectRef);
+__ABE_EXPORT size_t             BufferObjectGetCapacity(const BufferObjectRef);
+__ABE_EXPORT size_t             BufferObjectGetLength(const BufferObjectRef);
+
+
+typedef SharedObjectRef         MessageObjectRef;
+__ABE_EXPORT MessageObjectRef   MessageObjectCreate();
+__ABE_EXPORT MessageObjectRef   MessageObjectCreateWithId(uint32_t id);
+__ABE_EXPORT MessageObjectRef   MessageObjectCopy(MessageObjectRef);
+__ABE_EXPORT uint32_t           MessageObjectGetId      (MessageObjectRef);
+__ABE_EXPORT size_t             MessageObjectGetSize    (MessageObjectRef);
+__ABE_EXPORT bool               MessageObjectContains   (MessageObjectRef, const char *);
+__ABE_EXPORT bool               MessageObjectRemove     (MessageObjectRef, const char *);
+__ABE_EXPORT void               MessageObjectClear      (MessageObjectRef);
+__ABE_EXPORT void               MessageObjectPutInt32   (MessageObjectRef, const char *, int32_t);
+__ABE_EXPORT void               MessageObjectPutInt64   (MessageObjectRef, const char *, int64_t);
+__ABE_EXPORT void               MessageObjectPutFloat   (MessageObjectRef, const char *, float);
+__ABE_EXPORT void               MessageObjectPutDouble  (MessageObjectRef, const char *, double);
+__ABE_EXPORT void               MessageObjectPutPointer (MessageObjectRef, const char *, void *);
+__ABE_EXPORT void               MessageObjectPutString  (MessageObjectRef, const char *, const char *);
+__ABE_EXPORT void               MessageObjectPutObject  (MessageObjectRef, const char *, SharedObjectRef);
+__ABE_EXPORT int32_t            MessageObjectGetInt32   (MessageObjectRef, const char *, int32_t);
+__ABE_EXPORT int64_t            MessageObjectGetInt64   (MessageObjectRef, const char *, int64_t);
+__ABE_EXPORT float              MessageObjectGetFloat   (MessageObjectRef, const char *, float);
+__ABE_EXPORT double             MessageObjectGetDouble  (MessageObjectRef, const char *, double);
+__ABE_EXPORT void *             MessageObjectGetPointer (MessageObjectRef, const char *, void *);
+__ABE_EXPORT const char *       MessageObjectGetString  (MessageObjectRef, const char *, const char *);
+__ABE_EXPORT SharedObjectRef    MessageObjectGetObject  (MessageObjectRef, const char *, SharedObjectRef);
+
+
+typedef SharedObjectRef         ContentObjectRef;
+__ABE_EXPORT ContentObjectRef   ContentObjectCreate(const char *);
+__ABE_EXPORT size_t             ContentObjectLength(ContentObjectRef);
+__ABE_EXPORT BufferObjectRef    ContentObjectRead(ContentObjectRef, size_t);
+__ABE_EXPORT void               ContentObjectReset(ContentObjectRef);
+
+
+typedef SharedObjectRef         LooperObjectRef;
+typedef SharedObjectRef         RunnableObjectRef;
+LooperObjectRef                 LooperObjectCreate(const char * name);
+__ABE_EXPORT void               LooperObjectLoop(LooperObjectRef);
+__ABE_EXPORT void               LooperObjectTerminate(LooperObjectRef);
+__ABE_EXPORT void               LooperObjectTerminateAndWait(LooperObjectRef);
+__ABE_EXPORT void               LooperObjectPostRunnable(LooperObjectRef, RunnableObjectRef);
+__ABE_EXPORT void               LooperObjectPostRunnableWithDelay(LooperObjectRef, RunnableObjectRef, int64_t);
+__ABE_EXPORT void               LooperObjectRemoveRunnable(LooperObjectRef, RunnableObjectRef);
+__ABE_EXPORT bool               LooperObjectFindRunnable(LooperObjectRef, RunnableObjectRef);
+__ABE_EXPORT void               LooperObjectFlush(LooperObjectRef);
+
+__END_DECLS
 
 #endif // _TOOLKIT_HEADERS_ALL_H

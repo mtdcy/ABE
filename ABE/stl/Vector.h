@@ -40,7 +40,6 @@
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/SharedBuffer.h>
 
-#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE_PRIVATE
 class __ABE_EXPORT VectorImpl {
     public:
@@ -134,5 +133,4 @@ template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::Vecto
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
 #endif // _TOOLKIT_HEADERS_STL_VECTOR_H 

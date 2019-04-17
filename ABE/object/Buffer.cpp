@@ -263,25 +263,3 @@ void Buffer::_rewind() {
 }
 
 __END_NAMESPACE_ABE
-
-
-__BEGIN_DECLS
-
-USING_NAMESPACE_ABE
-
-BufferRef BufferCreate(size_t cap) {
-    Object<Buffer> buffer = new Buffer(cap);
-    return buffer->RetainObject();
-}
-
-size_t BufferCapacity(const BufferRef ref) {
-    Object<Buffer> buffer = ref;
-    return buffer->capacity();
-}
-
-size_t BufferSize(const BufferRef ref) {
-    Object<Buffer> buffer = ref;
-    return buffer->size();
-}
-
-__END_DECLS

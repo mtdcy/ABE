@@ -35,7 +35,6 @@
 #ifndef _TOOLKIT_HEADERS_EVENT_H
 #define _TOOLKIT_HEADERS_EVENT_H 
 
-#ifdef __cplusplus
 #include <ABE/object/Looper.h>
 #include <ABE/stl/Queue.h>
 
@@ -107,7 +106,4 @@ template <class TYPE> class TypedEvent : public Event {
         DISALLOW_EVILS(TypedEvent);
 };
 __END_NAMESPACE_ABE
-
-#endif // __cplusplus 
-
 #endif // _TOOLKIT_HEADERS_EVENT_H

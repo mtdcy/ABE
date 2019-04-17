@@ -43,16 +43,13 @@
 #include <ABE/basic/String.h>
 #include <ABE/basic/SharedObject.h>
 
-__BEGIN_DECLS
+__BEGIN_NAMESPACE_ABE
+
 enum eBufferType {
     kBufferTypeDefault, ///< default buffer
     kBufferTypeRing,    ///< implement ring buffer, take twice memory as it need
 };
-__END_DECLS
 
-#ifdef __cplusplus
-
-__BEGIN_NAMESPACE_ABE
 /**
  * Buffer:
  *                           write pos
@@ -179,19 +176,6 @@ class __ABE_EXPORT Buffer : public SharedObject {
 };
 
 __END_NAMESPACE_ABE
-
-#endif // __cplusplus 
-
-__BEGIN_DECLS
-typedef SharedObjectRef     BufferRef;
-
-__ABE_EXPORT BufferRef      BufferCreate(size_t);
-#define BufferRelease(x)    BufferRelease((SharedObjectRef)x);
-
-__ABE_EXPORT size_t         BufferCapacity(const BufferRef);
-__ABE_EXPORT size_t         BufferSize(const BufferRef);
-
-__END_DECLS
 
 #endif // _TOOLKIT_HEADERS_BUFFER_H 
 

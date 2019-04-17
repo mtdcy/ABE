@@ -36,7 +36,7 @@
 #include <ABE/basic/Types.h>
 #include <ABE/basic/Atomic.h>
 
-__BEGIN_DECLS
+__BEGIN_NAMESPACE_ABE
 
 enum {
     OBJECT_ID_ANY,
@@ -49,11 +49,7 @@ enum {
     OBJECT_ID_LOOPER,
     OBJECT_ID_EVENT
 };
-__END_DECLS
 
-#ifdef __cplusplus
-
-__BEGIN_NAMESPACE_ABE
 
 // https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
 struct __ABE_EXPORT NonSharedObject {
@@ -139,46 +135,6 @@ struct __ABE_EXPORT SharedObject {
     private:
         DISALLOW_EVILS(SharedObject);
 };
-
-__END_NAMESPACE_ABE
-
-#endif   // __cplusplus
-
-#ifdef __cplusplus
-typedef __NAMESPACE_ABE::SharedObject * SharedObjectRef;
-#else
-typedef void * SharedObjectRef;
-#endif
-
-__BEGIN_DECLS
-
-/**
- * retain a shared object
- */
-__ABE_EXPORT SharedObjectRef SharedObjectRetain(SharedObjectRef);
-
-/**
- * release a shared object
- */
-__ABE_EXPORT void            SharedObjectRelease(SharedObjectRef);
-
-/**
- * get a shared object retain count
- */
-__ABE_EXPORT size_t          SharedObjectGetRetainCount(SharedObjectRef);
-#define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
-#define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
-
-/**
- * get a shread object id
- */
-__ABE_EXPORT uint32_t        SharedObjectGetID(SharedObjectRef);
-
-__END_DECLS
-
-#ifdef __cplusplus
-
-__BEGIN_NAMESPACE_ABE
 
 #define COMPARE(_op_)                                                   \
     __ABE_INLINE bool operator _op_ (const Object<T>& o) const {        \
@@ -268,8 +224,6 @@ template<typename T> void Object<T>::clear() {
 }
 
 __END_NAMESPACE_ABE
-
-#endif // __cplusplus
 
 #endif // _TOOLKIT_HEADERS_OBJECT_H
 

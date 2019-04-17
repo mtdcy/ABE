@@ -41,7 +41,6 @@
 
 #define MESSAGE_WITH_STL 1
 
-#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 class __ABE_EXPORT Message : public SharedObject {
     public:
@@ -140,41 +139,5 @@ class __ABE_EXPORT Message : public SharedObject {
 };
 
 __END_NAMESPACE_ABE
-#endif   // __cplusplus
-
-__BEGIN_DECLS
-typedef SharedObjectRef MessageRef;
-
-__ABE_EXPORT MessageRef         SharedMessageCreate();
-__ABE_EXPORT MessageRef         SharedMessageCreateWithId(uint32_t id);
-__ABE_EXPORT MessageRef         SharedMessageCopy(MessageRef);
-#define SharedMessageRetain(x)          (Message *)SharedObjectRetain((SharedObjectRef)x)
-#define SharedMessageRelease(x)         SharedObjectRelease((SharedObjectRef)x)
-#define SharedMessageGetRetainCount(x)  SharedObjectGetRetainCount((SharedObjectRef)x)
-
-__ABE_EXPORT uint32_t           SharedMessageGetId      (MessageRef);
-__ABE_EXPORT size_t             SharedMessageGetCount   (MessageRef);
-__ABE_EXPORT bool               SharedMessageContains   (MessageRef, const char *);
-__ABE_EXPORT bool               SharedMessageRemove     (MessageRef, const char *);
-__ABE_EXPORT void               SharedMessageClear      (MessageRef);
-
-__ABE_EXPORT void               SharedMessagePutInt32   (MessageRef, const char *, int32_t);
-__ABE_EXPORT void               SharedMessagePutInt64   (MessageRef, const char *, int64_t);
-__ABE_EXPORT void               SharedMessagePutFloat   (MessageRef, const char *, float);
-__ABE_EXPORT void               SharedMessagePutDouble  (MessageRef, const char *, double);
-__ABE_EXPORT void               SharedMessagePutPointer (MessageRef, const char *, void *);
-__ABE_EXPORT void               SharedMessagePutString  (MessageRef, const char *, const char *);
-__ABE_EXPORT void               SharedMessagePutObject  (MessageRef, const char *, SharedObjectRef);
-
-__ABE_EXPORT int32_t            SharedMessageGetInt32   (MessageRef, const char *, int32_t);
-__ABE_EXPORT int64_t            SharedMessageGetInt64   (MessageRef, const char *, int64_t);
-__ABE_EXPORT float              SharedMessageGetFloat   (MessageRef, const char *, float);
-__ABE_EXPORT double             SharedMessageGetDouble  (MessageRef, const char *, double);
-__ABE_EXPORT void *             SharedMessageGetPointer (MessageRef, const char *, void *);
-__ABE_EXPORT const char *       SharedMessageGetString  (MessageRef, const char *, const char *);
-__ABE_EXPORT SharedObjectRef    SharedMessageGetObject  (MessageRef, const char *, SharedObjectRef);
-
-__END_DECLS
-
 #endif  // _TOOLKIT_HEADERS_MESSAGE_H
 

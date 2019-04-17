@@ -39,9 +39,7 @@
 #include <ABE/basic/SharedBuffer.h>
 
 ////////////////////////////////////////////////////////////////////////////// 
-// c++ implementation of doubly-linked list container. 
-#ifdef __cplusplus
-
+// c++ implementation of doubly-linked list container.
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
 class ListImpl;
@@ -194,5 +192,4 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl 
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
 #endif // _TOOLKIT_HEADERS_STL_LIST_H 

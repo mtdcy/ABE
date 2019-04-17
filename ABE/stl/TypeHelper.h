@@ -36,7 +36,6 @@
 #ifndef _TOOLKIT_HEADERS_STL_H
 #define _TOOLKIT_HEADERS_STL_H 
 
-#ifdef __cplusplus
 #include <ABE/stl/Traits.h>
 #include <new>
 #include <string.h>     // memcpy & memmove
@@ -194,5 +193,5 @@ template <typename TYPE> static __ABE_INLINE bool type_compare_equal(const void*
 }
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
+
 #endif // _TOOLKIT_HEADERS_STL_H 

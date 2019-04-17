@@ -36,8 +36,6 @@
 #include <ABE/basic/Types.h>
 #include <ABE/basic/Allocator.h>
 
-#ifdef __cplusplus
-
 __BEGIN_NAMESPACE_ABE
 
 /**
@@ -80,60 +78,4 @@ struct __ABE_EXPORT SharedBuffer : protected SharedObject {
 };
 
 __END_NAMESPACE_ABE
-
-#endif   // __cplusplus
-
-#ifdef __cplusplus
-typedef __NAMESPACE_ABE::SharedBuffer * SharedBufferRef;
-#else
-typedef void * SharedBufferRef;
-#endif
-
-__BEGIN_DECLS
-
-/**
- * create a shared buffer & retain it
- * @param allocator     if allocator is NULL, default one will be used
- */
-__ABE_EXPORT SharedBufferRef    SharedBufferCreate(AllocatorRef allocator, size_t);
-
-/**
- * release this shared buffer
- */
-__ABE_EXPORT void               SharedBufferRelease(SharedBufferRef);
-
-/**
- * retain this shared buffer
- */
-#define SharedBufferRetain(s)           (SharedBufferRef)SharedObjectRetain((SharedObjectRef)s)
-#define SharedBufferGetRetainCount(s)   SharedObjectGetRetainCount((SharedObjectRef)s)
-
-/**
- * is this shared buffer shared with others
- */
-#define SharedBufferIsShared(s)         (SharedBufferGetRetainCount(s) > 1)
-#define SharedBufferIsNotShared(s)      !SharedBufferIsShared(s)
-
-/**
- * get shared buffer data pointer and size
- */
-__ABE_EXPORT char *             SharedBufferGetData(const SharedBufferRef);
-__ABE_EXPORT size_t             SharedBufferGetSize(const SharedBufferRef);
-
-/**
- * make a shared buffer editable
- */
-__ABE_EXPORT SharedBufferRef    SharedBufferEdit(SharedBufferRef);
-__ABE_EXPORT SharedBufferRef    SharedBufferEditWithSize(SharedBufferRef, size_t);
-
-/**
- * release a shared buffer without deallocate its memory
- * @return  return old ref count, if this is the last reference,
- *          deallocate its memory manually
- */
-__ABE_EXPORT size_t             SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
-__ABE_EXPORT void               SharedBufferDeallocate(SharedBufferRef);
-
-__END_DECLS
-
 #endif // _TOOLKIT_HEADERS_SHARED_BUFFER_H

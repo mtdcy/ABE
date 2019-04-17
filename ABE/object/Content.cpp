@@ -434,30 +434,3 @@ String Content::string() const {
 
 __END_NAMESPACE_ABE
 
-__BEGIN_DECLS
-
-USING_NAMESPACE_ABE
-
-ContentObjectRef ContentObjectCreate(const char * url) {
-    Object<Content> content = Content::Create(url);
-    if (content == NULL) return NULL;
-    return content->RetainObject();
-}
-
-size_t ContentObjectLength(ContentObjectRef ref) {
-    Object<Content> content = ref;
-    return content->size();
-}
-
-BufferRef ContentObjectRead(ContentObjectRef ref, size_t size) {
-    Object<Content> content = ref;
-    Object<Buffer> buffer = content->read(size);
-    return buffer->RetainObject();
-}
-
-void ContentObjectReset(ContentObjectRef ref) {
-    Object<Content> content = ref;
-    content->reset();
-}
-
-__END_DECLS

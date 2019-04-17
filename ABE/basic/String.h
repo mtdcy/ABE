@@ -39,7 +39,6 @@
 #include <ABE/basic/Types.h>
 #include <ABE/basic/SharedBuffer.h>
 
-#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
 #ifndef __APPLE__
@@ -232,8 +231,6 @@ __ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0
 ///////////////////////////////////////////////////////////////////////////
 
 __END_NAMESPACE_ABE
-#endif
-
 #endif // _TOOLKIT_HEADERS_STRING_H
 
 

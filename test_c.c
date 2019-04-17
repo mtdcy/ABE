@@ -12,13 +12,13 @@ void testBuffer() {
     
     // create a shared buffer
     SharedBufferRef shared = SharedBufferCreate(AllocatorGetDefault(), 1024);
-    CHECK_EQ(SharedBufferGetRetainCount(shared), 1);
+    CHECK_EQ(SharedObjectGetRetainCount(shared), 1);
     
-    SharedBufferRef copy = SharedBufferRetain(shared);
-    CHECK_EQ(SharedBufferGetRetainCount(copy), 2);
+    SharedBufferRef copy = SharedObjectRetain(shared);
+    CHECK_EQ(SharedObjectGetRetainCount(copy), 2);
     SharedBufferRelease(copy);
     
-    CHECK_EQ(SharedBufferGetRetainCount(shared), 1);
+    CHECK_EQ(SharedObjectGetRetainCount(shared), 1);
     SharedBufferRelease(shared);
     
     malloc_finalize();

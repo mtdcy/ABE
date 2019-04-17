@@ -35,8 +35,7 @@
 #ifndef _TOOLKIT_HEADERS_TYPES_H
 #define _TOOLKIT_HEADERS_TYPES_H
 
-// DON'T include config.h here.
-// only system wide macro allowed, like
+// only platform/libc/compiler macro allowed, like
 // __ANDROID__ __ANDROID_API__
 // __APPLE__
 // __linux__ (including GNU/Linux and Android)

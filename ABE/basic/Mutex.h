@@ -38,7 +38,6 @@
 #include <ABE/basic/Types.h>
 #include <pthread.h>
 
-#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
@@ -107,6 +106,5 @@ class __ABE_EXPORT RWLock : public NonSharedObject {
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
 
 #endif // _TOOLKIT_HEADERS_MUTEX_H

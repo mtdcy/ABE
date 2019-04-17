@@ -37,23 +37,17 @@
 #define _TOOLKIT_HEADERS_CONTENT_H
 
 #include <ABE/basic/Types.h>
+#include <ABE/object/Buffer.h>
+#include <ABE/basic/String.h>
+#include <ABE/stl/List.h>
 
-__BEGIN_DECLS
+__BEGIN_NAMESPACE_ABE
 
 enum eContentFlagType {
     kContentFlagRead    = 0x1,
     kContentFlagWrite   = 0x2,
     kContentFlagStream  = 0x4,
 };
-
-__END_DECLS
-
-#ifdef __cplusplus
-#include <ABE/object/Buffer.h>
-#include <ABE/basic/String.h>
-#include <ABE/stl/List.h>
-
-__BEGIN_NAMESPACE_ABE
 
 // NOTE: 
 // 1. the Content object is not thread safe
@@ -158,21 +152,6 @@ class __ABE_EXPORT Content : public SharedObject {
 };
 
 __END_NAMESPACE_ABE
-
-#endif // __cplusplus
-
-__BEGIN_DECLS
-
-typedef SharedObjectRef     ContentObjectRef;
-
-__ABE_EXPORT ContentObjectRef   ContentObjectCreate(const char *);
-#define ContentObjectRelease(x) SharedObjectRelease((SharedObjectRef)x)
-
-__ABE_EXPORT size_t             ContentObjectLength(ContentObjectRef);
-__ABE_EXPORT BufferRef          ContentObjectRead(ContentObjectRef, size_t);
-__ABE_EXPORT void               ContentObjectReset(ContentObjectRef);
-
-__END_DECLS
 
 #endif // _TOOLKIT_HEADERS_CONTENT_H
 

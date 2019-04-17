@@ -74,6 +74,8 @@ set(ABE_SOURCES
     ABE/stl/Vector.cpp
     ABE/stl/HashTable.cpp
     ABE/stl/Queue.cpp
+
+    ABE/c.cpp
     )
 
 add_library (${PROJECT_NAME} SHARED ${ABE_SOURCES})

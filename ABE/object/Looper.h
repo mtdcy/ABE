@@ -35,7 +35,6 @@
 #ifndef _TOOLKIT_HEADERS_LOOPER_H
 #define _TOOLKIT_HEADERS_LOOPER_H 
 
-#ifdef __cplusplus
 #include <ABE/object/Runnable.h>
 #include <ABE/basic/Thread.h>
 __BEGIN_NAMESPACE_ABE
@@ -143,32 +142,4 @@ class __ABE_EXPORT Looper : public SharedObject {
     __OBJECT_DECLS(Looper);
 };
 __END_NAMESPACE_ABE
-#endif // __cplusplus
-
-#ifdef __cplusplus
-using __NAMESPACE_ABE::Looper;
-using __NAMESPACE_ABE::Runnable;
-#else
-typedef struct Looper   Looper;
-typedef struct Runnable Runnable;
-#endif
-
-__BEGIN_DECLS
-
-Looper *    SharedLooperCreate(const char * name);
-#define SharedLooperRetain(r)   (Looper *)SharedObjectRetain((SharedObject *)r)
-#define SharedLooperRelease(r)  SharedObjectRelease((SharedObject *)r)
-
-void        SharedLooperLoop(Looper *);
-void        SharedLooperTerminate(Looper *);
-void        SharedLooperTerminateAndWait(Looper *);
-
-void        SharedLooperPostRunnable(Looper *, Runnable *);
-void        SharedLooperPostRunnableWithDelay(Looper *, Runnable *, int64_t);
-void        SharedLooperRemoveRunnable(Looper *, Runnable *);
-bool        SharedLooperFindRunnable(Looper *, Runnable *);
-void        SharedLooperFlush(Looper *);
-
-__END_DECLS
-
 #endif // _TOOLKIT_HEADERS_LOOPER_H

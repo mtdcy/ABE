@@ -127,28 +127,3 @@ Object<Allocator> GetAlignedAllocator(size_t alignment) {
 
 __END_NAMESPACE_ABE
 
-extern "C" {
-    //using mtdcy::Allocator;
-
-    AllocatorRef AllocatorGetDefault(void) {
-        AllocatorRef shared = __NAMESPACE_ABE::kAllocatorDefault.get();
-        return (AllocatorRef)shared->RetainObject();
-    }
-
-    AllocatorRef AllocatorGetDefaultAligned(size_t alignment) {
-        AllocatorRef shared = new __NAMESPACE_ABE::AllocatorDefaultAligned(alignment);
-        return (AllocatorRef)shared->RetainObject();
-    }
-
-    void * AllocatorAllocate(AllocatorRef shared, size_t n) {
-        return shared->allocate(n);
-    }
-
-    void * AllocatorReallocate(AllocatorRef shared, void * p, size_t n) {
-        return shared->reallocate(p, n);
-    }
-
-    void AllocatorDeallocate(AllocatorRef shared, void * p) {
-        shared->deallocate(p);
-    }
-}

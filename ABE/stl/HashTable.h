@@ -35,8 +35,6 @@
 #ifndef _TOOLKIT_HEADERS_HT_H
 #define _TOOLKIT_HEADERS_HT_H
 
-#ifdef __cplusplus
-
 #include <ABE/stl/TypeHelper.h>
 #include <ABE/stl/Vector.h>
 
@@ -221,6 +219,6 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
+
 #endif // _TOOLKIT_HEADERS_HT_H
 

@@ -38,8 +38,6 @@
 #include <ABE/basic/Types.h>
 #include <ABE/basic/SharedObject.h>
 
-#ifdef __cplusplus
-
 __BEGIN_NAMESPACE_ABE
 
 struct __ABE_EXPORT Allocator : public SharedObject {
@@ -53,47 +51,6 @@ __ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
 __ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
-#endif   // __cplusplus
-
-#ifdef __cplusplus
-typedef __NAMESPACE_ABE::Allocator * AllocatorRef;
-#else
-typedef void * AllocatorRef;
-#endif
-
-__BEGIN_DECLS
-
-/**
- * retain default allocator
- */
-__ABE_EXPORT AllocatorRef       AllocatorGetDefault(void);
-__ABE_EXPORT AllocatorRef       AllocatorGetDefaultAligned(size_t);
-
-/**
- * release a allocator
- */
-#define AllocatorRelease(s)     SharedObjectRelease((SharedObjectRef)s)
-
-/**
- * retain a allocator
- */
-#define AllocatorRetain(s)          (AllocatorRef)SharedObjectRetain((SharedObjectRef)s)
-#define AllocatorGetRetainCount(s)  SharedObjectGetRetainCount((SharedObjectRef)s)
-
-/**
- * get allocator alignment
- */
-__ABE_EXPORT size_t             AllocatorGetAlignment(AllocatorRef);
-/**
- * allocate memory using allocator
- */
-__ABE_EXPORT void *             AllocatorAllocate(AllocatorRef, size_t);
-__ABE_EXPORT void *             AllocatorReallocate(AllocatorRef, void *, size_t);
-/**
- * free memory using allocator
- */
-__ABE_EXPORT void               AllocatorDeallocate(AllocatorRef, void *);
-__END_DECLS
 
 #endif // _TOOLKIT_HEADERS_ALLOCATOR_H
 

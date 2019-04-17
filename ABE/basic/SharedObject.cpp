@@ -99,26 +99,6 @@ SharedObject& SharedObject::operator=(const SharedObject &rhs) {
 
 __END_NAMESPACE_ABE
 
-__BEGIN_DECLS
-
-SharedObjectRef SharedObjectRetain(SharedObjectRef shared) {
-    return shared->RetainObject();
-}
-
-void SharedObjectRelease(SharedObjectRef shared) {
-    shared->ReleaseObject();
-}
-
-size_t SharedObjectGetRetainCount(SharedObjectRef shared) {
-    return shared->GetRetainCount();
-}
-
-uint32_t SharedObjectGetID(SharedObjectRef shared) {
-    return shared->GetObjectID();
-}
-
-__END_DECLS
-
 #define BUFFER_START_MAGIC  0xbaaddead
 #define BUFFER_END_MAGIC    0xdeadbaad
 
@@ -224,39 +204,3 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
 }
 
 __END_NAMESPACE_ABE
-
-__BEGIN_DECLS
-
-SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
-    return __NAMESPACE_ABE::SharedBuffer::Create(_allocator, sz);
-}
-
-void SharedBufferRelease(SharedBufferRef shared) {
-    shared->ReleaseBuffer(false);
-}
-
-char * SharedBufferGetData(const SharedBufferRef shared) {
-    return (char *)shared->data();
-}
-
-size_t SharedBufferGetSize(const SharedBufferRef shared) {
-    return shared->size();
-}
-
-SharedBufferRef SharedBufferEdit(SharedBufferRef shared) {
-    return shared->edit();
-}
-
-SharedBufferRef SharedBufferEditWithSize(SharedBufferRef shared, size_t sz) {
-    return shared->edit(sz);
-}
-
-size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef shared) {
-    return shared->ReleaseBuffer(true);
-}
-
-void SharedBufferDeallocate(SharedBufferRef shared) {
-    shared->deallocate();
-}
-
-__END_DECLS

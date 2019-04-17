@@ -36,8 +36,10 @@
 #define _TOOLKIT_HEADERS_THREAD_H
 
 #include <ABE/basic/Types.h>
+#include <ABE/basic/String.h>
+#include <ABE/object/Runnable.h>
 
-__BEGIN_DECLS
+__BEGIN_NAMESPACE_ABE
 
 /**
  * thread type
@@ -62,13 +64,6 @@ enum eThreadType {
     kThreadDefault          = kThreadNormal,
 };
 
-__END_DECLS
-
-#ifdef __cplusplus 
-#include <ABE/basic/String.h>
-#include <ABE/object/Runnable.h>
-
-__BEGIN_NAMESPACE_ABE
 /**
  * Java style thread, easy use of thread, no need to worry about thread control
  * Thread(new MyRunnable()).run();
@@ -173,7 +168,5 @@ class __ABE_EXPORT Thread : public NonSharedObject {
 };
 
 __END_NAMESPACE_ABE
-#endif // __cplusplus
-
 #endif // _TOOLKIT_HEADERS_THREAD_H
 
