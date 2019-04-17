@@ -109,15 +109,17 @@ __ABE_EXPORT BufferObjectRef    BufferObjectCreate(size_t);
 __ABE_EXPORT const char *       BufferObjectGetData(const BufferObjectRef);
 __ABE_EXPORT size_t             BufferObjectGetCapacity(const BufferObjectRef);
 __ABE_EXPORT size_t             BufferObjectGetLength(const BufferObjectRef);
+__ABE_EXPORT size_t             BufferObjectGetEmptyLength(const BufferObjectRef);
+__ABE_EXPORT size_t             BufferObjectPutData(BufferObjectRef, const char *, size_t);
 
 
 typedef SharedObjectRef         MessageObjectRef;
 __ABE_EXPORT MessageObjectRef   MessageObjectCreate();
 __ABE_EXPORT MessageObjectRef   MessageObjectCreateWithId(uint32_t id);
 __ABE_EXPORT MessageObjectRef   MessageObjectCopy(MessageObjectRef);
-__ABE_EXPORT uint32_t           MessageObjectGetId      (MessageObjectRef);
-__ABE_EXPORT size_t             MessageObjectGetSize    (MessageObjectRef);
-__ABE_EXPORT bool               MessageObjectContains   (MessageObjectRef, const char *);
+__ABE_EXPORT uint32_t           MessageObjectGetId      (const MessageObjectRef);
+__ABE_EXPORT size_t             MessageObjectGetSize    (const MessageObjectRef);
+__ABE_EXPORT bool               MessageObjectContains   (const MessageObjectRef, const char *);
 __ABE_EXPORT bool               MessageObjectRemove     (MessageObjectRef, const char *);
 __ABE_EXPORT void               MessageObjectClear      (MessageObjectRef);
 __ABE_EXPORT void               MessageObjectPutInt32   (MessageObjectRef, const char *, int32_t);
@@ -127,13 +129,13 @@ __ABE_EXPORT void               MessageObjectPutDouble  (MessageObjectRef, const
 __ABE_EXPORT void               MessageObjectPutPointer (MessageObjectRef, const char *, void *);
 __ABE_EXPORT void               MessageObjectPutString  (MessageObjectRef, const char *, const char *);
 __ABE_EXPORT void               MessageObjectPutObject  (MessageObjectRef, const char *, SharedObjectRef);
-__ABE_EXPORT int32_t            MessageObjectGetInt32   (MessageObjectRef, const char *, int32_t);
-__ABE_EXPORT int64_t            MessageObjectGetInt64   (MessageObjectRef, const char *, int64_t);
-__ABE_EXPORT float              MessageObjectGetFloat   (MessageObjectRef, const char *, float);
-__ABE_EXPORT double             MessageObjectGetDouble  (MessageObjectRef, const char *, double);
-__ABE_EXPORT void *             MessageObjectGetPointer (MessageObjectRef, const char *, void *);
-__ABE_EXPORT const char *       MessageObjectGetString  (MessageObjectRef, const char *, const char *);
-__ABE_EXPORT SharedObjectRef    MessageObjectGetObject  (MessageObjectRef, const char *, SharedObjectRef);
+__ABE_EXPORT int32_t            MessageObjectGetInt32   (const MessageObjectRef, const char *, int32_t);
+__ABE_EXPORT int64_t            MessageObjectGetInt64   (const MessageObjectRef, const char *, int64_t);
+__ABE_EXPORT float              MessageObjectGetFloat   (const MessageObjectRef, const char *, float);
+__ABE_EXPORT double             MessageObjectGetDouble  (const MessageObjectRef, const char *, double);
+__ABE_EXPORT void *             MessageObjectGetPointer (const MessageObjectRef, const char *, void *);
+__ABE_EXPORT const char *       MessageObjectGetString  (const MessageObjectRef, const char *, const char *);
+__ABE_EXPORT SharedObjectRef    MessageObjectGetObject  (const MessageObjectRef, const char *, SharedObjectRef);
 
 
 typedef SharedObjectRef         ContentObjectRef;

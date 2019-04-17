@@ -106,15 +106,23 @@ BufferObjectRef BufferObjectCreate(size_t cap) {
 }
 
 const char * BufferObjectGetData(const BufferObjectRef ref) {
-    return static_cast<Buffer *>(ref)->data();
+    return static_cast<const Buffer *>(ref)->data();
 }
 
 size_t BufferObjectGetCapacity(const BufferObjectRef ref) {
-    return static_cast<Buffer *>(ref)->capacity();
+    return static_cast<const Buffer *>(ref)->capacity();
 }
 
 size_t BufferObjectGetLength(const BufferObjectRef ref) {
-    return static_cast<Buffer *>(ref)->size();
+    return static_cast<const Buffer *>(ref)->size();
+}
+
+size_t BufferObjectGetEmptyLength(const BufferObjectRef ref) {
+    return static_cast<const Buffer *>(ref)->empty();
+}
+
+size_t BufferObjectPutData(BufferObjectRef ref, const char * data, size_t n) {
+    return static_cast<Buffer *>(ref)->write(data, n);
 }
 
 MessageObjectRef MessageObjectCreate() {
@@ -127,21 +135,21 @@ MessageObjectRef MessageObjectCreateWithId(uint32_t id) {
     return (MessageObjectRef)message->RetainObject();
 }
 
-MessageObjectRef MessageObjectCopy(MessageObjectRef ref) {
-    Object<Message> copy = static_cast<Message *>(ref)->dup();
+MessageObjectRef MessageObjectCopy(const MessageObjectRef ref) {
+    Object<Message> copy = static_cast<const Message *>(ref)->dup();
     return (MessageObjectRef)copy->RetainObject();
 }
 
-uint32_t MessageObjectGetId(MessageObjectRef ref) {
-    return static_cast<Message *>(ref)->what();
+uint32_t MessageObjectGetId(const MessageObjectRef ref) {
+    return static_cast<const Message *>(ref)->what();
 }
 
-size_t MessageObjectGetCount(MessageObjectRef ref) {
-    return static_cast<Message *>(ref)->countEntries();
+size_t MessageObjectGetCount(const MessageObjectRef ref) {
+    return static_cast<const Message *>(ref)->countEntries();
 }
 
-bool MessageObjectContains(MessageObjectRef ref, const char * name) {
-    return static_cast<Message *>(ref)->contains(name);
+bool MessageObjectContains(const MessageObjectRef ref, const char * name) {
+    return static_cast<const Message *>(ref)->contains(name);
 }
 
 bool MessageObjectRemove(MessageObjectRef ref, const char * name) {
@@ -169,9 +177,9 @@ void MessageObjectPutObject(MessageObjectRef ref, const char * name, SharedObjec
     message->setObject(name, static_cast<SharedObject *>(obj));
 }
 
-#define MessageObjectGet(SUFFIX, DATA_TYPE)                                                         \
-    DATA_TYPE MessageObjectGet##SUFFIX(MessageObjectRef ref, const char * name, DATA_TYPE def) {    \
-        return static_cast<Message *>(ref)->find##SUFFIX(name, def);                                \
+#define MessageObjectGet(SUFFIX, DATA_TYPE)                                                             \
+    DATA_TYPE MessageObjectGet##SUFFIX(const MessageObjectRef ref, const char * name, DATA_TYPE def) {  \
+        return static_cast<const Message *>(ref)->find##SUFFIX(name, def);                              \
     }
 
 MessageObjectGet(Int32,     int32_t);
@@ -181,8 +189,8 @@ MessageObjectGet(Double,    double);
 MessageObjectGet(Pointer,   void *);
 MessageObjectGet(String,    const char *);
 
-SharedObjectRef MessageObjectGetObject(MessageObjectRef ref, const char * name, SharedObjectRef def) {
-    return (SharedObjectRef)static_cast<Message *>(ref)->findObject(name, static_cast<SharedObject *>(def));
+SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, const char * name, SharedObjectRef def) {
+    return (SharedObjectRef)static_cast<const Message *>(ref)->findObject(name, static_cast<SharedObject *>(def));
 }
 
 ContentObjectRef ContentObjectCreate(const char * url) {
@@ -191,8 +199,8 @@ ContentObjectRef ContentObjectCreate(const char * url) {
     return (ContentObjectRef)content->RetainObject();
 }
 
-size_t ContentObjectLength(ContentObjectRef ref) {
-    return static_cast<Content *>(ref)->size();
+size_t ContentObjectLength(const ContentObjectRef ref) {
+    return static_cast<const Content *>(ref)->size();
 }
 
 BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
