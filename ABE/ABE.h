@@ -74,6 +74,8 @@
 // c bindings
 __BEGIN_DECLS
 typedef void *                  SharedObjectRef;
+#define NIL                     (SharedObjectRef)0
+
 __ABE_EXPORT SharedObjectRef    SharedObjectRetain(SharedObjectRef);
 __ABE_EXPORT void               SharedObjectRelease(SharedObjectRef);
 __ABE_EXPORT size_t             SharedObjectGetRetainCount(SharedObjectRef);

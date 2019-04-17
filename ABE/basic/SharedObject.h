@@ -172,6 +172,8 @@ template <class T> class __ABE_EXPORT Object {
 
         // clear
         __ABE_INLINE void clear();
+    
+        __ABE_INLINE bool isNIL() const { return mShared == NULL ; }
 
     public:
         /**
