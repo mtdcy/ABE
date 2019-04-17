@@ -32,20 +32,20 @@
 USING_NAMESPACE_ABE
 
 __BEGIN_DECLS
-SharedObjectRef SharedObjectRetain(SharedObjectRef shared) {
-    return static_cast<SharedObject *>(shared)->RetainObject();
+SharedObjectRef SharedObjectRetain(SharedObjectRef ref) {
+    return static_cast<SharedObject *>(ref)->RetainObject();
 }
 
-void SharedObjectRelease(SharedObjectRef shared) {
-    static_cast<SharedObject *>(shared)->ReleaseObject();
+void SharedObjectRelease(SharedObjectRef ref) {
+    static_cast<SharedObject *>(ref)->ReleaseObject();
 }
 
-size_t SharedObjectGetRetainCount(SharedObjectRef shared) {
-    return static_cast<SharedObject *>(shared)->GetRetainCount();
+size_t SharedObjectGetRetainCount(const SharedObjectRef ref) {
+    return static_cast<const SharedObject *>(ref)->GetRetainCount();
 }
 
-uint32_t SharedObjectGetID(SharedObjectRef shared) {
-    return static_cast<SharedObject *>(shared)->GetObjectID();
+uint32_t SharedObjectGetID(const SharedObjectRef ref) {
+    return static_cast<const SharedObject *>(ref)->GetObjectID();
 }
 
 AllocatorRef AllocatorGetDefault(void) {
@@ -72,32 +72,32 @@ SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
     return __NAMESPACE_ABE::SharedBuffer::Create(_allocator, sz);
 }
 
-void SharedBufferRelease(SharedBufferRef shared) {
-    static_cast<SharedBuffer *>(shared)->ReleaseBuffer(false);
+void SharedBufferRelease(SharedBufferRef ref) {
+    static_cast<SharedBuffer *>(ref)->ReleaseBuffer(false);
 }
 
-char * SharedBufferGetData(const SharedBufferRef shared) {
-    return static_cast<SharedBuffer *>(shared)->data();
+char * SharedBufferGetData(const SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->data();
 }
 
-size_t SharedBufferGetLength(const SharedBufferRef shared) {
-    return static_cast<SharedBuffer *>(shared)->size();
+size_t SharedBufferGetLength(const SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->size();
 }
 
-SharedBufferRef SharedBufferEdit(SharedBufferRef shared) {
-    return static_cast<SharedBuffer *>(shared)->edit();
+SharedBufferRef SharedBufferEdit(SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->edit();
 }
 
-SharedBufferRef SharedBufferEditWithSize(SharedBufferRef shared, size_t sz) {
-    return static_cast<SharedBuffer *>(shared)->edit(sz);
+SharedBufferRef SharedBufferEditWithSize(SharedBufferRef ref, size_t sz) {
+    return static_cast<SharedBuffer *>(ref)->edit(sz);
 }
 
-size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef shared) {
-    return static_cast<SharedBuffer *>(shared)->ReleaseBuffer(true);
+size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->ReleaseBuffer(true);
 }
 
-void SharedBufferDeallocate(SharedBufferRef shared) {
-    static_cast<SharedBuffer *>(shared)->deallocate();
+void SharedBufferDeallocate(SharedBufferRef ref) {
+    static_cast<SharedBuffer *>(ref)->deallocate();
 }
 
 BufferObjectRef BufferObjectCreate(size_t cap) {

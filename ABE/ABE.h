@@ -78,10 +78,10 @@ typedef void *                  SharedObjectRef;
 
 __ABE_EXPORT SharedObjectRef    SharedObjectRetain(SharedObjectRef);
 __ABE_EXPORT void               SharedObjectRelease(SharedObjectRef);
-__ABE_EXPORT size_t             SharedObjectGetRetainCount(SharedObjectRef);
+__ABE_EXPORT size_t             SharedObjectGetRetainCount(const SharedObjectRef);
 #define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
 #define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
-__ABE_EXPORT uint32_t           SharedObjectGetID(SharedObjectRef);
+__ABE_EXPORT uint32_t           SharedObjectGetID(const SharedObjectRef);
 
 
 typedef SharedObjectRef         AllocatorRef;
