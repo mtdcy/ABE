@@ -31,51 +31,33 @@
 //          1. 20160701     initial version
 //
 
+#if defined(__APPLE__)
+#include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/time_win32.h"
+#else
+#include "basic/compat/time_linux.h"
+#endif
+
 #define LOG_TAG "Time"
 #include "Log.h"
 #include "Time.h"
 
-#include "Config.h"
-
-#include "compat/time.h"
-
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#if defined(__MINGW32__)
-#include "windows.h"
-#endif
-
-#ifdef __APPLE__
-#include <mach/mach_time.h>
-#endif
-
 __BEGIN_DECLS
 
-// NOTE: DO NOT print any log with Log here
-int64_t SystemTimeNs() {
+int64_t SystemTimeEpoch() {
     struct timespec ts;
-    relative_time(&ts);
+    clock_gettime(CLOCK_REALTIME, &ts);
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
 
-#if defined(__MINGW32__)
-int SleepTime(int64_t ns) {
-    // XXX: not accurate.
-    Sleep(ns/1000000);
-    return 0;
+int64_t SystemTimeMonotonic() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
-#else   // __MINGW32__
 
 __ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
-#if 0//def __APPLE__
-    uint64_t now = mach_absolute_time();
-    mach_timebase_info_data_t timebase;
-    mach_timebase_info(&timebase);
-    uint64_t to_wait = (ns * timebase.denom) / timebase.numer;
-    return mach_wait_until(now + to_wait);
-#else
     struct timespec rqtp;
     struct timespec rmtp;
     rqtp.tv_sec     = ns / 1000000000LL;
@@ -89,17 +71,15 @@ __ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
     // man(3) usleep:
     // "The usleep() function is obsolescent. Use nanosleep(2) instead."
     //return usleep(usecs);
-#endif
 }
 
-bool SleepNs(int64_t ns) {
+bool SleepForInterval(int64_t ns) {
     return _Sleep(ns, NULL);
 }
 
-void SleepTimeNs(int64_t ns) {
+void SleepForIntervalWithoutInterrupt(int64_t ns) {
     while (_Sleep(ns, &ns) == false) { }
 }
-#endif  // __MINGW32__
 
 __END_DECLS
 

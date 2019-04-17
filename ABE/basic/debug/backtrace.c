@@ -46,7 +46,10 @@
 #include <execinfo.h>
 #include <stdlib.h>
 #else 
+#ifdef __MINGW32__
+#else
 #define USE_UNWIND   1
+#endif
 #endif
 
 #define MAX_STACK 32
@@ -126,8 +129,10 @@ size_t backtrace_stack(bt_stack_t array[], size_t max) {
     }
     // remove only first pc
     return state.cur_frame - 1;
+#elif defined(__MINGW32__)
+    return 0;
 #else
-    l1_backtrace_t stack[MAX_STACK];
+    bt_stack_t stack[MAX_STACK];
     size_t n = backtrace(stack, MAX_STACK);
     for (size_t i = 1; i < n - 1 && i - 1 < max; ++i) {
         array[i-1]  = stack[i];
@@ -183,6 +188,8 @@ void backtrace_symbols(const bt_stack_t array[], size_t size) {
             INFO("%02d: unknown", i);
         }
     }
+#elif defined(__MINGW32__)
+    // NOTHING
 #else
     // backtrace_symbols uses malloc, if malloc and free been overrided,
     // it is a problem.

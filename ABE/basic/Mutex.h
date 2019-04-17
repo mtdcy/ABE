@@ -36,12 +36,13 @@
 #define _TOOLKIT_HEADERS_MUTEX_H
 
 #include <ABE/basic/Types.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
-class __ABE_EXPORT Mutex {
+class __ABE_EXPORT Mutex : public NonSharedObject {
     public:
         Mutex(bool recursive = false);
         ~Mutex();
@@ -56,11 +57,10 @@ class __ABE_EXPORT Mutex {
 
         pthread_mutex_t mLock;
 
-    private: 
-        DISALLOW_EVILS(Mutex);
+    DISALLOW_EVILS(Mutex);
 };
 
-class __ABE_EXPORT AutoLock {
+class __ABE_EXPORT AutoLock : public NonSharedObject {
     public:
         __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
         __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
@@ -69,11 +69,10 @@ class __ABE_EXPORT AutoLock {
     private:
         Mutex&  mLock;
 
-    private:
-        DISALLOW_EVILS(AutoLock);
+    DISALLOW_EVILS(AutoLock);
 };
 
-class __ABE_EXPORT Condition {
+class __ABE_EXPORT Condition : public NonSharedObject {
     public:
         Condition();
         ~Condition();
@@ -89,11 +88,10 @@ class __ABE_EXPORT Condition {
     private:
         pthread_cond_t  mWait;
 
-    private:
-        DISALLOW_EVILS(Condition);
+    DISALLOW_EVILS(Condition);
 };
 
-class __ABE_EXPORT RWLock {
+class __ABE_EXPORT RWLock : public NonSharedObject {
     public:
         RWLock();
         ~RWLock();
@@ -105,8 +103,7 @@ class __ABE_EXPORT RWLock {
     private:
         pthread_rwlock_t    mLock;
 
-    private:
-        DISALLOW_EVILS(RWLock);
+    DISALLOW_EVILS(RWLock);
 };
 
 __END_NAMESPACE_ABE

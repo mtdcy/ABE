@@ -49,16 +49,16 @@ struct __ABE_EXPORT Allocator : public SharedObject {
     virtual void *  reallocate(void * ptr, size_t size) = 0;
     virtual void    deallocate(void * ptr) = 0;
 };
-__ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
-__ABE_EXPORT sp<Allocator> GetAlignedAllocator(size_t alignment);
+__ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
+__ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
 #endif   // __cplusplus
 
 #ifdef __cplusplus
-using __NAMESPACE_ABE::Allocator;
+typedef __NAMESPACE_ABE::Allocator * AllocatorRef;
 #else
-typedef struct Allocator Allocator;
+typedef void * AllocatorRef;
 #endif
 
 __BEGIN_DECLS
@@ -66,33 +66,33 @@ __BEGIN_DECLS
 /**
  * retain default allocator
  */
-__ABE_EXPORT Allocator *     AllocatorGetDefault(void);
-__ABE_EXPORT Allocator *     AllocatorGetDefaultAligned(size_t);
+__ABE_EXPORT AllocatorRef       AllocatorGetDefault(void);
+__ABE_EXPORT AllocatorRef       AllocatorGetDefaultAligned(size_t);
 
 /**
  * release a allocator
  */
-#define AllocatorRelease(s)         SharedObjectRelease((SharedObject *)s)
+#define AllocatorRelease(s)     SharedObjectRelease((SharedObjectRef)s)
 
 /**
  * retain a allocator
  */
-#define AllocatorRetain(s)          (Allocator *)SharedObjectRetain((SharedObject *)s)
-#define AllocatorGetRetainCount(s)  SharedObjectGetRetainCount((SharedObject *)s)
+#define AllocatorRetain(s)          (AllocatorRef)SharedObjectRetain((SharedObjectRef)s)
+#define AllocatorGetRetainCount(s)  SharedObjectGetRetainCount((SharedObjectRef)s)
 
 /**
  * get allocator alignment
  */
-__ABE_EXPORT size_t          AllocatorGetAlignment(Allocator *);
+__ABE_EXPORT size_t             AllocatorGetAlignment(AllocatorRef);
 /**
  * allocate memory using allocator
  */
-__ABE_EXPORT void *          AllocatorAllocate(Allocator *, size_t);
-__ABE_EXPORT void *          AllocatorReallocate(Allocator *, void *, size_t);
+__ABE_EXPORT void *             AllocatorAllocate(AllocatorRef, size_t);
+__ABE_EXPORT void *             AllocatorReallocate(AllocatorRef, void *, size_t);
 /**
  * free memory using allocator
  */
-__ABE_EXPORT void            AllocatorDeallocate(Allocator *, void *);
+__ABE_EXPORT void               AllocatorDeallocate(AllocatorRef, void *);
 __END_DECLS
 
 #endif // _TOOLKIT_HEADERS_ALLOCATOR_H

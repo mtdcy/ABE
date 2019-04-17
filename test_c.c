@@ -11,10 +11,10 @@ void testBuffer() {
     malloc_prepare();
     
     // create a shared buffer
-    SharedBuffer * shared = SharedBufferCreate(AllocatorGetDefault(), 1024);
+    SharedBufferRef shared = SharedBufferCreate(AllocatorGetDefault(), 1024);
     CHECK_EQ(SharedBufferGetRetainCount(shared), 1);
     
-    SharedBuffer * copy = SharedBufferRetain(shared);
+    SharedBufferRef copy = SharedBufferRetain(shared);
     CHECK_EQ(SharedBufferGetRetainCount(copy), 2);
     SharedBufferRelease(copy);
     

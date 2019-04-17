@@ -39,6 +39,9 @@
 
 __BEGIN_NAMESPACE_ABE
 
+template <typename T, typename U> struct is_same    { enum { value = false }; };
+template <typename T> struct is_same<T, T>          { enum { value = true  }; };
+
 //////////////////////////////////////////////////////////////////////////////
 template <typename TYPE> struct is_pointer          { enum { value = false }; };
 template <typename TYPE> struct is_pointer<TYPE *>  { enum { value = true  }; };
@@ -57,7 +60,7 @@ template <> struct is_builtin< int64_t  >           { enum { value = true  }; };
 template <> struct is_builtin< uint64_t >           { enum { value = true  }; };
 template <> struct is_builtin< float    >           { enum { value = true  }; };
 template <> struct is_builtin< double   >           { enum { value = true  }; };
-#if !defined(__GLIBC__)
+#if !defined(__GLIBC__) && !defined(__MINGW32__)
 template <> struct is_builtin< size_t   >           { enum { value = true  }; };
 template <> struct is_builtin< ssize_t  >           { enum { value = true  }; };
 #endif
@@ -68,7 +71,7 @@ template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
 #ifdef _TOOLKIT_HEADERS_SHARED_BUFFER_H
-template <typename T> struct is_trivial_move<sp<T> >    { enum { value = true }; };
+template <typename T> struct is_trivial_move<Object<T> >    { enum { value = true }; };
 #endif
 
 #ifdef _TOOLKIT_HEADERS_STRING_H    // String.h

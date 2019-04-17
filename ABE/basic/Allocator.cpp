@@ -69,7 +69,7 @@ static int posix_memalign_mpx(void **ptr, size_t alignment, size_t size) {
 
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_HIDDEN AllocatorDefault : public Allocator {
+struct AllocatorDefault : public Allocator {
     AllocatorDefault() : Allocator() { }
     virtual ~AllocatorDefault() { }
     virtual void * allocate(size_t size) {
@@ -87,9 +87,9 @@ struct __ABE_HIDDEN AllocatorDefault : public Allocator {
         free(ptr);
     }
 };
-sp<Allocator> kAllocatorDefault = new AllocatorDefault;
+Object<Allocator> kAllocatorDefault = new AllocatorDefault;
 
-struct __ABE_HIDDEN AllocatorDefaultAligned : public Allocator {
+struct AllocatorDefaultAligned : public Allocator {
     const size_t mAlignment;
     size_t mSize;
     AllocatorDefaultAligned(size_t align) : Allocator(), mAlignment(POW_2(align)) { }
@@ -123,7 +123,7 @@ struct __ABE_HIDDEN AllocatorDefaultAligned : public Allocator {
     }
 };
 
-sp<Allocator> GetAlignedAllocator(size_t alignment) {
+Object<Allocator> GetAlignedAllocator(size_t alignment) {
     return new AllocatorDefaultAligned(alignment);
 }
 
@@ -132,25 +132,25 @@ __END_NAMESPACE_ABE
 extern "C" {
     //using mtdcy::Allocator;
 
-    Allocator * AllocatorGetDefault(void) {
-        Allocator * shared = __NAMESPACE_ABE::kAllocatorDefault.get();
-        return static_cast<Allocator*>(shared->RetainObject());
+    AllocatorRef AllocatorGetDefault(void) {
+        AllocatorRef shared = __NAMESPACE_ABE::kAllocatorDefault.get();
+        return (AllocatorRef)shared->RetainObject();
     }
 
-    Allocator * AllocatorGetDefaultAligned(size_t alignment) {
-        Allocator * shared = new __NAMESPACE_ABE::AllocatorDefaultAligned(alignment);
-        return static_cast<Allocator*>(shared->RetainObject());
+    AllocatorRef AllocatorGetDefaultAligned(size_t alignment) {
+        AllocatorRef shared = new __NAMESPACE_ABE::AllocatorDefaultAligned(alignment);
+        return (AllocatorRef)shared->RetainObject();
     }
 
-    void * AllocatorAllocate(Allocator * shared, size_t n) {
+    void * AllocatorAllocate(AllocatorRef shared, size_t n) {
         return shared->allocate(n);
     }
 
-    void * AllocatorReallocate(Allocator * shared, void * p, size_t n) {
+    void * AllocatorReallocate(AllocatorRef shared, void * p, size_t n) {
         return shared->reallocate(p, n);
     }
 
-    void AllocatorDeallocate(Allocator * shared, void * p) {
+    void AllocatorDeallocate(AllocatorRef shared, void * p) {
         shared->deallocate(p);
     }
 }

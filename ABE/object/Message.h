@@ -47,9 +47,9 @@ class __ABE_EXPORT Message : public SharedObject {
     public:
         Message(uint32_t what = 0);
         virtual ~Message();
-        Message(const Message&);
-        Message& operator=(const Message&);
-
+    
+        Object<Message> dup() const;
+    
     public:
         enum Type {
             kTypeInt32,
@@ -85,7 +85,7 @@ class __ABE_EXPORT Message : public SharedObject {
         void            setString   (const String& name, const char *s, size_t len = 0);    // kTypeString
         void            setObject   (const String& name, SharedObject * object);            // kTypeObject
 
-        template <class T> __ABE_INLINE void setObject(const String& name, const sp<T>& o)
+        template <class T> __ABE_INLINE void setObject(const String& name, const Object<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
         int32_t         findInt32   (const String& name, int32_t def = 0) const;            // kTypeInt32
@@ -102,7 +102,7 @@ class __ABE_EXPORT Message : public SharedObject {
 
     private:
         uint32_t                    mWhat;
-        struct __ABE_HIDDEN Entry {
+        struct Entry {
             Type                    mType;
             union {
                 int32_t             i32;
@@ -122,7 +122,7 @@ class __ABE_EXPORT Message : public SharedObject {
         SharedObject *  _findValue(const String& name) const;
 
     public:
-        template <class TYPE> struct __ABE_HIDDEN holder : public SharedObject {
+        template <class TYPE> struct holder : public SharedObject {
             TYPE    value;
             __ABE_INLINE holder(const TYPE& _value) : SharedObject(), value(_value) { }
             __ABE_INLINE virtual ~holder() { }
@@ -135,47 +135,44 @@ class __ABE_EXPORT Message : public SharedObject {
         template <class TYPE> __ABE_INLINE const TYPE& find(const String& name) const
         { return (static_cast<holder<TYPE> *>(_findValue(name)))->value; }
 #endif
+    
+    DISALLOW_EVILS(Message);
 };
 
 __END_NAMESPACE_ABE
 #endif   // __cplusplus
 
-#ifdef __cplusplus
-using __NAMESPACE_ABE::Message;
-#else
-typedef struct Message Message;
-#endif
-
 __BEGIN_DECLS
+typedef SharedObjectRef MessageRef;
 
-Message *           SharedMessageCreate();
-Message *           SharedMessageCreateWithId(uint32_t id);
-Message *           SharedMessageCopy(Message *);
-#define SharedMessageRetain(x)          (Message *)SharedObjectRetain((SharedObject *)x)
-#define SharedMessageRelease(x)         SharedObjectRelease((SharedObject *)x)
-#define SharedMessageGetRetainCount(x)  SharedObjectGetRetainCount((SharedObject *)x)
+__ABE_EXPORT MessageRef         SharedMessageCreate();
+__ABE_EXPORT MessageRef         SharedMessageCreateWithId(uint32_t id);
+__ABE_EXPORT MessageRef         SharedMessageCopy(MessageRef);
+#define SharedMessageRetain(x)          (Message *)SharedObjectRetain((SharedObjectRef)x)
+#define SharedMessageRelease(x)         SharedObjectRelease((SharedObjectRef)x)
+#define SharedMessageGetRetainCount(x)  SharedObjectGetRetainCount((SharedObjectRef)x)
 
-uint32_t            SharedMessageGetId      (Message *);
-size_t              SharedMessageGetCount   (Message *);
-bool                SharedMessageContains   (Message *, const char *);
-bool                SharedMessageRemove     (Message *, const char *);
-void                SharedMessageClear      (Message *);
+__ABE_EXPORT uint32_t           SharedMessageGetId      (MessageRef);
+__ABE_EXPORT size_t             SharedMessageGetCount   (MessageRef);
+__ABE_EXPORT bool               SharedMessageContains   (MessageRef, const char *);
+__ABE_EXPORT bool               SharedMessageRemove     (MessageRef, const char *);
+__ABE_EXPORT void               SharedMessageClear      (MessageRef);
 
-void                SharedMessagePutInt32   (Message *, const char *, int32_t);
-void                SharedMessagePutInt64   (Message *, const char *, int64_t);
-void                SharedMessagePutFloat   (Message *, const char *, float);
-void                SharedMessagePutDouble  (Message *, const char *, double);
-void                SharedMessagePutPointer (Message *, const char *, void *);
-void                SharedMessagePutString  (Message *, const char *, const char *);
-void                SharedMessagePutObject  (Message *, const char *, SharedObject *);
+__ABE_EXPORT void               SharedMessagePutInt32   (MessageRef, const char *, int32_t);
+__ABE_EXPORT void               SharedMessagePutInt64   (MessageRef, const char *, int64_t);
+__ABE_EXPORT void               SharedMessagePutFloat   (MessageRef, const char *, float);
+__ABE_EXPORT void               SharedMessagePutDouble  (MessageRef, const char *, double);
+__ABE_EXPORT void               SharedMessagePutPointer (MessageRef, const char *, void *);
+__ABE_EXPORT void               SharedMessagePutString  (MessageRef, const char *, const char *);
+__ABE_EXPORT void               SharedMessagePutObject  (MessageRef, const char *, SharedObjectRef);
 
-int32_t             SharedMessageGetInt32   (Message *, const char *, int32_t);
-int64_t             SharedMessageGetInt64   (Message *, const char *, int64_t);
-float               SharedMessageGetFloat   (Message *, const char *, float);
-double              SharedMessageGetDouble  (Message *, const char *, double);
-void *              SharedMessageGetPointer (Message *, const char *, void *);
-const char *        SharedMessageGetString  (Message *, const char *, const char *);
-SharedObject *      SharedMessageGetObject  (Message *, const char *, SharedObject *);
+__ABE_EXPORT int32_t            SharedMessageGetInt32   (MessageRef, const char *, int32_t);
+__ABE_EXPORT int64_t            SharedMessageGetInt64   (MessageRef, const char *, int64_t);
+__ABE_EXPORT float              SharedMessageGetFloat   (MessageRef, const char *, float);
+__ABE_EXPORT double             SharedMessageGetDouble  (MessageRef, const char *, double);
+__ABE_EXPORT void *             SharedMessageGetPointer (MessageRef, const char *, void *);
+__ABE_EXPORT const char *       SharedMessageGetString  (MessageRef, const char *, const char *);
+__ABE_EXPORT SharedObjectRef    SharedMessageGetObject  (MessageRef, const char *, SharedObjectRef);
 
 __END_DECLS
 

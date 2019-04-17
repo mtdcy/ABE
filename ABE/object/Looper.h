@@ -37,7 +37,7 @@
 
 #ifdef __cplusplus
 #include <ABE/object/Runnable.h>
-#include <ABE/tools/Thread.h>
+#include <ABE/basic/Thread.h>
 __BEGIN_NAMESPACE_ABE
 
 class __ABE_EXPORT Looper : public SharedObject {
@@ -46,33 +46,24 @@ class __ABE_EXPORT Looper : public SharedObject {
          * get 'main looper', prepare one if not exists.
          * @return return reference to 'main looper'
          */
-        static sp<Looper>   Main();
+        static Object<Looper>   Main();
 
         /**
          * get current looper
          * @return return reference to current looper
          */
-        static sp<Looper>   Current();
+        static Object<Looper>   Current();
+    
+        /**
+         * set and get a global looper
+         */
+        static Object<Looper>   Global();
+        static void             SetGlobal(const Object<Looper>&);
 
         /**
          * create a looper
          */
-        static __ABE_INLINE sp<Looper> Create(const String& name, const eThreadType& type = kThreadNormal)
-        { return new Looper(name, type); }
-
-    protected:
-        /**
-         * create a looper with given name
-         * @note using Thread::Current() to enable extra control of backend thread
-         */
-        Looper(const String& name, const eThreadType& type);
-
-        /**
-         * delete looper object
-         * if runnable is independent from looper object, it is ok to
-         * delete without terminate()
-         */
-        virtual ~Looper();
+        static Object<Looper>   Create(const String& name, const eThreadType& type = kThreadNormal);
 
     public:
         /**
@@ -80,11 +71,6 @@ class __ABE_EXPORT Looper : public SharedObject {
          * @note no backend thread for main looper, return Thread::Null for main looper
          */
         Thread& thread() const;
-
-        /**
-         * get looper name
-         */
-        String& name() const;
 
         /**
          * run current looper
@@ -129,19 +115,19 @@ class __ABE_EXPORT Looper : public SharedObject {
          * @param what      - runnable object
          * @param delayUs   - delay time in us
          */
-        void post(const sp<Runnable>& what, int64_t delayUs = 0);
+        void post(const Object<Runnable>& what, int64_t delayUs = 0);
 
         /**
          * remove a Runnable object from this looper
          * @param what      - runnable object
          */
-        void remove(const sp<Runnable>& what);
+        void remove(const Object<Runnable>& what);
 
         /**
          * test if a Runnable object is already in this looper
          * @param what      - runnable object
          */
-        bool exists(const sp<Runnable>& what) const;
+        bool exists(const Object<Runnable>& what) const;
 
         /**
          * flush Runnable objects from this looper
@@ -149,11 +135,12 @@ class __ABE_EXPORT Looper : public SharedObject {
         void flush();
 
     private:
-        Looper() : mShared(NULL) { }
-        sp<SharedObject>    mShared;
+        Object<SharedObject>    mShared;
 
     private:
         DISALLOW_EVILS(Looper);
+    
+    __OBJECT_DECLS(Looper);
 };
 __END_NAMESPACE_ABE
 #endif // __cplusplus

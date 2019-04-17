@@ -70,8 +70,8 @@ class __ABE_EXPORT Buffer : public SharedObject {
          * @param capacity  initial capacity of this buffer
          * @param type      type of this buffer, @see eBufferType
          */
-        Buffer(size_t capacity, const sp<Allocator>& allocator = kAllocatorDefault);
-        Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator = kAllocatorDefault);
+        Buffer(size_t capacity, const Object<Allocator>& allocator = kAllocatorDefault);
+        Buffer(size_t capacity, eBufferType type, const Object<Allocator>& allocator = kAllocatorDefault);
 
         /**
          * alloc a buffer by duplicate a null-terminated string
@@ -80,7 +80,7 @@ class __ABE_EXPORT Buffer : public SharedObject {
          * @param type  type of this buffer, @see eBufferType
          */
         Buffer(const char *, size_t n = 0, eBufferType type = kBufferTypeDefault,
-                const sp<Allocator>& allocator = kAllocatorDefault);
+                const Object<Allocator>& allocator = kAllocatorDefault);
 
         ~Buffer();
 
@@ -130,9 +130,9 @@ class __ABE_EXPORT Buffer : public SharedObject {
         __ABE_INLINE size_t size() const        { return ready();               } // alias
     
         size_t          read(char *buf, size_t n);
-        sp<Buffer>      read(size_t n);
+        Object<Buffer>  read(size_t n);
     
-        sp<Buffer>      split(size_t pos, size_t size) const;
+        Object<Buffer>  split(size_t pos, size_t size) const;
 
         int             compare(size_t offset, const char *s, size_t n = 0) const;
         __ABE_INLINE int compare(const char *s, size_t n = 0) const                      { return compare(0, s, n);                             }
@@ -170,7 +170,7 @@ class __ABE_EXPORT Buffer : public SharedObject {
         DISALLOW_EVILS(Buffer);
 
         // backend memory provider
-        sp<Allocator>       mAllocator;
+        Object<Allocator>   mAllocator;
         char *              mData;
         size_t              mCapacity;
         const eBufferType   mType;
@@ -181,6 +181,17 @@ class __ABE_EXPORT Buffer : public SharedObject {
 __END_NAMESPACE_ABE
 
 #endif // __cplusplus 
+
+__BEGIN_DECLS
+typedef SharedObjectRef     BufferRef;
+
+__ABE_EXPORT BufferRef      BufferCreate(size_t);
+#define BufferRelease(x)    BufferRelease((SharedObjectRef)x);
+
+__ABE_EXPORT size_t         BufferCapacity(const BufferRef);
+__ABE_EXPORT size_t         BufferSize(const BufferRef);
+
+__END_DECLS
 
 #endif // _TOOLKIT_HEADERS_BUFFER_H 
 

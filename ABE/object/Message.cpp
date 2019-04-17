@@ -57,10 +57,9 @@ Message::Message(uint32_t what)
 {
 }
 
-Message::Message(const Message& rhs) :
-    mWhat(rhs.mWhat), mEntries()
-{
-    HashTable<String, Entry>::const_iterator it = rhs.mEntries.cbegin();
+Object<Message> Message::dup() const {
+    Object<Message> message = new Message;
+    HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
         const String& name  = it.key();
         Entry copy          = it.value(); // copy value
@@ -75,31 +74,9 @@ Message::Message(const Message& rhs) :
             default:
                 break;
         }
-        mEntries.insert(name, copy);
+        message->mEntries.insert(name, copy);
     }
-}
-
-Message& Message::operator=(const Message& rhs) {
-    clear();
-
-    HashTable<String, Entry>::const_iterator it = rhs.mEntries.cbegin();
-    for (; it != mEntries.cend(); ++it) {
-        const String& name  = it.key();
-        Entry copy          = it.value(); // copy value
-        switch (copy.mType) {
-            case kTypeString:
-                copy.u.ptr = strdup((const char *)copy.u.ptr);
-                break;
-            case kTypeObject:
-            case kTypeValue:
-                copy.u.obj->RetainObject();
-                break;
-            default:
-                break;
-        }
-        mEntries.insert(name, copy);
-    }
-    return *this;
+    return message;
 }
 
 Message::~Message() {
@@ -163,6 +140,15 @@ BASIC_TYPE(Double,  dbl,        double);
 BASIC_TYPE(Pointer, ptr,        void *);
 
 #undef BASIC_TYPE
+
+#ifdef __MINGW32__
+static __ABE_INLINE char * strndup(const char *s, size_t len) {
+    // plus 1 for NULL terminating
+    char * dup = (char *)malloc(len+1);
+    memcpy(dup, s, len+1);
+    return dup;
+}
+#endif
 
 void Message::setString( const String& name, const char *s, size_t len) {
     if (!len) len = strlen(s);
@@ -330,65 +316,74 @@ String Message::getEntryNameAt(size_t index, Type *type) const {
 __END_NAMESPACE_ABE
 
 extern "C" {
+    USING_NAMESPACE_ABE
 
-    Message * SharedMessageCreate() {
-        Message * shared = new Message;
-        return (Message *)shared->RetainObject();
+    MessageRef SharedMessageCreate() {
+        MessageRef shared = new Message;
+        return (MessageRef)shared->RetainObject();
     }
 
-    Message * SharedMessageCreateWithId(uint32_t id) {
-        Message * shared = new Message(id);
-        return (Message *)shared->RetainObject();
+    MessageRef SharedMessageCreateWithId(uint32_t id) {
+        MessageRef shared = new Message(id);
+        return (MessageRef)shared->RetainObject();
     }
 
-    Message * SharedMessageCopy(Message * shared) {
-        Message * copy = new Message(*shared);
-        return (Message *)copy->RetainObject();
+    MessageRef SharedMessageCopy(MessageRef ref) {
+        Object<Message> shared = ref;
+        Object<Message> copy = shared->dup();
+        return (MessageRef)copy->RetainObject();
     }
 
-    uint32_t SharedMessageGetId(Message * shared) {
+    uint32_t SharedMessageGetId(MessageRef ref) {
+        Object<Message> shared = ref;
         return shared->what();
     }
 
-    size_t SharedMessageGetCount(Message * shared) {
+    size_t SharedMessageGetCount(MessageRef ref) {
+        Object<Message> shared = ref;
         return shared->countEntries();
     }
 
-    bool SharedMessageContains(Message * shared, const char * name) {
+    bool SharedMessageContains(MessageRef ref, const char * name) {
+        Object<Message> shared = ref;
         return shared->contains(name);
     }
 
-    bool SharedMessageRemove(Message * shared, const char * name) {
+    bool SharedMessageRemove(MessageRef ref, const char * name) {
+        Object<Message> shared = ref;
         return shared->remove(name);
     }
 
-    void SharedMessageClear(Message * shared) {
+    void SharedMessageClear(MessageRef ref) {
+        Object<Message> shared = ref;
         shared->clear();
     }
 
 #define SharedMessagePut(SUFFIX, DATA_TYPE)                                                 \
-    void SharedMessagePut##SUFFIX(Message * shared, const char * name, DATA_TYPE data) {    \
+    void SharedMessagePut##SUFFIX(MessageRef ref, const char * name, DATA_TYPE data) {      \
+        Object<Message> shared = ref;                                                       \
         shared->set##SUFFIX(name, data);                                                    \
     }
-
-    SharedMessagePut(Int32,     int32_t)
-        SharedMessagePut(Int64,     int64_t)
-        SharedMessagePut(Float,     float)
-        SharedMessagePut(Double,    double)
-        SharedMessagePut(Pointer,   void *)
-        SharedMessagePut(String,    const char *)
-        SharedMessagePut(Object,    SharedObject *)
-
+    
+    SharedMessagePut(Int32,     int32_t);
+    SharedMessagePut(Int64,     int64_t);
+    SharedMessagePut(Float,     float);
+    SharedMessagePut(Double,    double);
+    SharedMessagePut(Pointer,   void *);
+    SharedMessagePut(String,    const char *);
+    SharedMessagePut(Object,    SharedObjectRef);
+    
 #define SharedMessageGet(SUFFIX, DATA_TYPE)                                                     \
-        DATA_TYPE SharedMessageGet##SUFFIX(Message * shared, const char * name, DATA_TYPE def) {    \
-            return shared->find##SUFFIX(name, def);                                                 \
-        }
-
-        SharedMessageGet(Int32,     int32_t)
-        SharedMessageGet(Int64,     int64_t)
-        SharedMessageGet(Float,     float)
-        SharedMessageGet(Double,    double)
-        SharedMessageGet(Pointer,   void *)
-        SharedMessageGet(String,    const char *)
-        SharedMessageGet(Object,    SharedObject *)
+    DATA_TYPE SharedMessageGet##SUFFIX(MessageRef ref, const char * name, DATA_TYPE def) {      \
+        Object<Message> shared = ref;                                                           \
+        return shared->find##SUFFIX(name, def);                                                 \
+    }
+    
+    SharedMessageGet(Int32,     int32_t);
+    SharedMessageGet(Int64,     int64_t);
+    SharedMessageGet(Float,     float);
+    SharedMessageGet(Double,    double);
+    SharedMessageGet(Pointer,   void *);
+    SharedMessageGet(String,    const char *);
+    SharedMessageGet(Object,    SharedObjectRef);
 }

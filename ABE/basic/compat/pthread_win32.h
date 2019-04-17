@@ -26,13 +26,59 @@
  ******************************************************************************/
 
 
-// File:    Allocator.h
+// File:    pthread.h
 // Author:  mtdcy.chen
 // Changes: 
-//          1. 20160701     initial version
+//          1. 20161012     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_ATOMIC_H
-#define _TOOLKIT_HEADERS_ATOMIC_H
+#ifndef __ABE_basic_pthread_compat_h
+#define __ABE_basic_pthread_compat_h
 
-#endif // _TOOLKIT_HEADERS_ATOMIC_H
+#define _DARWIN_C_SOURCE
+#include <pthread.h>
+#include "Config.h"
+#include <sys/types.h> // for pid_t
+#include <stdint.h>
+#include <sys/cdefs.h> // __BEGIN_DECLS
+__BEGIN_DECLS
+
+// for portable reason, we are not suppose to using the _np part
+// bellow is something we want to make portable.
+// by removing _np suffix make it won't have name conflict or confusion
+
+// the name is restricted to 16 characters, including the terminating null byte
+static inline int pthread_setname(const char * name) {
+#if defined(HAVE_PTHREAD_SETNAME_NP)
+    return pthread_setname_np(pthread_self(), name);
+#else
+#endif
+}
+
+static inline int pthread_getname(pthread_t thread, char * name, size_t len) {
+    return pthread_getname_np(thread, name, len);
+}
+
+// no return value
+#define pthread_yield()                     sched_yield()
+
+// get self tid
+static inline pid_t pthread_gettid() {
+#if defined(__MINGW32__)
+    // trick
+    return getpid() + pthread_self() - 1;
+#else
+#endif
+}
+
+// return 1 if current thread is main thread
+static inline int pthread_main() {
+    return getpid() == pthread_gettid();
+}
+
+#define pthread_cond_timedwait_relative     pthread_cond_timedwait_relative_np
+
+__END_DECLS 
+
+#endif // __ABE_basic_pthread_compat_h
+

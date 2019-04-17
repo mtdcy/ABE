@@ -47,12 +47,15 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/sysctl.h>
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include <sysinfoapi.h>
 #else
 #include <unistd.h>
 #endif
 
 __BEGIN_DECLS
 
+// https://stackoverflow.com/questions/150355/programmatically-find-the-number-of-cores-on-a-machine
 int GetCpuCount() {
 #if defined(__ANDROID__)
     return android_getCpuCount();
@@ -70,9 +73,10 @@ int GetCpuCount() {
         if(count < 1) { count = 1; }
     }
     return count;
-#elif defined(__MINGW32__)
-    // FIXME
-    return 2;
+#elif defined(_WIN32) || defined(__MINGW32__)
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
 #else
     return sysconf(_SC_NPROCESSORS_ONLN);
 #endif

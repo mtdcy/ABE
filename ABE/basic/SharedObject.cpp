@@ -38,7 +38,7 @@
 #include "SharedObject.h"
 #include "SharedBuffer.h"
 
-#include "private/atomic.h"
+#include "Atomic.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -68,30 +68,28 @@ SharedObject::SharedObject() : mID(ID_UNKNOWN), mRefs(0) {
 SharedObject::SharedObject(const uint32_t id) : mID(id), mRefs(0) {
 }
 
-SharedObject::~SharedObject() {
-}
-
 SharedObject *  SharedObject::RetainObject() {
     DEBUG("retain %" PRIu32, mID);
-    atomic_add(&mRefs, 1);
+    size_t refs = ++mRefs;
+    if (refs == 1) onFirstRetain();
     return this;
 }
 
 size_t SharedObject::ReleaseObject(bool keep) {
     DEBUG("release %" PRIu32, mID);
-    int old = atomic_sub(&mRefs, 1);
-    FATAL_CHECK_GT(old, 0);
-    if (old == 1 && !keep) {
-        delete this;
+    size_t refs = --mRefs;
+    if (refs == 0) {
+        onLastRetain();
+        if (!keep) delete this;
     }
-    return (size_t)old;
+    return (size_t)refs;
 }
 
 size_t SharedObject::GetRetainCount() const {
-    return (size_t)atomic_load(&mRefs);
+    return mRefs.load();
 }
 
-SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(rhs.mRefs) {
+SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(0) {
 }
 
 SharedObject& SharedObject::operator=(const SharedObject &rhs) {
@@ -103,84 +101,85 @@ __END_NAMESPACE_ABE
 
 __BEGIN_DECLS
 
-SharedObject * SharedObjectRetain(SharedObject * shared) {
+SharedObjectRef SharedObjectRetain(SharedObjectRef shared) {
     return shared->RetainObject();
 }
 
-void SharedObjectRelease(SharedObject * shared) {
+void SharedObjectRelease(SharedObjectRef shared) {
     shared->ReleaseObject();
 }
 
-size_t SharedObjectGetRetainCount(SharedObject * shared) {
+size_t SharedObjectGetRetainCount(SharedObjectRef shared) {
     return shared->GetRetainCount();
 }
 
-uint32_t SharedObjectGetID(SharedObject * shared) {
+uint32_t SharedObjectGetID(SharedObjectRef shared) {
     return shared->GetObjectID();
 }
 
 __END_DECLS
 
-#define OBJECT_ID           0x100
 #define BUFFER_START_MAGIC  0xbaaddead
 #define BUFFER_END_MAGIC    0xdeadbaad
 
 __BEGIN_NAMESPACE_ABE
 
-SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID),
-    mAllocator(NULL), mData(NULL), mSize(0) { }
+SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
+mAllocator(NULL), mData(NULL), mSize(0) { }
 
-    SharedBuffer::~SharedBuffer() { mAllocator.clear(); }
+void SharedBuffer::onLastRetain() {
+    // 
+}
 
-    SharedBuffer * SharedBuffer::Create(const sp<Allocator> & _allocator, size_t sz) {
-        // FIXME: if allocator is aligned, make sure data is also aligned
-        const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
-
-        // keep a strong ref local
-        sp<Allocator> allocator = _allocator;
-        SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
-        memset((void*)shared, 0, sizeof(SharedBuffer));
-        new (shared) SharedBuffer();
-
-        shared->mAllocator  = allocator;
-        shared->mSize       = sz;
-
-        // put magic guard before and after data
-        char * data = (char *)&shared[1];
-        *(uint32_t *)data           = BUFFER_START_MAGIC;
-        data                        += sizeof(uint32_t);
-        *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
-        shared->mData               = data;
-
-        shared->RetainObject();
-        return shared;
-    }
+SharedBuffer * SharedBuffer::Create(const Object<Allocator> & _allocator, size_t sz) {
+    // FIXME: if allocator is aligned, make sure data is also aligned
+    const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
+    
+    // keep a strong ref local
+    Object<Allocator> allocator = _allocator;
+    SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
+    memset((void*)shared, 0, sizeof(SharedBuffer));
+    new (shared) SharedBuffer();
+    
+    shared->mAllocator  = allocator;
+    shared->mSize       = sz;
+    
+    // put magic guard before and after data
+    char * data = (char *)&shared[1];
+    *(uint32_t *)data           = BUFFER_START_MAGIC;
+    data                        += sizeof(uint32_t);
+    *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
+    shared->mData               = data;
+    
+    shared->RetainObject();
+    return shared;
+}
 
 void SharedBuffer::deallocate() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
     // keep a strong ref local
-    sp<Allocator> allocator = mAllocator;
+    Object<Allocator> allocator = mAllocator;
     this->~SharedBuffer();
     allocator->deallocate(this);
 }
 
 size_t SharedBuffer::ReleaseBuffer(bool keep) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
-    size_t old = SharedObject::ReleaseObject(true);
-    if (old == 1 && !keep) {
+    size_t refs = SharedObject::ReleaseObject(true);
+    if (refs == 0 && !keep) {
         deallocate();
     }
-    return old;
+    return refs;
 }
 
 SharedBuffer * SharedBuffer::edit() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
     if (IsBufferNotShared()) return this;
@@ -193,7 +192,7 @@ SharedBuffer * SharedBuffer::edit() {
 }
 
 SharedBuffer * SharedBuffer::edit(size_t sz) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID);
+    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
     FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
 
@@ -202,7 +201,7 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
     if (IsBufferNotShared()) {
         // reallocate
         // keep a strong ref local
-        sp<Allocator> allocator = mAllocator;
+        Object<Allocator> allocator = mAllocator;
         const size_t allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(uint32_t);
         SharedBuffer * shared = (SharedBuffer *)allocator->reallocate(this, allocLength);
         // fix context
@@ -228,35 +227,35 @@ __END_NAMESPACE_ABE
 
 __BEGIN_DECLS
 
-SharedBuffer * SharedBufferCreate(Allocator * _allocator, size_t sz) {
-    return SharedBuffer::Create(_allocator, sz);
+SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
+    return __NAMESPACE_ABE::SharedBuffer::Create(_allocator, sz);
 }
 
-void SharedBufferRelease(SharedBuffer * shared) {
+void SharedBufferRelease(SharedBufferRef shared) {
     shared->ReleaseBuffer(false);
 }
 
-char * SharedBufferGetData(const SharedBuffer * shared) {
+char * SharedBufferGetData(const SharedBufferRef shared) {
     return (char *)shared->data();
 }
 
-size_t SharedBufferGetSize(const SharedBuffer * shared) {
+size_t SharedBufferGetSize(const SharedBufferRef shared) {
     return shared->size();
 }
 
-SharedBuffer * SharedBufferEdit(SharedBuffer * shared) {
+SharedBufferRef SharedBufferEdit(SharedBufferRef shared) {
     return shared->edit();
 }
 
-SharedBuffer * SharedBufferEditWithSize(SharedBuffer * shared, size_t sz) {
+SharedBufferRef SharedBufferEditWithSize(SharedBufferRef shared, size_t sz) {
     return shared->edit(sz);
 }
 
-size_t SharedBufferReleaseWithoutDeallocate(SharedBuffer * shared) {
+size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef shared) {
     return shared->ReleaseBuffer(true);
 }
 
-void SharedBufferDeallocate(SharedBuffer * shared) {
+void SharedBufferDeallocate(SharedBufferRef shared) {
     shared->deallocate();
 }
 

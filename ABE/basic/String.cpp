@@ -47,7 +47,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
-static __ABE_INLINE size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
+static size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     size_t len = vsnprintf((char*)str, size, format, ap);
@@ -89,15 +89,12 @@ String String::format(const char *format, va_list ap) {
     return result;
 }
 
-String::String() : mData(NULL), mSize(0)
-{
-    mData = SharedBuffer::Create(kAllocatorDefault, 1);
-    char * buf = mData->data();
-    buf[0] = '\0';
-}
+String::String() : mData(NULL), mSize(0) { }
 
-String::String(const char *s, size_t n)
-    : mData(NULL), mSize(0)
+/* static */
+String String::Null;
+
+String::String(const char *s, size_t n) : mData(NULL), mSize(0)
 {
     CHECK_NULL(s);
     if (!n) mSize = strlen(s);
@@ -108,15 +105,13 @@ String::String(const char *s, size_t n)
     buf[mSize] = '\0';
 }
 
-String::String(const String &from)
-    : mData(NULL), mSize(0)
+String::String(const String &rhs) : mData(NULL), mSize(0)
 {
-    mData   = from.mData->RetainBuffer();
-    mSize   = from.mSize;
+    if (rhs.mData) mData = rhs.mData->RetainBuffer();
+    mSize   = rhs.mSize;
 }
 
-String::String(const char16_t *s, size_t n) 
-    : mData(NULL), mSize(0)
+String::String(const char16_t *s, size_t n)  : mData(NULL), mSize(0)
 {
     CHECK_NULL(s);
     if (n == 0)  n = strlen16(s);
@@ -168,11 +163,12 @@ STRING_FROM_NUMBER(size_t,      16,     "zu");
 STRING_FROM_NUMBER(void *,      32,     "xp");
 
 String::~String() {
-    mData->ReleaseBuffer();
-    mData = NULL;
+    clear();
 }
 
 String String::basename() const {
+    if (mData == NULL) return String::Null;
+    
     char * buf = mData->data();
     const char *last = strrchr(buf, '/');
     if (last) {
@@ -194,12 +190,14 @@ String String::dirname() const {
 }
 
 const char& String::operator[](size_t index) const {
+    CHECK_NULL(mData);
     CHECK_LE(index, size());
     char * buf = mData->data();
     return buf[index];
 }
 
 char& String::operator[](size_t index) {
+    CHECK_NULL(mData);
     CHECK_LE(index, size());
     mData = mData->edit();
     char * buf = mData->data();
@@ -207,15 +205,27 @@ char& String::operator[](size_t index) {
 }
 
 String& String::set(const String& s) {
-    mData->ReleaseBuffer();
+    if (mData) mData->ReleaseBuffer();
     mData   = s.mData->RetainBuffer();
     mSize   = s.mSize;
     return *this;
 }
 
+String& String::set(const char * s, size_t n) {
+    if (!n) n = strlen(s);
+    if (mData && mData->size() > n) {
+        // no need to release buffer
+    } else {
+        if (mData) mData->ReleaseBuffer();
+        mData = SharedBuffer::Create(kAllocatorDefault, n + 1);
+    }
+    memcpy(mData->data(), s, n);
+    mSize = n;
+    return *this;
+}
+
 String& String::append(const String& s) {
     if (!s.mSize) return *this; // append empty string ?
-
     if (!mSize) return set(s);
 
     size_t m = mSize + s.mSize + 1;
@@ -223,10 +233,20 @@ String& String::append(const String& s) {
 
     // plus 1 for '\0'
     char * buf = mData->data();
-    strncpy(buf + mSize,
-            s.mData->data(),
-            s.mSize + 1);
+    strncpy(buf + mSize, s.mData->data(), s.mSize + 1);
     mSize += s.mSize;
+    return *this;
+}
+
+String& String::append(const char * s, size_t n) {
+    if (!n) n = strlen(s);
+    if (!n) return *this;   // append empty string
+    if (!mSize) return set(s, n);
+    
+    size_t m = mSize + n + 1;   // plus 1 for '\0'
+    mData = mData->edit(m);
+    strncpy(mData->data() + mSize, s, n + 1);   // plus 1 for '\0';
+    mSize += n;
     return *this;
 }
 
@@ -234,33 +254,47 @@ String& String::insert(size_t pos, const String& s) {
     CHECK_LE(pos, mSize);
     if (!s.mSize) return *this; // insert an empty string ???
 
-    if (pos == mSize) return append(s);
     if (!mSize) return set(s);
+    if (pos == mSize) return append(s);
 
     size_t m = mSize + s.mSize + 1;
     mData = mData->edit(m);
 
     // +1 to move the terminating null byte
     char * buf = mData->data();
-    memmove(buf + pos + s.mSize,
-            buf + pos,
-            mSize - pos + 1);
-    strncpy(buf + pos,
-            s.mData->data(),
-            s.mSize);
+    memmove(buf + pos + s.mSize, buf + pos, mSize - pos + 1);
+    strncpy(buf + pos, s.mData->data(), s.mSize);
     mSize   += s.mSize;
     return *this;
 }
 
-void String::clear() {
-    mData = mData->edit();
+String& String::insert(size_t pos, const char *s, size_t n) {
+    CHECK_LE(pos, mSize);
+    if (!n) n = strlen(s);
+    if (!n) return *this; // insert empty string
+    
+    if (!mSize) return set(s, n);
+    if (pos == mSize) return append(s, n);
+    
+    size_t m = mSize + n + 1;
+    mData = mData->edit(m);
+    
     char * buf = mData->data();
+    memmove(buf + pos + n, buf + pos, mSize - pos + 1); // plus 1 for '\0'
+    strncpy(buf + pos, s, n);
+    mSize += n;
+    return *this;
+}
+
+void String::clear() {
+    if (mData == NULL) return;
+    mData->ReleaseBuffer();
+    mData = NULL;
     mSize = 0;
-    buf[mSize] = '\0';
-    // no need to clear memory
 }
 
 size_t String::hash() const {
+    if (mData == NULL) return 0;
     size_t x = 0;
     const char *s = mData->data();
     for (size_t i = 0; i < mSize; ++i) {
@@ -285,9 +319,7 @@ String& String::trim() {
         --j;
     }
 
-    memmove(s,
-            &s[i],
-            j - i);
+    memmove(s, &s[i], j - i);
     mSize = j - i;
     s[mSize] = '\0';
     return *this;
@@ -301,17 +333,17 @@ String& String::erase(size_t pos, size_t n) {
     char * buf = mData->data();
 
     if (pos + n < mSize) {
-        memmove(buf + pos,
-                buf + pos + n,
-                mSize - (pos + n));
+        memmove(buf + pos, buf + pos + n, mSize - (pos + n));
     }
     mSize -= n;
     buf[mSize] = '\0';
     return *this;
 }
 
-String& String::replace(const String& s0, const String& s1) {
-    const size_t newSize = mSize - s0.mSize + s1.mSize;
+String& String::replace(const char * s0, const char * s1) {
+    const size_t n0 = strlen(s0);
+    const size_t n1 = strlen(s1);
+    const size_t newSize = mSize - n0 + n1;
     if (newSize > mSize)
         mData = mData->edit(newSize + 1);
     else
@@ -320,20 +352,16 @@ String& String::replace(const String& s0, const String& s1) {
     ssize_t index = indexOf(s0);
     char * buf = mData->data();
     if (index >= 0) {
-        if (s0.mSize != s1.mSize) {
-            memmove(buf + index + s1.mSize,
-                    buf + index + s0.mSize,
-                    mSize - index - s0.mSize + 1);
+        if (n0 != n1) {
+            memmove(buf + index + n1, buf + index + n0, mSize - index - n0 + 1);
         }
-        memcpy(buf + index,
-                s1.mData->data(),
-                s1.mSize);
-        mSize = mSize - s0.mSize + s1.mSize;
+        memcpy(buf + index, s1, n1);
+        mSize = mSize - n0 + n1;
     }
     return *this;
 }
 
-String& String::replaceAll(const String& s0, const String& s1) {
+String& String::replaceAll(const char * s0, const char * s1) {
     // TODO: optimize these code
     for (;;) {
         ssize_t index = indexOf(s0);
@@ -345,12 +373,10 @@ String& String::replaceAll(const String& s0, const String& s1) {
     return *this;
 }
 
-ssize_t String::indexOf(size_t fromIndex, const String& s) const {
-    char * buf = mData->data();
-    const char *sub = strstr(buf + fromIndex,
-            s.mData->data());
+ssize_t String::indexOf(size_t start, const char * s) const {
+    const char *sub = strstr(mData->data() + start, s);
     if (!sub) return -1;
-    return sub - buf;
+    return sub - mData->data();
 }
 
 ssize_t String::indexOf(size_t fromIndex, int c) const {
@@ -360,18 +386,23 @@ ssize_t String::indexOf(size_t fromIndex, int c) const {
     return sub - buf;
 }
 
-ssize_t String::lastIndexOf(const String& s) const {
-    char * buf = mData->data();
-    const char *last = NULL;
-    const char *cur = strstr(buf,
-            s.mData->data());
-    while (cur) {
-        //INFO("cur: %s", cur);
-        last = cur;
-        cur = strstr(last + s.mSize, s.mData->data());
+ssize_t String::lastIndexOf(const char *s) const {
+    const size_t n = strlen(s);
+    if (n > mSize)  return -1;
+    
+    const char * buf = mData->data();
+    for (size_t i = 0; i < mSize - n; ++i) {
+        
+        size_t j = 0;
+        for (; j < n; j++) {
+            if (buf[mSize - n - i + j] != s[j]) {
+                break;
+            }
+        }
+        
+        if (j == n) return mSize - n - i;
     }
-    if (!last) return -1;
-    return last - buf;
+    return -1;
 }
 
 ssize_t String::lastIndexOf(int c) const {
@@ -382,13 +413,28 @@ ssize_t String::lastIndexOf(int c) const {
 }
 
 int String::compare(const String& s) const {
-    char * buf = mData->data();
-    return strcmp(buf, s.mData->data());
+    if (mData == s.mData) return 0;
+    if (s.mData == NULL) return 1;
+    if (mData == NULL) return -1;
+    
+    return strcmp(mData->data(), s.mData->data());
+}
+
+int String::compare(const char *s) const {
+    if (mData == NULL) return -1;
+    return strcmp(mData->data(), s);
 }
 
 int String::compareIgnoreCase(const String& s) const {
-    char * buf = mData->data();
-    return strcasecmp(buf, s.mData->data());
+    if (s.mData == NULL) return 1;
+    if (mData == NULL) return -1;
+    
+    return strcasecmp(mData->data(), s.mData->data());
+}
+
+int String::compareIgnoreCase(const char *s) const {
+    if (mData == NULL) return -1;
+    return strcasecmp(mData->data(), s);
 }
 
 String& String::lower() {
@@ -409,34 +455,28 @@ String& String::upper() {
     return *this;
 }
 
-bool String::startsWith(const String& s) const {
-    if (s.mSize > mSize) return false;
-    char * buf = mData->data();
-    return !strncmp(buf,
-            s.mData->data(),
-            s.mSize);
+bool String::startsWith(const char * s, size_t n) const {
+    if (!n) n = strlen(s);
+    if (n > mSize) return false;
+    return !strncmp(mData->data(), s, n);
 }
 
-bool String::startsWithIgnoreCase(const String& s) const {
-    if (s.mSize > mSize) return false;
-    char * buf = mData->data();
-    return !strncasecmp(buf,
-            s.mData->data(),
-            s.mSize);
+bool String::startsWithIgnoreCase(const char * s, size_t n) const {
+    if (!n) n = strlen(s);
+    if (n > mSize) return false;
+    return !strncasecmp(mData->data(), s, n);
 }
 
-bool String::endsWith(const String& s) const {
-    if (s.mSize > mSize) return false;
-    char * buf = mData->data();
-    return !strcmp(buf + mSize - s.mSize,
-            s.mData->data());
+bool String::endsWith(const char * s, size_t n) const {
+    if (!n) n = strlen(s);
+    if (n > mSize) return false;
+    return !strcmp(mData->data() + mSize - n, s);
 }
 
-bool String::endsWithIgnoreCase(const String& s) const {
-    if (s.mSize > mSize) return false;
-    char * buf = mData->data();
-    return !strcasecmp(buf + mSize - s.mSize,
-            s.mData->data());
+bool String::endsWithIgnoreCase(const char * s, size_t n) const {
+    if (!n) n = strlen(s);
+    if (n > mSize) return false;
+    return !strcasecmp(mData->data() + mSize - n, s);
 }
 
 String String::substring(size_t pos, size_t n) const {

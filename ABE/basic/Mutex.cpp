@@ -36,14 +36,20 @@
  *  20151205    mtdcy           initial version
  *****************************************************************************/
 
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/pthread_win32.h"
+#include "basic/compat/time_win32.h"
+#else
+#include "basic/compat/pthread_linux.h"
+#include "basic/compat/time_linux.h"
+#endif
 
 #define LOG_TAG   "Mutex"
 #include "ABE/basic/Log.h"
-
-#include "Config.h"
-#include "ABE/tools/Mutex.h"
-#include <pthread.h>
-#include "ABE/basic/compat/pthread.h"
+#include "ABE/basic/Mutex.h"
 
 __BEGIN_NAMESPACE_ABE
 
@@ -102,7 +108,12 @@ void RWLock::unlock(bool write) {
 
 ///////////////////////////////////////////////////////////////////////////
 Condition::Condition() {
-    CHECK_EQ(pthread_cond_init(&mWait, NULL), 0);
+    pthread_condattr_t attr;
+    CHECK_EQ(pthread_condattr_init(&attr), 0);
+#ifdef PTHREAD_COND_CLOCK_ID
+    CHECK_EQ(pthread_condattr_setclock(&attr, PTHREAD_COND_CLOCK_ID), 0);
+#endif
+    CHECK_EQ(pthread_cond_init(&mWait, &attr), 0);
 }
 
 Condition::~Condition() {
@@ -114,17 +125,10 @@ void Condition::wait(Mutex& lock) {
 }
 
 bool Condition::waitRelative(Mutex& lock, int64_t reltime /* ns */) {
-    int rt;
-#if defined(HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE)
     struct timespec ts;
-    ts.tv_sec  = reltime/1000000000;
-    ts.tv_nsec = reltime%1000000000;
-    rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
-#else // HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE
-    struct timespec ts;
-    absolute_time_later(&ts, reltime);
-    rt = pthread_cond_timedwait(&mWait, &lock.mLock, &ts);
-#endif // HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE
+    ts.tv_sec  = reltime / 1000000000;
+    ts.tv_nsec = reltime % 1000000000;
+    int rt = pthread_cond_timedwait_relative(&mWait, &lock.mLock, &ts);
     if (rt == ETIMEDOUT)    return true;
     else                    return false;
 }

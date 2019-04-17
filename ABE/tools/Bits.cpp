@@ -155,16 +155,16 @@ String BitReader::readS(size_t n) const {
     return s;
 }
 
-sp<Buffer> BitReader::readB(size_t n) const {
+Object<Buffer> BitReader::readB(size_t n) const {
     CHECK_LE(n * 8, numBitsLeft());
 
     if (__builtin_expect(mBitsLeft == 0, true)) {
-        sp<Buffer> b = new Buffer(n);
+        Object<Buffer> b = new Buffer(n);
         b->write(mData + mHead, n);
         mHead += n;
         return b;
     } else {
-        sp<Buffer> buffer = new Buffer(n);
+        Object<Buffer> buffer = new Buffer(n);
         char * data = buffer->data();
         for (size_t i = 0; i < n; i++) *(data + i) = r8();
         buffer->step(n);

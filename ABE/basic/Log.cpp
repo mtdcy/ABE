@@ -31,6 +31,16 @@
 // Changes: 
 //          1. 20160701     initial version
 //
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#include "basic/compat/time_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/pthread_win32.h"
+#include "basic/compat/time_win32.h"
+#else
+#include "basic/compat/pthread_linux.h"
+#include "basic/compat/time_linux.h"
+#endif
 
 #include <stdio.h> // printf
 #ifdef __ANDROID__
@@ -38,10 +48,13 @@
 #endif
 
 #include "Log.h"
-#include "compat/time.h"
-#include <pthread.h>
-#include "compat/pthread.h"
 #include "debug/backtrace.h"
+
+#if defined(_WIN32) || defined(__MINGW32__)
+#define PRIpid_t    "lld"
+#else
+#define PRIpid_t    "d"
+#endif
 
 __BEGIN_DECLS
 
@@ -73,13 +86,13 @@ static void _default_callback(const char *tag, int level, const char *text) {
     };
 
     struct timespec ts;
-    absolute_time(&ts);
+    clock_gettime(CLOCK_REALTIME, &ts);
     char name[32];
     pthread_getname_mpx(pthread_self(), name, 32);
     if (name[0] == '\0') {
         fprintf(stdout, "[%08.03f] [%06d] [%-14.14s] [%1s] >> %s\n",
                 nseconds(ts) / 1E9,
-                pthread_threadid_mpx(),
+                pthread_gettid(),
                 tag,
                 LEVELS[level],
                 text);
@@ -95,17 +108,34 @@ static void _default_callback(const char *tag, int level, const char *text) {
 }
 #endif
 
+static bool __init = false;
+static __ABE_INLINE void _init() {
+#if defined(_WIN32) || defined(__MINGW32__)
+    setvbuf(stdout, 0, _IOLBF, 2048);
+#endif
+    __init = true;
+}
+
+typedef void (*Callback_t)(const char *);
+static Callback_t   __callback = NULL;
+
+void LogSetCallback(Callback_t cb) { __callback = cb; }
+
 void LogPrint(const char *      tag,
         enum eLogLevel    level,
         const char *      func,
         size_t            line,
         const char *      format,
         ...) {
+
+    if (__builtin_expect(__init == false, false)) _init();
+
     va_list ap;
-    char buf[1024];
+    char buf0[1024];
+    char buf1[1024];
 
     va_start(ap, format);
-    vsnprintf(buf, 1024, format, ap);
+    vsnprintf(buf0, 1024, format, ap);
     va_end(ap);
 
     static const char * LEVELS[] = {
@@ -118,27 +148,36 @@ void LogPrint(const char *      tag,
     };
 
     struct timespec ts;
-    absolute_time(&ts);
+    clock_gettime(CLOCK_REALTIME, &ts); // time since Epoch.
     char name[32];
-    pthread_getname_mpx(pthread_self(), name, 32);
+    pthread_getname(pthread_self(), name, 32);
     if (name[0] == '\0') {
-        fprintf(stdout, "[%08.03f][%07d][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+        snprintf(buf1, 1024, "[%08.03f][%07" PRIpid_t "][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
-                mpx_gettid(),
+                pthread_gettid(),
                 tag,
                 LEVELS[level],
                 func,
                 line,
-                buf);
+                buf0);
     } else {
-        fprintf(stdout, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+        snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
                 nseconds(ts) / 1E9,
                 name,
                 tag,
                 LEVELS[level],
                 func,
                 line,
-                buf);
+                buf0);
+    }
+    
+    if (__callback) {
+        __callback(buf1);
+    } else {
+        fprintf(stdout, "%s", buf1);
+#if defined(_WIN32) || defined(__MINGW32__)
+        fflush(stdout);
+#endif
     }
 
     if (level == LOG_FATAL) {

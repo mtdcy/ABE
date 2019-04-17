@@ -84,7 +84,7 @@ ListNodeImpl * ListNodeImpl::append(ListNodeImpl * prev) {
     return this;
 }
 
-ListImpl::ListImpl(const sp<Allocator>& allocator, const TypeHelper& helper) :
+ListImpl::ListImpl(const Object<Allocator>& allocator, const TypeHelper& helper) :
     mTypeHelper(helper),
     mAllocator(allocator), mStorage(NULL),
     mListLength(0)
@@ -135,7 +135,7 @@ void ListImpl::freeNode(ListNodeImpl* node) {
     mAllocator->deallocate(node);
 }
 
-void ListImpl::_prepare(const sp<Allocator>& allocator) {
+void ListImpl::_prepare(const Object<Allocator>& allocator) {
     mStorage = SharedBuffer::Create(allocator, sizeof(ListNodeImpl));
     ListNodeImpl * head = (ListNodeImpl *)mStorage->data();
     new (head) ListNodeImpl;
@@ -161,7 +161,7 @@ ListNodeImpl* ListImpl::_edit() {
         }
 
         // free old nodes when it is onlyOwnByUs
-        if (old->ReleaseBuffer(true) == 1) {
+        if (old->ReleaseBuffer(true) == 0) {
             ListNodeImpl* node = list0->mNext;
             while (node != list0) {
                 ListNodeImpl * next = node->mNext;
@@ -178,7 +178,7 @@ ListNodeImpl* ListImpl::_edit() {
 }
 
 void ListImpl::_clear() {
-    if (mStorage->ReleaseBuffer(true) == 1) {
+    if (mStorage->ReleaseBuffer(true) == 0) {
         ListNodeImpl * list = (ListNodeImpl *)mStorage->data();
         ListNodeImpl * node = list->mNext;
         while (node != list) {

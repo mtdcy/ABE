@@ -44,20 +44,13 @@
 // https://sourceforge.net/p/predef/wiki/Architectures/
 // https://sourceforge.net/p/predef/wiki/OperatingSystems/
 
-// int8_t int16_t int32_t ...
-#include <stdint.h>
-
-// size_t, null
-#include <stddef.h>
-
-// ssize_t
-#include <sys/types.h>
-
-// true, false
-#include <stdbool.h>
-
-// va_list
-#include <stdarg.h>
+#include <sys/types.h>      // all kinds of types define
+#include <stdint.h>         // fixed width integer: int8_t int16_t int32_t ...
+#include <stddef.h>         // size_t, null
+#include <stdbool.h>        // true, false
+#include <stdarg.h>         // va_list
+#include <inttypes.h>       // for PRId32/PRId64/...
+#include <sys/cdefs.h>      // others
 
 // at least these types should be defined.
 // uint8_t  int8_t
@@ -68,38 +61,19 @@
 // bool     true false
 // null
 
-// for PRId32/PRId64/...
-#include <inttypes.h>
-
+#if defined(_WIN32) || defined(__MINGW32__)
+#define __ABE_INLINE                __attribute__ ((__always_inline__)) inline
+#ifdef BUILD_ABE_DLL
+#define __ABE_EXPORT                __declspec(dllexport)
+#else
+#define __ABE_EXPORT                __declspec(dllimport)
+#endif
+#define __ABE_DEPRECATED            __declspec(deprecated)
+#else
 //#define __ABE_INLINE                __attribute__ ((__always_inline__))
-#define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__))
-#define __ABE_HIDDEN                __attribute__ ((__visibility__("hidden")))
+#define __ABE_INLINE                __attribute__ ((__visibility__("hidden"), __always_inline__)) inline
 #define __ABE_EXPORT                __attribute__ ((__visibility__("default")))
 #define __ABE_DEPRECATED            __attribute__ ((deprecated))
-
-#ifndef REMOVE_ATOMICS
-#ifndef ATOMIC_MEMMODEL
-#define ATOMIC_MEMMODEL __ATOMIC_SEQ_CST
-#endif
-
-// return old value on macro
-#define atomic_store(ptr, val)  __atomic_exchange_n(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_load(ptr)        __atomic_load_n(ptr, ATOMIC_MEMMODEL)
-#define atomic_add(ptr, val)    __atomic_fetch_add(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_sub(ptr, val)    __atomic_fetch_sub(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_and(ptr, val)    __atomic_fetch_and(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_or(ptr, val)     __atomic_fetch_or(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_xor(ptr, val)    __atomic_fetch_xor(ptr, val, ATOMIC_MEMMODEL)
-#define atomic_nand(ptr, val)   __atomic_fetch_nand(ptr, val, ATOMIC_MEMMODEL)
-
-
-// return true on success
-//  if *p0 == *p1: val => *p0 : return true
-//  else: *p0 => *p1 : return false
-#define atomic_compare_exchange(p0, p1, val) \
-    __atomic_compare_exchange_n(p0, p1, val, false, ATOMIC_MEMMODEL, ATOMIC_MEMMODEL)
-// fence
-#define atomic_fence()          __atomic_thread_fence(ATOMIC_MEMMODEL)
 #endif
 
 #ifdef __cplusplus
@@ -127,12 +101,17 @@
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
-// In most case, copy constructor and operator= is not neccessary, 
+// In most case, copy constructor and operator= is not neccessary,
 // and it may cause problem if you don't declare it or misuse it.
 #define DISALLOW_EVILS(TypeName)                \
+    private:                                    \
     TypeName(const TypeName&);                  \
     TypeName& operator=(const TypeName&)
 
+#define DISALLOW_DYNAMIC(TypeName)              \
+    private:                                    \
+    void *  operator new(size_t);               \
+    void    operator delete(void *)
 #endif // __cplusplus
 
 #include <errno.h>

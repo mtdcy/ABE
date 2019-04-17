@@ -37,19 +37,14 @@
 
 #ifdef __cplusplus
 #include <ABE/basic/SharedObject.h>
-#include <ABE/tools/Mutex.h>
+#include <ABE/basic/Mutex.h>
 __BEGIN_NAMESPACE_ABE
 
-class __ABE_EXPORT Runnable : public SharedObject {
-    private:
+struct __ABE_EXPORT Runnable : public SharedObject {
+    virtual void run() = 0;
 
-    public:
-        __ABE_INLINE Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
-        __ABE_INLINE virtual ~Runnable() { }
-        virtual void run() = 0;
-
-    private:
-        DISALLOW_EVILS(Runnable);
+    __OBJECT_DECLS(Runnable);
+    DISALLOW_EVILS(Runnable);
 };
 
 class __ABE_EXPORT SyncRunnable : public Runnable {
@@ -58,9 +53,10 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
         Condition       mWait;
         volatile int    mSync;
     
-    public:
+    protected:
         __ABE_INLINE SyncRunnable() : Runnable(), mSync(0) { }
-        __ABE_INLINE virtual ~SyncRunnable() { }
+    
+    public:
         virtual void sync() = 0;
     
         /**
@@ -72,11 +68,11 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
             AutoLock _l(mLock);
             bool success = true;
             if (ns < 0) ns = 0;
-            while (mSync == 0) {
+            if (mSync == 0) {
                 if (ns) success = !mWait.waitRelative(mLock, ns);
                 else    mWait.wait(mLock);
-                --mSync;
             }
+            if (success) mSync -= 1;
             return success;
         }
     
@@ -84,9 +80,11 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
         virtual void run() {
             sync();
             AutoLock _l(mLock);
-            ++mSync;
+            mSync += 1;
             mWait.broadcast();
         }
+    
+    
 };
 
 __END_NAMESPACE_ABE

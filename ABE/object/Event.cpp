@@ -40,65 +40,34 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_HIDDEN SharedEvent : public SharedObject {
-    String      mName;
-    Event *     mEvent;
-    sp<Looper>  mLooper;
-
-    SharedEvent(Event * event, const sp<Looper>& looper) :
-        SharedObject(),
-        mEvent(event), mLooper(looper) { }
-    SharedEvent(const String& name, Event * event, const sp<Looper>& looper) :
-        SharedObject(), mName(name),
-        mEvent(event), mLooper(looper) { }
-};
-
-struct __ABE_HIDDEN Event::EventRunnable : public Runnable {
-    SharedEvent *  mShared;
-    EventRunnable(SharedEvent *shared) : Runnable(), mShared(shared) {
-        mShared->RetainObject();
+struct Event::EventRunnable : public Runnable {
+    Object<Event>   mEvent;
+    EventRunnable(const Object<Event>& event) : Runnable(), mEvent(event) {
     }
-    virtual ~EventRunnable() { mShared->ReleaseObject(); }
-
+    
     virtual void run() {
-        // this only fix the 'Pure virtual function called!' problem
-        // it is still NOT thread safe.
-        if (!mShared->IsObjectShared()) {
-            ERROR("context[%s] went away before execution", mShared->mName.c_str());
+        if (mEvent->IsObjectNotShared()) {
+            ERROR("context[%p] went away before execution", mEvent.get());
+            // avoid loop refs
+            mEvent.clear();
         } else {
-            // FIXME: NOT thread safe
-            // mEvent may be released by others at this moment
-            mShared->mEvent->onEvent();
+            mEvent->onEvent();
         }
     }
 };
 
-Event::Event() : mShared(NULL) {
+void Event::onFirstRetain() {
 }
 
-Event::Event(const sp<Looper>& looper) :
-    mShared(new SharedEvent(this, looper))  {
-        mShared->RetainObject();
-    }
-
-Event::Event(const String& name, const sp<Looper>& looper) :
-    mShared(new SharedEvent(name, this, looper)) {
-        mShared->RetainObject();
-    }
-
-Event::~Event() {
-    if (mShared) {
-        mShared->ReleaseObject();
-        mShared = NULL;
-    }
+void Event::onLastRetain() {
+    mLooper.clear();
 }
 
 void Event::fire(int64_t delay) {
-    SharedEvent *shared = static_cast<SharedEvent*>(mShared);
-    if (shared != NULL && shared->mLooper != NULL) {
-        shared->mLooper->post(new EventRunnable((SharedEvent *)mShared), delay);
-    } else {
+    if (mLooper == NULL) {
         onEvent();
+    } else {
+        mLooper->post(new EventRunnable(this));
     }
 }
 

@@ -49,7 +49,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 static const size_t kDefaultCapacity = 4;
 
-VectorImpl::VectorImpl(const sp<Allocator>& allocator,
+VectorImpl::VectorImpl(const Object<Allocator>& allocator,
         size_t capacity,
         const TypeHelper& helper) :
     mTypeHelper(helper),
@@ -253,7 +253,7 @@ void VectorImpl::erase(size_t first, size_t last) {
 }
 
 void VectorImpl::_release(SharedBuffer *sb, size_t count, bool moved) {
-    if (sb->ReleaseBuffer(true) == 1) {
+    if (sb->ReleaseBuffer(true) == 0) {
         if (count && !moved) {
             mTypeHelper.do_destruct(sb->data(), count);
         }

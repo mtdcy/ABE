@@ -74,7 +74,7 @@ __BEGIN_NAMESPACE_ABE
  * Thread(new MyRunnable()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
-class __ABE_EXPORT Thread {
+class __ABE_EXPORT Thread : public NonSharedObject {
     public:
         /**
          * yield current thread
@@ -84,7 +84,7 @@ class __ABE_EXPORT Thread {
         /**
          *
          */
-        static void         Once(const sp<Runnable>&);
+        static void         Once(const Object<Runnable>&);
 
     public:
         /**
@@ -92,7 +92,7 @@ class __ABE_EXPORT Thread {
          * @param runnable  reference to runnable object
          * @note thread is joinable until join() or detach()
          */
-        Thread(const sp<Runnable>& runnable, const eThreadType type = kThreadDefault);
+        Thread(const Object<Runnable>& runnable, const eThreadType type = kThreadDefault);
         ~Thread();
 
         /**
@@ -161,14 +161,15 @@ class __ABE_EXPORT Thread {
         pthread_t native_thread_handle() const;
     
     public:
+        __ABE_INLINE bool operator == (const Thread& rhs) const { return mShared == rhs.mShared; }
+        __ABE_INLINE bool operator != (const Thread& rhs) const { return mShared != rhs.mShared; }
+    
+    public:
         static Thread Null;
 
     private:
         Thread() : mShared(NULL) { }
-        sp<SharedObject> mShared;
-
-    private:
-        DISALLOW_EVILS(Thread);
+        Object<SharedObject> mShared;
 };
 
 __END_NAMESPACE_ABE

@@ -47,19 +47,14 @@ __BEGIN_NAMESPACE_ABE
  * otherwise it run directly and blocked.
  */
 class __ABE_EXPORT Event : public SharedObject {
-    public:
+    protected:
         /**
          * construct a event
          * @param looper    if provided, event will run async
          */
-        Event();
-        Event(const sp<Looper>& looper);
-        Event(const String& name, const sp<Looper>& looper);
-
-        /**
-         * FIXME: NOT thread safe
-         */
-        virtual ~Event();
+        Event() : mLooper(Looper::Current()) { }
+        Event(const Object<Looper>& looper) : mLooper(looper) { }
+        virtual ~Event() { }
 
     public:
         /**
@@ -71,6 +66,9 @@ class __ABE_EXPORT Event : public SharedObject {
         void fire(int64_t delay = 0);
 
     protected:
+        virtual void onFirstRetain();
+        virtual void onLastRetain();
+    
         /**
          * handle this event after it been triggled.
          * @note thread safe
@@ -78,7 +76,7 @@ class __ABE_EXPORT Event : public SharedObject {
         virtual void onEvent() = 0;
 
     protected:
-        SharedObject *  mShared;
+        Object<Looper>  mLooper;
 
     private:
         struct EventRunnable;
@@ -88,13 +86,12 @@ class __ABE_EXPORT Event : public SharedObject {
 };
 
 template <class TYPE> class TypedEvent : public Event {
-    public:
+    protected:
         __ABE_INLINE TypedEvent() : Event() { }
-        __ABE_INLINE TypedEvent(const sp<Looper>& looper) : Event(looper) { }
-        __ABE_INLINE TypedEvent(const String& name, const sp<Looper>& looper) : Event(name, looper) { }
-
+        __ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
         __ABE_INLINE virtual ~TypedEvent() { }
-
+    
+    public:
         __ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
 
     protected:

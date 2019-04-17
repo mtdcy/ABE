@@ -26,49 +26,34 @@
  ******************************************************************************/
 
 
-#ifndef _TOOLKIT_HEADERS_ALL_H
-#define _TOOLKIT_HEADERS_ALL_H
+// File:    time.h
+// Author:  mtdcy.chen
+// Changes: 
+//          1. 20161012     initial version
+//
 
-// basic [c & c++]
-#include <ABE/basic/Version.h>
-#include <ABE/basic/Types.h>
-#include <ABE/basic/Atomic.h>
 
-#ifdef LOG_TAG
-#include <ABE/basic/Log.h>
+#ifndef __ABE_basic_time_compat_h
+#define __ABE_basic_time_compat_h
+
+#include <time.h>
+#include <sys/types.h>
+#include "Config.h"
+#include <sys/cdefs.h> // __BEGIN_DECLS
+
+__BEGIN_DECLS
+
+#if defined(__MINGW32__)
+// mingw32 has clock_gettime and struct timespec
+#else
+// implement clock_gettime based on native win32
 #endif
 
-#include <ABE/basic/Hardware.h>
-#include <ABE/basic/Time.h>
-#include <ABE/basic/SharedObject.h>
-#define sp  Object  // for api compatible, keep for sometime
+#define         nseconds(ts) ((ts).tv_sec * 1000000000LL + (ts).tv_nsec)
+#define         useconds(ts) ((ts).tv_sec * 1000000LL + (ts).tv_nsec / 1000)
+#define         mseconds(ts) ((ts).tv_sec * 1000LL + (ts).tv_nsec / 1000000LL)
+#define         seconds(ts)  ((ts).tv_sec)
 
-#include <ABE/basic/Allocator.h>
-#include <ABE/basic/SharedBuffer.h>
-#include <ABE/basic/String.h>
-#include <ABE/basic/Mutex.h>
-#include <ABE/basic/Thread.h>
+__END_DECLS 
 
-// object types [SharedObject] [c & c++]
-#include <ABE/object/Buffer.h>
-#include <ABE/object/Message.h>
-#include <ABE/object/Content.h>
-#include <ABE/object/Runnable.h>
-#include <ABE/object/Looper.h>
-#include <ABE/object/Event.h>
-
-#ifdef __cplusplus  // only available for c++
-
-// tools [non-SharedObject]
-#include <ABE/tools/Bits.h>
-
-// containers [non-SharedObject]
-#include <ABE/stl/TypeHelper.h>
-#include <ABE/stl/List.h>
-#include <ABE/stl/Vector.h>
-#include <ABE/stl/HashTable.h>
-#include <ABE/stl/Queue.h>
-
-#endif //  __cplusplus
-
-#endif // _TOOLKIT_HEADERS_ALL_H
+#endif // __ABE_basic_time_compat_h

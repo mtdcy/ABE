@@ -57,6 +57,8 @@ __ABE_EXPORT void LogPrint(
         const char *    format,     ///< @see man(3) printf
         ...);
 
+__ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
+
 #ifndef LOG_TAG
 #define LOG_TAG   __FILE__
 #endif

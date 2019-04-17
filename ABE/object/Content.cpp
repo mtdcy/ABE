@@ -121,10 +121,10 @@ bool Content::writeBlockBack() {
 
 ///////////////////////////////////////////////////////////////////////////
 // static
-sp<Content> Content::Create(const String& url, uint32_t mode) {
+Object<Content> Content::Create(const String& url, uint32_t mode) {
     INFO("Open content %s", url.c_str());
 
-    sp<Protocol> proto;
+    Object<Protocol> proto;
     if (url.startsWithIgnoreCase("file://") || 
             url.startsWithIgnoreCase("/") ||
             url.startsWithIgnoreCase("android://") ||
@@ -139,7 +139,7 @@ sp<Content> Content::Create(const String& url, uint32_t mode) {
     }
 
     if (proto.get()) {
-        sp<Content> pipe = new Content(proto);
+        Object<Content> pipe = new Content(proto);
         if (pipe->status() == 0) return pipe;
     }
 
@@ -150,7 +150,7 @@ sp<Content> Content::Create(const String& url, uint32_t mode) {
 // read mode: read - read - read
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
-Content::Content(const sp<Protocol>& proto, size_t blockLength)
+Content::Content(const Object<Protocol>& proto, size_t blockLength)
     :
         mProto(proto),
         mRangeStart(0),
@@ -192,16 +192,16 @@ void Content::flush() {
     mBlockOffset = 0;
 }
 
-sp<Buffer> Content::read(size_t size) {
+Object<Buffer> Content::read(size_t size) {
     CHECK_TRUE(mProto->flags() & Protocol::READ);
 
-    sp<Buffer> data = new Buffer(size);
+    Object<Buffer> data = new Buffer(size);
 
-    bool eof = false;
+    //bool eof = false;
     size_t n = size;
 
     while (n > 0) {
-        int remains = mBlock->ready() - mBlockOffset;
+        size_t remains = mBlock->ready() - mBlockOffset;
         char *s = mBlock->data() + mBlockOffset;
         if (remains > 0) {
             size_t m = MIN(remains, n);
@@ -216,7 +216,7 @@ sp<Buffer> Content::read(size_t size) {
 
             // TODO: read directly from protocol 
             if (readBlock() == false) {
-                eof = true;
+                //eof = true;
                 break;
             }
         } 
@@ -234,10 +234,10 @@ sp<Buffer> Content::read(size_t size) {
     return data;
 }
 
-sp<Buffer> Content::readLine() {
+String Content::readLine() {
     CHECK_TRUE(mProto->flags() & Protocol::READ);
 
-    sp<Buffer> line = new Buffer(kMaxLineLength);
+    String line("");
 
     char *s = mBlock->data() + mBlockOffset;
     size_t m = mBlock->ready() - mBlockOffset; 
@@ -248,8 +248,8 @@ sp<Buffer> Content::readLine() {
     for (;;) {
 
         if (i == m || !m) {
-            INFO("prepare next block");
-            if (m) line->write(s, m);
+            DEBUG("prepare next block");
+            if (m) line.append(String(s, m));
 
             flush();
 
@@ -265,21 +265,21 @@ sp<Buffer> Content::readLine() {
 
         if (++j == kMaxLineLength) {
             // beyond max line range.
-            INFO("beyond max line range.");
-            if (i) line->write(s, i);
+            DEBUG("beyond max line range.");
+            if (i) line.append(String(s, i));
 
             // we suppose to use line->size() as this condition, but 
             // it is bad for performance
-            CHECK_EQ(line->ready(), kMaxLineLength - 1);
+            //CHECK_EQ(line.size(), kMaxLineLength - 1);
 
             mBlockOffset += i;
             break;
         }
 
         if (s[i] == '\n') {
-            INFO("find return byte at %zu", i);
+            DEBUG("find return byte at %zu", i);
 
-            if (i) line->write(s, i);     
+            if (i) line.append(String(s, i));     
 
             mBlockOffset += i + 1;    // +1 to including the return byte
 
@@ -290,11 +290,12 @@ sp<Buffer> Content::readLine() {
     }
 
     // EOF
-    if (eof && line->ready() == 0) return NULL;
+    if (eof) return String::Null;
+    //if (eof && line->ready() == 0) return NULL;
 
-    line->write('\0', 1);         // null-terminate 
+    //line->write('\0', 1);         // null-terminate 
 
-    INFO("line: %s", line->data());
+    DEBUG("line: %s", line.c_str());
 
     return line;
 }
@@ -360,7 +361,7 @@ int64_t Content::seek(int64_t offset) {
         // read only mode or read & write mode.
         if (mBlock->ready() 
                 && offset < mRangeOffset 
-                && offset >= mRangeOffset - mBlock->ready()) {
+                && offset >= mRangeOffset - (int64_t)mBlock->ready()) {
             DEBUG("seek in cache.");
             mBlockOffset    = 
                 mBlock->ready() - (mRangeOffset - offset);
@@ -370,7 +371,7 @@ int64_t Content::seek(int64_t offset) {
         // write only mode
         if (mBlock->ready() 
                 && offset >= mRangeOffset  
-                && offset < mRangeOffset + mBlock->ready()) {
+                && offset < mRangeOffset + (int64_t)mBlock->ready()) {
             DEBUG("write only mode: seek in cache.");
             mBlockOffset    = offset - mRangeOffset;
             return offset;
@@ -432,3 +433,31 @@ String Content::string() const {
 }
 
 __END_NAMESPACE_ABE
+
+__BEGIN_DECLS
+
+USING_NAMESPACE_ABE
+
+ContentObjectRef ContentObjectCreate(const char * url) {
+    Object<Content> content = Content::Create(url);
+    if (content == NULL) return NULL;
+    return content->RetainObject();
+}
+
+size_t ContentObjectLength(ContentObjectRef ref) {
+    Object<Content> content = ref;
+    return content->size();
+}
+
+BufferRef ContentObjectRead(ContentObjectRef ref, size_t size) {
+    Object<Content> content = ref;
+    Object<Buffer> buffer = content->read(size);
+    return buffer->RetainObject();
+}
+
+void ContentObjectReset(ContentObjectRef ref) {
+    Object<Content> content = ref;
+    content->reset();
+}
+
+__END_DECLS

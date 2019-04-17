@@ -37,8 +37,9 @@
 
 #include <list>     // std::list
 #include <vector>   // std::vector
+#if defined(__APPLE__)
 #include <unordered_map>    // std::unordered_map
-
+#endif
 USING_NAMESPACE_ABE
 
 using namespace std;
@@ -119,7 +120,7 @@ void QueuePerf() {
 #if MULTI_THREAD
     // single producer & single consumer test
     INFO("Queue single producer & single consumer");
-    sp<QueueSingleConsumer> consumer = new QueueSingleConsumer;
+    Object<QueueSingleConsumer> consumer = new QueueSingleConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -133,10 +134,10 @@ void QueuePerf() {
 
     // multi producer & single consumer test
     INFO("Queue multi producer & single consumer");
-    sp<QueueProducer> producer = new QueueProducer;
-    Thread * threads[PERF_PRODUCER];
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
+    Object<QueueProducer> producer = new QueueProducer;
+    Vector<Thread> threads;
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -150,9 +151,9 @@ void QueuePerf() {
     delta = SystemTimeUs() - now;
     INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
     for (size_t i = 0; i < PERF_PRODUCER; ++i) {
-        threads[i]->join();
-        delete threads[i];
+        threads[i].join();
     }
+    threads.clear();
     INFO("---");
 #endif
 }
@@ -236,7 +237,7 @@ void ListPerf() {
 #if MULTI_THREAD
     // compare to LockFree::Queue
     INFO("List single producer & single consumer");
-    sp<ListConsumer> consumer = new ListConsumer;
+    Object<ListConsumer> consumer = new ListConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -250,10 +251,10 @@ void ListPerf() {
     INFO("---");
 
     INFO("List multi producer & single consumer");
-    sp<ListProducer> producer = new ListProducer;
-    Thread * threads[PERF_PRODUCER];
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i] = new Thread(producer);
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i]->run();
+    Object<ListProducer> producer = new ListProducer;
+    Vector<Thread> threads;
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -269,9 +270,9 @@ void ListPerf() {
     delta = SystemTimeUs() - now;
     INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / (PERF_TEST_COUNT * PERF_PRODUCER));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) {
-        threads[i]->join();
-        delete threads[i];
+        threads[i].join();
     }
+    threads.clear();
     INFO("---");
 #endif
 }
@@ -432,6 +433,7 @@ void HashTablePerf() {
     INFO("---");
 }
 
+#if defined(__APPLE__)
 void STDHashTablePerf() {
     int64_t now, delta;
     double each;
@@ -462,6 +464,7 @@ void STDHashTablePerf() {
     INFO("std::unordered_map erase() test takes %" PRId64 " us, each %.3f us", delta, each);
     INFO("---");
 }
+#endif
 
 struct EmptyRunnable : public Runnable {
     volatile int count;
@@ -506,9 +509,9 @@ void LooperPerf() {
     INFO("Runnable::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
 #endif
     
-    sp<Looper> looper = Looper::Create("LooperPerf");
+    Object<Looper> looper = Looper::Create("LooperPerf");
     looper->loop();
-    sp<EmptyRunnable> routine = new EmptyRunnable;
+    Object<EmptyRunnable> routine = new EmptyRunnable;
     routine->count = 0;
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
@@ -537,8 +540,9 @@ int main(int argc, char ** argv) {
     VectorPerf();
     STDVectorPerf();
     HashTablePerf();
+#if defined(__APPLE__)
     STDHashTablePerf();
-    
+#endif    
     LooperPerf();
 
     return 0;

@@ -26,49 +26,52 @@
  ******************************************************************************/
 
 
-#ifndef _TOOLKIT_HEADERS_ALL_H
-#define _TOOLKIT_HEADERS_ALL_H
+// File:    pthread.h
+// Author:  mtdcy.chen
+// Changes: 
+//          1. 20161012     initial version
+//
 
-// basic [c & c++]
-#include <ABE/basic/Version.h>
-#include <ABE/basic/Types.h>
-#include <ABE/basic/Atomic.h>
+#ifndef __ABE_basic_pthread_compat_h
+#define __ABE_basic_pthread_compat_h
 
-#ifdef LOG_TAG
-#include <ABE/basic/Log.h>
-#endif
+#define _DARWIN_C_SOURCE
+#include <pthread.h>
+#include "Config.h"
+#include <sys/types.h> // for pid_t
+#include <stdint.h>
 
-#include <ABE/basic/Hardware.h>
-#include <ABE/basic/Time.h>
-#include <ABE/basic/SharedObject.h>
-#define sp  Object  // for api compatible, keep for sometime
+__BEGIN_DECLS
 
-#include <ABE/basic/Allocator.h>
-#include <ABE/basic/SharedBuffer.h>
-#include <ABE/basic/String.h>
-#include <ABE/basic/Mutex.h>
-#include <ABE/basic/Thread.h>
+// for portable reason, we are not suppose to using the _np part
+// bellow is something we want to make portable.
+// by removing _np suffix make it won't have name conflict or confusion
 
-// object types [SharedObject] [c & c++]
-#include <ABE/object/Buffer.h>
-#include <ABE/object/Message.h>
-#include <ABE/object/Content.h>
-#include <ABE/object/Runnable.h>
-#include <ABE/object/Looper.h>
-#include <ABE/object/Event.h>
+// the name is restricted to 16 characters, including the terminating null byte
+static inline int pthread_setname(const char * name) {
+    return pthread_setname_np(name);
+}
 
-#ifdef __cplusplus  // only available for c++
+static inline int pthread_getname(pthread_t thread, char * name, size_t len) {
+    return pthread_getname_np(thread, name, len);
+}
 
-// tools [non-SharedObject]
-#include <ABE/tools/Bits.h>
+// no return value
+#define pthread_yield()                     pthread_yield_np()
 
-// containers [non-SharedObject]
-#include <ABE/stl/TypeHelper.h>
-#include <ABE/stl/List.h>
-#include <ABE/stl/Vector.h>
-#include <ABE/stl/HashTable.h>
-#include <ABE/stl/Queue.h>
+// return 1 if current thread is main thread
+#define pthread_main()                      pthread_main_np()
 
-#endif //  __cplusplus
+// get self tid
+static inline pid_t pthread_gettid() {
+    uint64_t id;
+    pthread_threadid_np(pthread_self(), &id);
+    return id;
+}
 
-#endif // _TOOLKIT_HEADERS_ALL_H
+#define pthread_cond_timedwait_relative     pthread_cond_timedwait_relative_np
+
+__END_DECLS 
+
+#endif // __ABE_basic_pthread_compat_h
+

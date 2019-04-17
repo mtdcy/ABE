@@ -32,33 +32,37 @@
 //          1. 20160701     initial version
 //
 
-#define _DARWIN_C_SOURCE    // for sys_signame on APPLE
+#if defined(__APPLE__)
+#include "basic/compat/pthread_macos.h"
+#elif defined(_WIN32) || defined(__MINGW32__)
+#include "basic/compat/pthread_win32.h"
+#else
+#include "basic/compat/pthread_linux.h"
+#endif
 
-#define LOG_TAG   "Thread"
+#define LOG_TAG   "Looper"
 //#define LOG_NDEBUG 0
 #include "basic/Log.h"
-#include "basic/compat/pthread.h"
 
 #include "stl/List.h"
 #include "stl/Vector.h"
 #include "stl/Queue.h"
 
 #include "basic/Time.h"
-#include "tools/Mutex.h"
+#include "basic/Mutex.h"
 #include "Looper.h"
 
 // https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads
-#include <pthread.h>
 #include <signal.h>
 
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_HIDDEN Job {
-    sp<Runnable>    mRoutine;
-    int64_t         mTime;
+struct Job {
+    Object<Runnable>    mRoutine;
+    int64_t             mTime;
 
     Job() : mRoutine(NULL), mTime(0) { }
-    Job(const sp<Runnable>& routine, int64_t delay) : mRoutine(routine),
+    Job(const Object<Runnable>& routine, int64_t delay) : mRoutine(routine),
     mTime(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 
     bool operator<(const Job& rhs) const {
@@ -66,7 +70,7 @@ struct __ABE_HIDDEN Job {
     }
 };
 
-struct __ABE_HIDDEN Stat {
+struct Stat {
     int64_t     start_time;
     int64_t     sleep_time;
     int64_t     exec_time;
@@ -139,9 +143,11 @@ struct __ABE_HIDDEN Stat {
     }
 };
 
-struct __ABE_HIDDEN JobDispatcher : public Runnable {
+static __thread Looper * __tls = NULL;
+struct JobDispatcher : public Runnable {
+    Looper * _interface;    // hack for Looper::Current()
+    
     // internal context
-    String                          mName;
     Stat                            mStat;  // only used inside looper
 
     // mutable context, access with lock
@@ -150,13 +156,13 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
     mutable List<Job>               mTimedJobs;
     Vector<void *>                  mUserContext;
 
-    JobDispatcher(const String& name) : Runnable(), mName(name) { }
+    JobDispatcher() : Runnable() { }
 
     void profile(int64_t interval = 5 * 1000000LL) {
         mStat.profile(interval);
     }
 
-    void post(const sp<Runnable>& routine, int64_t delay = 0) {
+    void post(const Object<Runnable>& routine, int64_t delay = 0) {
         Job job(routine, delay);
 
         // using lockfree queue to speed up post()
@@ -193,7 +199,11 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
         if (mTimedJobs.size()) {
             Job& head = mTimedJobs.front();
             const int64_t now = SystemTimeUs();
-            if (head.mTime <= now) {
+            // with 1ms jitter:
+            // our SleepForInterval and waitRelative based on ns,
+            // but os backend implementation can not guarentee it
+            // miniseconds precise is the least.
+            if (head.mTime <= now + 1000LL) {
                 job = head;
                 mTimedJobs.pop();
                 return true;
@@ -209,7 +219,7 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
         }
     }
 
-    void remove(const sp<Runnable>& routine) {
+    void remove(const Object<Runnable>& routine) {
         AutoLock _l(mJobLock);
 
         // move mJobs -> mTimedJobs
@@ -235,7 +245,7 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
         if (head) signal();
     }
 
-    bool exists(const sp<Runnable>& routine) const {
+    bool exists(const Object<Runnable>& routine) const {
         AutoLock _l(mJobLock);
 
         // move mJobs -> mTimedJobs
@@ -267,15 +277,15 @@ struct __ABE_HIDDEN JobDispatcher : public Runnable {
     virtual void terminate(bool wait) = 0;
 };
 
-struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
-    bool                    mLooping;
+struct NormalJobDispatcher : public JobDispatcher {
+    bool                    mTerminated;
     bool                    mRequestExit;
     bool                    mWaitForJobDidFinished;
     mutable Mutex           mLock;
     Condition               mWait;
 
-    NormalJobDispatcher(const String& name) : JobDispatcher(name),
-    mLooping(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
+    NormalJobDispatcher() : JobDispatcher(),
+    mTerminated(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
 
     virtual void signal() {
         AutoLock _l(mLock);
@@ -284,15 +294,16 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
 
     virtual void terminate(bool wait) {
         AutoLock _l(mLock);
-        if (mLooping == false) return;
+        if (mTerminated) return;
         mRequestExit            = true;
         mWaitForJobDidFinished  = wait;
         mWait.signal();
     }
 
     virtual void run() {
+        __tls = _interface;
+        
         mStat.start();
-        mLooping = true;
         
         for (;;) {
             int64_t next = 0;
@@ -326,23 +337,57 @@ struct __ABE_HIDDEN NormalJobDispatcher : public JobDispatcher {
         }
 
         AutoLock _l(mLock);
-        mLooping = false;
+        mTerminated = false;
         mWait.broadcast();
         mStat.stop();
+        __tls = NULL;
     }
 };
 
-#define SIG_RESUME      SIGUSR1
-static volatile bool g_quit = false;
 static __ABE_INLINE const char * signame(int signo) {
 #ifdef __APPLE__
     return sys_signame[signo];
+#elif defined(_WIN32) || defined(__MINGW32__)
+    switch (signo) {
+        case SIGINT:    return "SIGINT";
+        case SIGILL:    return "SIGILL";
+        case SIGFPE:    return "SIGFPE";
+        case SIGSEGV:   return "SIGSEGV";
+        case SIGTERM:   return "SIGTERM";
+        case SIGABRT:   return "SIGABRT";
+        case SIGBREAK:  return "SIGBREAK";
+        default:        return "Unknown";
+    }
 #else
     return strsignal(signo);
 #endif
 }
 
-static __ABE_INLINE void wait_for_signals(int64_t us = 0) {
+static volatile bool g_quit = false;
+static pthread_t g_threadid;
+#if defined(_WIN32) || defined(__MINGW32__)
+// signal on win32 is very simple, we need some help
+#define SIG_RESUME 	SIGINT
+static __ABE_INLINE void wait_for_signals() {
+    DEBUG("goto sleep");
+    SleepForInterval(1000000000LL);
+    DEBUG("wake up from sleep");
+}
+
+static void signal_exit(int signo) {
+    g_quit = true;
+}
+
+static void signal_null(int signo) {
+}
+
+static __ABE_INLINE void init_signals() {
+    DEBUG("install signal handlers");
+    signal(SIG_RESUME, signal_null);
+}
+#else
+#define SIG_RESUME      SIGUSR1
+static __ABE_INLINE void wait_for_signals() {
     /* save errno to keep it unchanged in the interrupted thread. */
     const int saved = errno;
 
@@ -350,7 +395,6 @@ static __ABE_INLINE void wait_for_signals(int64_t us = 0) {
     sigfillset(&sigset);
 #if 1
     sigdelset(&sigset, SIG_RESUME);
-    sigdelset(&sigset, SIGQUIT);
     sigdelset(&sigset, SIGINT);
 #else
     sigemptyset(&sigset);
@@ -376,7 +420,6 @@ static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
     g_quit = true;
 #if 0 // cause sigsuspend assert, why ???
     uninstall(SIG_RESUME);
-    uninstall(SIGQUIT);
     uninstall(SIGINT);
 #endif
     INFO("main: exit...");
@@ -387,62 +430,52 @@ static void sigaction_null(int sig, siginfo_t *info, void *vcontext) {
     // NOTHING
 }
 
-static __ABE_INLINE void install() {
+static __ABE_INLINE void init_signals() {
+    g_threadid = pthread_self();
+    
     // install signal handlers
     struct sigaction act;
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, SIG_RESUME);
-    sigaddset(&act.sa_mask, SIGQUIT);
     sigaddset(&act.sa_mask, SIGINT);
     act.sa_flags = SA_RESTART | SA_SIGINFO;
 
     act.sa_sigaction = sigaction_null;
     CHECK_EQ(sigaction(SIG_RESUME, &act, NULL), 0);
 
-    act.sa_sigaction = sigaction_exit;
-    CHECK_EQ(sigaction(SIGQUIT, &act, NULL), 0);
-
     // XXX: make sure main looper can terminate by ctrl-c
     act.sa_sigaction = sigaction_exit;
     CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
 }
+#endif
 
 // job dispatcher for main looper, also handle signals of the process
-struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
-    pthread_t       id;
+struct MainJobDispatcher : public JobDispatcher {
     volatile bool   looping;
 
-    MainJobDispatcher() : JobDispatcher("main"), id(pthread_self()), looping(false) {
-        CHECK_TRUE(pthread_main_mpx());
-        install();
-        g_quit = false;
+    MainJobDispatcher() : JobDispatcher(), looping(false) {
+        init_signals();
     }
 
     ~MainJobDispatcher() {
+        // wait other loopers to terminate
     }
 
     virtual void signal() {
         DEBUG("main: signal");
-        pthread_kill(id, SIG_RESUME);
+        pthread_kill(g_threadid, SIG_RESUME);
     }
 
     virtual void terminate(bool wait) {
-        if (pthread_main_mpx()) {
-            // call terminate inside run()
-            if (!g_quit) g_quit = true;
-
-            if (!looping) {
-                // TODO: wait other loopers to terminate
-            }
-        } else {
-            INFO("main: terminate by others");
-            pthread_kill(id, SIGQUIT);
+        g_quit = true;
+        if (!pthread_equal(g_threadid, pthread_self())) {
+            DEBUG("main: terminate by others");
+            pthread_kill(g_threadid, SIG_RESUME);
         }
     }
 
     virtual void run() {
         mStat.start();
-        looping = true;
         while (!g_quit) {
             int64_t next = 0;
             Job job;
@@ -460,136 +493,133 @@ struct __ABE_HIDDEN MainJobDispatcher : public JobDispatcher {
                 mStat.wakeup();
                 DEBUG("main: wakeup");
             } else if (next > 0) {
-                DEBUG("main: wait for next job");
+                DEBUG("main: wait for next job, %" PRId64, next);
                 // sleep for next job, will be interrupted by signals
                 mStat.sleep();
-                if (SleepUs(next) == false) {
+                if (SleepForInterval(next * 1000LL) == false) {
                     DEBUG("main: interrupt");
                 }
                 mStat.wakeup();
             }
         }
-        looping = false;
         mStat.stop();
     }
 };
 
-struct __ABE_HIDDEN SharedLooper : public SharedObject {
-    sp<JobDispatcher>   mDispatcher;
-    Thread *            mThread;
+struct SharedLooper : public SharedObject {
+    Object<JobDispatcher>   mDispatcher;
+    Thread                  mThread;
 
     // for main looper
-    SharedLooper() : SharedObject(), mDispatcher(new MainJobDispatcher), mThread(NULL) {
-        pthread_setname_mpx("main");
+    SharedLooper() : SharedObject(), mThread(Thread::Null) {
     }
-
-    // for normal looper
-    SharedLooper(const String& name, eThreadType type) :
-        SharedObject(), mDispatcher(new NormalJobDispatcher(name)), mThread(new Thread(mDispatcher)) {
-            mThread->setName(name).setType(type);
-        }
-
-    virtual ~SharedLooper() { if (mThread) delete mThread; }
 };
 
 //////////////////////////////////////////////////////////////////////////////////
-static __thread Looper * local_looper = NULL;
-static Looper * main_looper = NULL;
-struct __ABE_HIDDEN FirstRoutine : public Runnable {
-    sp<Looper> self;
-    FirstRoutine(const sp<Looper>& _self) : Runnable(), self(_self) { }
-
-    virtual void run() {
-        // set tls value
-        local_looper = self.get();
-    }
-};
-
-sp<Looper> Looper::Current() {
-    return local_looper;
+Object<Looper> Looper::Current() {
+    return __tls;
 }
 
 // main looper without backend thread
-sp<Looper> Looper::Main() {
-    if (main_looper == NULL) {
-        main_looper = new Looper;
-        sp<SharedLooper> looper = new SharedLooper;
-        main_looper->mShared = looper;
+static Object<Looper> __main = NULL;
+Object<Looper> Looper::Main() {
+    if (__main == NULL) {   // it is ok without lock
+        DEBUG("init main looper");
+        CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
+        __main = new Looper;
+        Object<SharedLooper> shared = new SharedLooper;
+        shared->mDispatcher     = new MainJobDispatcher;
+        shared->mThread         = Thread::Null;
+        __main->mShared         = shared;
+        pthread_setname("main");
     }
-    return main_looper;
+    return __main;
 }
 
-Looper::Looper(const String& name, const eThreadType& type) : SharedObject(),
-    mShared(new SharedLooper(name, type))
-{
+static Object<Looper> __global = NULL;
+Object<Looper> Looper::Global() { return __global; }
+void Looper::SetGlobal(const Object<Looper>& lp) { __global = lp; }
+
+Object<Looper> Looper::Create(const String& name, const eThreadType& type) {
+    Object<Looper> looper = new Looper;
+    looper->thread().setName(name).setType(type);
+    return looper;
 }
 
-Looper::~Looper() {
-    if (this == main_looper)    main_looper = NULL;
+Looper::Looper() : SharedObject(OBJECT_ID_LOOPER) { }
+
+void Looper::onFirstRetain() {
+    if (mShared == NULL) {
+        Object<SharedLooper> shared = new SharedLooper;
+        shared->mDispatcher = new NormalJobDispatcher;
+        shared->mThread = Thread(shared->mDispatcher);
+        shared->mDispatcher->_interface = this;     // hack for Looper::Current
+        mShared = shared;
+    }
 }
 
-String& Looper::name() const {
-    sp<SharedLooper> looper = mShared;
-    return looper->mDispatcher->mName;
+void Looper::onLastRetain() {
+    Object<SharedLooper> looper = mShared;
+    looper->mDispatcher->clear();
+    mShared.clear();
 }
 
 Thread& Looper::thread() const {
-    sp<SharedLooper> looper = mShared;
-    if (looper->mThread)    return *looper->mThread;
-    else                    return Thread::Null;
+    Object<SharedLooper> looper = mShared;
+    return looper->mThread;
 }
 
 void Looper::loop() {
-    sp<SharedLooper> looper = mShared;
-    if (looper->mThread) {
-        looper->mDispatcher->post(new FirstRoutine(this));
-        looper->mThread->run();
+    Object<SharedLooper> looper = mShared;
+    if (looper->mThread != Thread::Null) {
+        looper->mThread.run();
     } else {
         looper->mDispatcher->run();
     }
 }
 
 void Looper::terminate(bool wait) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->terminate(wait);
-    if (looper->mThread) {
-        if (wait)   looper->mThread->join();
-        else        looper->mThread->detach();
+    if (looper->mThread != Thread::Null) {
+        if (wait)   looper->mThread.join();
+        else        looper->mThread.detach();
     }
 }
 
 void Looper::profile(int64_t interval) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->profile(interval);
 }
 
-void Looper::post(const sp<Runnable>& routine, int64_t delayUs) {
-    sp<SharedLooper> looper = mShared;
+void Looper::post(const Object<Runnable>& routine, int64_t delayUs) {
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->post(routine, delayUs);
 }
 
-void Looper::remove(const sp<Runnable>& routine) {
-    sp<SharedLooper> looper = mShared;
+void Looper::remove(const Object<Runnable>& routine) {
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->remove(routine);
 }
 
-bool Looper::exists(const sp<Runnable>& routine) const {
-    sp<SharedLooper> looper = mShared;
+bool Looper::exists(const Object<Runnable>& routine) const {
+    Object<SharedLooper> looper = mShared;
     return looper->mDispatcher->exists(routine);
 }
 
 void Looper::flush() {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
     looper->mDispatcher->clear();
 }
 
 String Looper::string() const {
-    sp<SharedLooper> looper = mShared;
-
+    Object<SharedLooper> looper = mShared;
+    String info;
+#if 0
     String info = String::format("looper %s: jobs %zu",
             looper->mDispatcher->mName.c_str(),
             looper->mDispatcher->mJobs.size());
-#if 0
+
     size_t index = 0;
     List<Job>::const_iterator it = shared->mJobs.cbegin();
     for (; it != shared->mJobs.cend(); ++it) {
@@ -602,7 +632,7 @@ String Looper::string() const {
 }
 
 size_t Looper::bind(void * user) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     looper->mDispatcher->mUserContext.push(user);
@@ -610,7 +640,7 @@ size_t Looper::bind(void * user) {
 }
 
 void Looper::bind(size_t id, void *user) {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     CHECK_LE(id, looper->mDispatcher->mUserContext.size());
@@ -622,7 +652,7 @@ void Looper::bind(size_t id, void *user) {
 }
 
 void * Looper::user(size_t id) const {
-    sp<SharedLooper> looper = mShared;
+    Object<SharedLooper> looper = mShared;
 
     AutoLock _l(looper->mDispatcher->mJobLock);
     if (id >= looper->mDispatcher->mUserContext.size())
@@ -637,7 +667,7 @@ USING_NAMESPACE_ABE
 
 extern "C" {
 
-    struct __ABE_HIDDEN UserRunnable : public Runnable {
+    struct UserRunnable : public Runnable {
         void (*callback)(void *);
         void * user;
         UserRunnable(void (*Callback)(void *), void * User) : Runnable(),
@@ -651,7 +681,7 @@ extern "C" {
     }
 
     Looper * SharedLooperCreate(const char * name) {
-        sp<Looper> shared = Looper::Create(name);
+        Object<Looper> shared = Looper::Create(name);
         return (Looper *)shared->RetainObject();
     }
 

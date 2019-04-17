@@ -42,7 +42,7 @@ __BEGIN_NAMESPACE_ABE
  * read bits from data
  * @note always do in-place operation
  */
-class __ABE_EXPORT BitReader {
+class __ABE_EXPORT BitReader : public NonSharedObject {
     public:
         /**
          * create a bit reader based on data.
@@ -102,7 +102,7 @@ class __ABE_EXPORT BitReader {
          * @param nbytes    number bytes to read
          * @return return a buffer reference contains the data
          */
-        sp<Buffer>  readB(size_t nbytes) const;
+        Object<Buffer>  readB(size_t nbytes) const;
 
         /**
          * skip n bits at most of the data
@@ -186,7 +186,7 @@ class __ABE_EXPORT BitReader {
         DISALLOW_EVILS(BitReader);
 };
 
-class __ABE_EXPORT BitWriter {
+class __ABE_EXPORT BitWriter : public NonSharedObject {
     public:
         BitWriter(char *data, size_t n);
 
@@ -297,6 +297,25 @@ class __ABE_EXPORT BitWriter {
 
     private:
         DISALLOW_EVILS(BitWriter);
+};
+
+class __ABE_EXPORT BitSet : public NonSharedObject {
+    public:
+        __ABE_INLINE BitSet() : mValue(0) { }
+        __ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
+         __ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
+    
+    public:
+        __ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
+        __ABE_INLINE uint64_t   clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
+        __ABE_INLINE void       clear()         { mValue = 0;                           }
+        __ABE_INLINE bool       test(size_t n)  { return mValue & (1LL << n);           }
+        __ABE_INLINE uint64_t   flip(size_t n)  { mValue ^= (1LL << n); return mValue;  }
+        __ABE_INLINE bool       empty() const   { return mValue == 0;                   }
+        __ABE_INLINE uint64_t   value() const   { return mValue;                        }
+    
+    private:
+        uint64_t    mValue;
 };
 __END_NAMESPACE_ABE
 #endif // __cplusplus
