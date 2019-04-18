@@ -208,6 +208,12 @@ BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
     return (BufferObjectRef)buffer->RetainObject();
 }
 
+BufferObjectRef ContentObjectReadPosition(ContentObjectRef ref, size_t size, int64_t offset) {
+    static_cast<Content *>(ref)->seek(offset);
+    Object<Buffer> buffer = static_cast<Content *>(ref)->read(size);
+    return (BufferObjectRef)buffer->RetainObject();
+}
+
 void ContentObjectReset(ContentObjectRef ref) {
     Object<Content> content = ref;
     content->reset();
