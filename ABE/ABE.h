@@ -69,6 +69,9 @@
 #include <ABE/stl/HashTable.h>
 #include <ABE/stl/Queue.h>
 
+// math [non-SharedObject]
+#include <ABE/math/Matrix.h>
+
 #endif //  __cplusplus
 
 // c bindings

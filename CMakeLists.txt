@@ -90,7 +90,7 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ABE)
 
-set (ABE_SUBDIRS    basic object tools stl)
+set (ABE_SUBDIRS    basic object tools stl math)
 
 # install 
 if (XCODE)
