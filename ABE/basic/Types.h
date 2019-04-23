@@ -35,13 +35,16 @@
 #ifndef _TOOLKIT_HEADERS_TYPES_H
 #define _TOOLKIT_HEADERS_TYPES_H
 
-// only platform/libc/compiler macro allowed, like
-// __ANDROID__ __ANDROID_API__
-// __APPLE__
-// __linux__ (including GNU/Linux and Android)
-// refer to:
-// https://sourceforge.net/p/predef/wiki/Architectures/
-// https://sourceforge.net/p/predef/wiki/OperatingSystems/
+/**
+ * @note NO config.h for ABE public headers
+ *
+ * @note only system/libc/compiler macro allowed, like __APPLE__
+ *  https://sourceforge.net/p/predef/wiki/Architectures/
+ *  https://sourceforge.net/p/predef/wiki/OperatingSystems/
+ *
+ * @note we assume everything in bytes-order
+ * @note NO Endian specific operations expect tool designed for this
+ **/
 
 #include <sys/types.h>      // all kinds of types define
 #include <stdint.h>         // fixed width integer: int8_t int16_t int32_t ...
