@@ -191,9 +191,9 @@ void ListImpl::_clear() {
             node = next;
         }
         mStorage->deallocate();
-        mStorage = NULL;
-        mListLength = 0;
     }
+    mStorage = NULL;
+    mListLength = 0;
 }
 
 void ListImpl::clear() {
