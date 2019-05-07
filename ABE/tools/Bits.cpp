@@ -47,13 +47,13 @@ __BEGIN_NAMESPACE_ABE
 ///////////////////////////////////////////////////////////////////////////
 BitReader::BitReader(const char *data, size_t length) :
     mData(data), mLength(length),
-    mHead(0), mReservoir(0), mBitsLeft(0)
+    mHead(0), mReservoir(0), mBitsLeft(0), mByteOrder(Little)
 {
     CHECK_NULL(mData);
 }
 BitReader::BitReader(const Buffer& buf) : 
     mData(buf.data()), mLength(buf.size()),
-    mHead(0), mReservoir(0), mBitsLeft(0)
+    mHead(0), mReservoir(0), mBitsLeft(0), mByteOrder(Little)
 {
     CHECK_NULL(mData);
 }
@@ -61,7 +61,7 @@ BitReader::BitReader(const Buffer& buf) :
 BitReader::~BitReader() {
 }
 
-void BitReader::reset() {
+void BitReader::reset() const {
     mHead = 0;
     mReservoir = 0;
     mBitsLeft = 0;

@@ -64,7 +64,7 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          * reset context of bit reader, so we can read from
          * the begin again.
          */
-        void        reset();
+        void        reset() const;
 
         /**
          * get current read offset
@@ -102,6 +102,7 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          * @return return a buffer reference contains the data
          */
         Object<Buffer>  readB(size_t nbytes) const;
+        Object<Buffer>  readB() const { return readB(numBitsLeft() >> 3); }
 
         /**
          * skip n bits at most of the data
@@ -118,6 +119,12 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          * skip n bytes of the data
          */
         __ABE_INLINE void skipBytes(size_t nbytes) const { skip(nbytes << 3); }
+    
+        /**
+         * seek to n bits
+         */
+        __ABE_INLINE void seek(size_t nbits) const { reset(); skip(nbits); }
+        __ABE_INLINE void seekBytes(size_t nbytes) const { seek(nbytes << 3); }
 
         /**
          * read 8 bits from data
@@ -173,12 +180,25 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          */
         uint64_t    rb64() const;
 
+    public:
+        /**
+         * set content byte order & read based on byte order
+         */
+        enum eByteOrder { Little, Big };
+        __ABE_INLINE eByteOrder byteOrder() const { return mByteOrder; }
+        __ABE_INLINE void       setByteOrder(eByteOrder order) const { mByteOrder = order; }
+        __ABE_INLINE uint16_t   r16() const { return mByteOrder == Big ? rb16() : rl16(); }
+        __ABE_INLINE uint32_t   r24() const { return mByteOrder == Big ? rb24() : rl24(); }
+        __ABE_INLINE uint32_t   r32() const { return mByteOrder == Big ? rb32() : rl32(); }
+        __ABE_INLINE uint64_t   r64() const { return mByteOrder == Big ? rb64() : rl64(); }
+    
     private:
         const char *        mData;
         size_t              mLength;
         mutable size_t      mHead;
         mutable uint64_t    mReservoir;
         mutable size_t      mBitsLeft;
+        mutable eByteOrder  mByteOrder;
 
     private:
         // no need of copy
