@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.8)
 
 project (ABE)
 
+set (LIBNAME ${PROJECT_NAME}    CACHE STRING    "Library Name")
+
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
 add_definitions(-Wall)
 #add_definitions(-O2)
@@ -78,31 +80,44 @@ set(ABE_SOURCES
     ABE/c.cpp
     )
 
-add_library (${PROJECT_NAME} SHARED ${ABE_SOURCES})
-add_library (${PROJECT_NAME}_static STATIC ${ABE_SOURCES})
+# includes
+include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/ABE)
+
+# using OBJECT library to avoid build twice for shared & static libraries
+add_library (${LIBNAME} OBJECT ${ABE_SOURCES})
+
+if (XCODE)
+    add_library (${LIBNAME}_shared SHARED ${ABE_SOURCES})
+    add_library (${LIBNAME}_static STATIC ${ABE_SOURCES})
+else()
+    add_library (${LIBNAME}_shared SHARED $<TARGET_OBJECTS:${LIBNAME}>)
+    add_library (${LIBNAME}_static STATIC $<TARGET_OBJECTS:${LIBNAME}>)
+endif()
+
+set_target_properties (${LIBNAME}_shared PROPERTIES 
+    OUTPUT_NAME ${LIBNAME})
+set_target_properties (${LIBNAME}_static PROPERTIES 
+    OUTPUT_NAME ${LIBNAME})
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # dlopen & pthread
-    target_link_libraries(${PROJECT_NAME} -ldl -lpthread)
+    target_link_libraries(${LIBNAME}_shared -ldl -lpthread)
 endif()
 
-# includes
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ABE)
-
-set (ABE_SUBDIRS    basic object tools stl math)
-
+#------------------------------------------------------------------------------#
 # install 
+set (ABE_HEADERS basic object tools stl math)
 if (XCODE)
     # public headers, xcode need these
-    target_sources (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ABE/ABE.h)
-    foreach (sub ${ABE_SUBDIRS})
-        file (GLOB _HEADERS "ABE/${sub}/*.h")
-        target_sources (${PROJECT_NAME} PUBLIC ${_HEADERS})
-        set_property(SOURCE ${_HEADERS} PROPERTY MACOSX_PACKAGE_LOCATION Headers/${sub})
+    target_sources (${LIBNAME}_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ABE/ABE.h)
+    foreach (dir ${ABE_HEADERS})
+        file (GLOB _HEADERS "ABE/${dir}/*.h")
+        target_sources (${LIBNAME}_shared PUBLIC ${_HEADERS})
+        set_property(SOURCE ${_HEADERS} PROPERTY MACOSX_PACKAGE_LOCATION Headers/${dir})
     endforeach()
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+    set_target_properties(${LIBNAME}_shared PROPERTIES
         FRAMEWORK TRUE
         FRAMEWORK_VERSION A
         PUBLIC_HEADER "ABE/ABE.h"   # need this to create Headers link in framework
@@ -110,45 +125,58 @@ if (XCODE)
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Mac Developer"
         )
 
-    install (TARGETS ${PROJECT_NAME}
+    install (TARGETS ${LIBNAME}_shared
         FRAMEWORK       DESTINATION     .
         PUBLIC_HEADER   DESTINATION     Headers
         )
 else()
     install (FILES  ABE/ABE.h   DESTINATION include/ABE)
-    foreach (sub ${ABE_SUBDIRS}) 
-        file (GLOB _HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ABE/${sub}/*.h")
-        install (FILES ${_HEADERS} DESTINATION include/ABE/${sub})
+    foreach (dir ${ABE_HEADERS}) 
+        install (DIRECTORY ABE/${dir} 
+            DESTINATION include/ABE 
+            FILES_MATCHING PATTERN "ABE/${dir}/*.h")
     endforeach()
 
-    install (TARGETS ${PROJECT_NAME}
+    install (TARGETS ${LIBNAME}_shared
         PUBLIC_HEADER   DESTINATION     include/ABE
         RUNTIME         DESTINATION     bin
         ARCHIVE         DESTINATION     lib
         LIBRARY         DESTINATION     lib
         )
-
-    install (TARGETS ${PROJECT_NAME}_static
-        ARCHIVE         DESTINATION     lib
-        )
 endif()
 
-# test
+#------------------------------------------------------------------------------#
+# test 
 remove_definitions(-Werror=non-virtual-dtor)
 
-set (BUILD_SHARED_LIBS OFF)
-add_subdirectory(gtest-1.7.0)
-include_directories(${gtest_SOURCE_DIR}/include)
+add_subdirectory(gtest-1.7.0 EXCLUDE_FROM_ALL)
+include_directories(BEFORE ${gtest_SOURCE_DIR}/include)
 
 add_executable (test test.cpp)
-target_link_libraries(test ${PROJECT_NAME})
+target_link_libraries(test ${LIBNAME}_static)
 target_link_libraries(test gtest gtest_main)
 
 add_executable(test_c test_c.c)
-target_link_libraries(test_c ${PROJECT_NAME})
+target_link_libraries(test_c ${LIBNAME}_static)
 
 add_executable(perf perf.cpp)
-target_link_libraries(perf ${PROJECT_NAME})
+target_link_libraries(perf ${LIBNAME}_static)
 set_target_properties(perf PROPERTIES
     EXCLUDE_FROM_ALL TRUE
     EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+
+add_custom_target(${LIBNAME}_test ALL
+    DEPENDS test test_c 
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND echo test
+    COMMAND ${BASH} test
+    COMMAND echo test_c
+    COMMAND ${BASH} test_c
+    )
+
+add_custom_target(${LIBNAME}_perf_test ALL
+    DEPENDS perf
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND echo perf
+    COMMAND ${BASH} perf
+    )

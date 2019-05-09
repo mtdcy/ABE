@@ -1,9 +1,10 @@
 #!/bin/bash
 
-if [ ! -d xcode ]; then
-    mkdir xcode 
+if [ -d xcode ]; then
+    rm -rf xcode 
 fi
 
-cd xcode
-
-cmake -G Xcode -DCMAKE_INSTALL_PREFIX=~/Library/Frameworks ..
+mkdir xcode && 
+cd xcode && 
+cmake -G Xcode -DCMAKE_INSTALL_PREFIX=~/Library/Frameworks .. &&
+xcodebuild -alltargets
