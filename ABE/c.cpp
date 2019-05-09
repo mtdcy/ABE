@@ -200,7 +200,7 @@ ContentObjectRef ContentObjectCreate(const char * url) {
 }
 
 size_t ContentObjectLength(const ContentObjectRef ref) {
-    return static_cast<const Content *>(ref)->size();
+    return static_cast<const Content *>(ref)->length();
 }
 
 BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
@@ -212,11 +212,6 @@ BufferObjectRef ContentObjectReadPosition(ContentObjectRef ref, size_t size, int
     static_cast<Content *>(ref)->seek(offset);
     Object<Buffer> buffer = static_cast<Content *>(ref)->read(size);
     return (BufferObjectRef)buffer->RetainObject();
-}
-
-void ContentObjectReset(ContentObjectRef ref) {
-    Object<Content> content = ref;
-    content->reset();
 }
 
 //////////////////////////////////////////////////////////////////////////////////

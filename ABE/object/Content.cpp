@@ -40,7 +40,6 @@
 #include <string.h>  // memcpy
 
 #include "protocol/File.h"
-//#include "protocol/MemoryProto.h"
 
 #define MIN(a, b)   ((a) > (b) ? (b) : (a))
 
@@ -51,32 +50,23 @@ static size_t kMaxLineLength = 1024;
 ///////////////////////////////////////////////////////////////////////////
 //! return false on error or eos
 bool Content::readBlock() {
+    writeBlockBack();
+
     mBlock->reset();
     mBlockOffset    = 0;
     mBlockLength    = 0;
     mBlockPopulated = false;
 
     // read cache first, and then read from cache.
-    ssize_t ret = mProto->readBytes(
-            mBlock->data(), 
-            mBlock->empty());
-    if (ret < 0) {
-        // TODO: set error state
-        ERROR("read: readBytes return error %d", ret);
-        return false;
-    } else if (ret == 0) {
-        DEBUG("readBlock: EOS...");
+    ssize_t ret = mProto->readBytes(mBlock->data(), mBlock->empty());
+    if (ret == 0) {
+        DEBUG("readBlock: eos or error ...");
         return false;
     }
 
     mBlock->step(ret);
     mBlockLength        = ret;
-
-    mRangeOffset        += ret;
-
-    // statistic
-    mRealReadCnt++;
-    mRealReadBytes += ret;
+    mPosition           += ret;
 
     return true;
 }
@@ -84,20 +74,20 @@ bool Content::readBlock() {
 //! return true on success
 bool Content::writeBlockBack() {
     if (mBlockPopulated && mBlock->ready() > 0) {
-        CHECK_TRUE(mProto->flags() & Protocol::WRITE);
+        CHECK_TRUE(mode() & Protocol::Write);
         DEBUG("write back, real offset %" PRId64 ", cache offset %" PRId64, 
-                mRangeOffset, mBlockOffset);
+                mPosition, mBlockOffset);
 
         DEBUG("write back: %s", mBlock->string().c_str());
 
         // in read & write mode, which read cache first, 
         // and then modify cache, then write back
         // so, we have to seek back before write back
-        int64_t offset = mRangeOffset;
-        const bool readMode = mProto->flags() & Protocol::READ;
+        int64_t offset = mPosition;
+        const bool readMode = mode() & Protocol::Read;
         if (readMode && mBlockLength) {
             offset  -= mBlockLength;
-            mProto->seekBytes(offset + mRangeStart);
+            mProto->seekBytes(offset);
         }
 
         ssize_t ret = mProto->writeBytes(mBlock->data(), mBlock->ready());
@@ -112,8 +102,7 @@ bool Content::writeBlockBack() {
         }
 
         // update range offset & length
-        mRangeOffset    = offset + ret;
-        mRangeLength    = mProto->totalBytes() - mRangeStart;
+        mPosition    = offset + ret;
     }
 
     return true;
@@ -129,71 +118,34 @@ Object<Content> Content::Create(const String& url, uint32_t mode) {
             url.startsWithIgnoreCase("/") ||
             url.startsWithIgnoreCase("android://") ||
             url.startsWithIgnoreCase("pipe://")) {
-        proto = new content_protocol::File(url, mode);
-#if 0
-    } else if (url.startsWithIgnoreCase("buffer://")) {
-        proto = new MemoryProto(url, mode);
-#endif 
-    } else {
-        proto = new content_protocol::File(url, mode);
+        proto = new protocol::File(url, mode);
     }
 
-    if (proto.get()) {
-        Object<Content> pipe = new Content(proto);
-        if (pipe->status() == 0) return pipe;
+    if (proto.isNIL()) {
+        ERROR("unsupported url %s", url.c_str());
+        return NULL;
     }
 
-    ERROR("unsupported url %s", url.c_str());
-    return NULL;
+    return new Content(proto, mode);
 }
 
 // read mode: read - read - read
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
-Content::Content(const Object<Protocol>& proto, size_t blockLength)
-    :
-        mProto(proto),
-        mRangeStart(0),
-        mRangeLength(proto->totalBytes()),
-        mRangeOffset(0),
-        mBlock(new Buffer(blockLength)), mBlockOffset(0), 
-        mBlockLength(0), mBlockPopulated(false),
-        mReadCnt(0), mRealReadCnt(0), mReadBytes(0), mRealReadBytes(0),
-        mWriteCnt(0), mWriteBytes(0),
-        mSeekCnt(0), mRealSeekCnt(0),
-        mSkipCnt(0), mSkipSeekCnt(0)
+Content::Content(const Object<Protocol>& proto, size_t blockLength) :
+    mProto(proto),
+    mPosition(0),
+    mBlock(new Buffer(blockLength)), mBlockOffset(0), 
+    mBlockLength(0), mBlockPopulated(false)
 {
 }
 
 Content::~Content() {
-    flush();
-
-    if (mProto->flags() & Protocol::READ) {
-        INFO("cache heat %.2f(%d/%d), cache efficiency %.3f(%" PRId64 "/%" PRId64 ")", 
-                (mReadCnt - mRealReadCnt) / (float)mReadCnt, 
-                mReadCnt, mRealReadCnt,
-                mReadBytes / (float)mRealReadBytes,
-                mReadBytes, mRealReadBytes);
-    }
-}
-
-uint32_t Content::flags() const {
-    return mProto->flags();
-}
-
-status_t Content::status() const {
-    if (mProto == 0) return UNKNOWN_ERROR;
-    return mProto->status();
-}
-
-void Content::flush() {
     writeBlockBack();
-    mBlock->reset();
-    mBlockOffset = 0;
 }
 
 Object<Buffer> Content::read(size_t size) {
-    CHECK_TRUE(mProto->flags() & Protocol::READ);
+    CHECK_TRUE(mode() & Protocol::Read);
 
     Object<Buffer> data = new Buffer(size);
 
@@ -210,10 +162,8 @@ Object<Buffer> Content::read(size_t size) {
             data->write(s, m);
 
             mBlockOffset  += m;
-            n                       -= m;
+            n -= m;
         } else {
-            flush();
-
             // TODO: read directly from protocol 
             if (readBlock() == false) {
                 //eof = true;
@@ -224,9 +174,6 @@ Object<Buffer> Content::read(size_t size) {
 
     n               = size - n;
 
-    mReadCnt       += 1;
-    mReadBytes     += n;
-
     if (!n) return NULL;
 
     //DEBUG("%s", PRINTABLE(data->string()));
@@ -234,77 +181,12 @@ Object<Buffer> Content::read(size_t size) {
     return data;
 }
 
-String Content::readLine() {
-    CHECK_TRUE(mProto->flags() & Protocol::READ);
-
-    String line("");
-
-    char *s = mBlock->data() + mBlockOffset;
-    size_t m = mBlock->ready() - mBlockOffset; 
-
-    bool eof = false;
-    size_t i = 0;
-    size_t j = 0;
-    for (;;) {
-
-        if (i == m || !m) {
-            DEBUG("prepare next block");
-            if (m) line.append(String(s, m));
-
-            flush();
-
-            if (readBlock() == false) {
-                eof = true;
-                break;
-            }
-
-            s = mBlock->data();
-            m = mBlock->ready();
-            i = 0;
-        } 
-
-        if (++j == kMaxLineLength) {
-            // beyond max line range.
-            DEBUG("beyond max line range.");
-            if (i) line.append(String(s, i));
-
-            // we suppose to use line->size() as this condition, but 
-            // it is bad for performance
-            //CHECK_EQ(line.size(), kMaxLineLength - 1);
-
-            mBlockOffset += i;
-            break;
-        }
-
-        if (s[i] == '\n') {
-            DEBUG("find return byte at %zu", i);
-
-            if (i) line.append(String(s, i));     
-
-            mBlockOffset += i + 1;    // +1 to including the return byte
-
-            break;
-        }
-
-        ++i;
-    }
-
-    // EOF
-    if (eof) return String::Null;
-    //if (eof && line->ready() == 0) return NULL;
-
-    //line->write('\0', 1);         // null-terminate 
-
-    DEBUG("line: %s", line.c_str());
-
-    return line;
-}
-
-ssize_t Content::write(const Buffer& data) {
-    CHECK_TRUE(mProto->flags() & Protocol::WRITE);
+#if 0
+size_t Content::write(const Buffer& data) {
+    CHECK_TRUE(mode() & Protocol::Write);
     DEBUG("write: %s", PRINTABLE(data.string()));
 
-    const bool readMode = mProto->flags() & Protocol::READ;
+    const bool readMode = mode() & Protocol::Read;
 
     const char *s = data.data();
     size_t n = data.ready();
@@ -346,90 +228,56 @@ ssize_t Content::write(const Buffer& data) {
 
     return (ssize_t)(data.ready() - n);
 }
-
-ssize_t Content::writeLine(const Buffer& line) {
-    // TODO
-    return 0;
-}
+#endif
 
 int64_t Content::seek(int64_t offset) {
     DEBUG("real offset %" PRId64 ", cache offset %" PRId64 ", seek to %" PRId64, 
-            mRangeOffset, 
+            mPosition,
             mBlockOffset, offset);
 
-    if (mProto->flags() & Protocol::READ) {
+    if (mode() & Protocol::Read) {
         // read only mode or read & write mode.
         if (mBlock->ready() 
-                && offset < mRangeOffset 
-                && offset >= mRangeOffset - (int64_t)mBlock->ready()) {
+                && offset < mPosition
+                && offset >= mPosition - (int64_t)mBlock->ready()) {
             DEBUG("seek in cache.");
             mBlockOffset    = 
-                mBlock->ready() - (mRangeOffset - offset);
+                mBlock->ready() - (mPosition - offset);
             return offset;
         }
     } else {
         // write only mode
         if (mBlock->ready() 
-                && offset >= mRangeOffset  
-                && offset < mRangeOffset + (int64_t)mBlock->ready()) {
+                && offset >= mPosition
+                && offset < mPosition + (int64_t)mBlock->ready()) {
             DEBUG("write only mode: seek in cache.");
-            mBlockOffset    = offset - mRangeOffset;
+            mBlockOffset    = offset - mPosition;
             return offset;
         }
     }
 
-    flush();
+    writeBlockBack();
 
-    int64_t ret = mProto->seekBytes(
-            mRangeStart + offset);
-
-    if (ret < 0) {
-        ERROR("seek return error %d", (int)ret);
-        return ret;
-    }
-
-    mRangeOffset    = ret - mRangeStart;
-    return mRangeOffset;
+    mPosition = mProto->seekBytes(offset);
+    return mPosition;
 }
 
-int64_t Content::size() const {
-    return mRangeLength;
+int64_t Content::length() const {
+    return mProto->totalBytes();
 }
 
 int64_t Content::tell() const {
-    if (mBlock->ready() == 0) return mRangeOffset;
+    if (mBlock->ready() == 0) return mPosition;
 
-    if (mProto->flags() & Protocol::READ) {
-        return mRangeOffset - (mBlock->ready() - mBlockOffset);
+    if (mode() & Protocol::Read) {
+        return mPosition - (mBlock->ready() - mBlockOffset);
     } else {
-        return mRangeOffset + mBlockOffset;
+        return mPosition + mBlockOffset;
     }
 }
 
-int64_t Content::skip(int64_t bytes) {
-    return seek(tell() + bytes);
-}
-
-void Content::setRange(int64_t offset, int64_t length) {
-    //INFO("setRange %" PRId64 " %" PRId64, offset, length);
-
-    mRangeStart     = offset;
-    mRangeLength    = mProto->totalBytes() - mRangeStart;
-
-    if (length > 0 && mRangeLength > length) 
-        mRangeLength = length;
-
-    // always reset real position
-    seek(0);
-}
-
-void Content::reset() {
-    setRange(0, mProto->totalBytes());
-}
-
-String Content::string() const {
-    // TODO
-    return String();
+int64_t Content::skip(int64_t pos) {
+    return seek(tell() + pos);
 }
 
 __END_NAMESPACE_ABE

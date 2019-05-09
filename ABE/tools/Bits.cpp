@@ -51,15 +51,6 @@ BitReader::BitReader(const char *data, size_t length) :
 {
     CHECK_NULL(mData);
 }
-BitReader::BitReader(const Buffer& buf) : 
-    mData(buf.data()), mLength(buf.size()),
-    mHead(0), mReservoir(0), mBitsLeft(0), mByteOrder(Little)
-{
-    CHECK_NULL(mData);
-}
-
-BitReader::~BitReader() {
-}
 
 void BitReader::reset() const {
     mHead = 0;
@@ -67,7 +58,7 @@ void BitReader::reset() const {
     mBitsLeft = 0;
 }
 
-size_t BitReader::numBitsLeft() const {
+size_t BitReader::remains() const {
     return 8 * (mLength - mHead) + mBitsLeft;
 }
 
@@ -77,8 +68,8 @@ size_t BitReader::offset() const {
 
 void BitReader::skip(size_t n) const {
     DEBUG("skip %zu", n);
-    CHECK_GE(numBitsLeft(), n);
-    if (n == 0) return;
+    CHECK_GT(n, 0);
+    CHECK_GE(remains(), n);
 
     if (n <= mBitsLeft) {
         DEBUG("mReservoir = %#x, mBitsLeft %zu", mReservoir, mBitsLeft);
@@ -102,18 +93,10 @@ void BitReader::skip(size_t n) const {
     }
 }
 
-uint32_t BitReader::read(size_t n) const {
-    uint32_t v = show(n);
-    mReservoir &= _bitmask64(mBitsLeft - n);
-    mBitsLeft -= n;
-    DEBUG("mReservoir = %#x, mBitsLeft %zu", mReservoir, mBitsLeft);
-    return v;
-}
-
 uint32_t BitReader::show(size_t n) const {
     CHECK_GT(n, 0);
     CHECK_LE(n, 32);
-    CHECK_GE(numBitsLeft(), n);
+    CHECK_GE(remains(), n);
 
     if (n > mBitsLeft) {
         DEBUG("request %zu bits, but %zu left", n, mBitsLeft);
@@ -139,8 +122,16 @@ uint32_t BitReader::show(size_t n) const {
     return v;
 }
 
+uint32_t BitReader::read(size_t n) const {
+    uint32_t v = show(n);
+    mReservoir &= _bitmask64(mBitsLeft - n);
+    mBitsLeft -= n;
+    DEBUG("mReservoir = %#x, mBitsLeft %zu", mReservoir, mBitsLeft);
+    return v;
+}
+
 String BitReader::readS(size_t n) const {
-    CHECK_LE(n * 8, numBitsLeft());
+    CHECK_LE(n * 8, remains());
 
     String s;
 
@@ -156,7 +147,7 @@ String BitReader::readS(size_t n) const {
 }
 
 Object<Buffer> BitReader::readB(size_t n) const {
-    CHECK_LE(n * 8, numBitsLeft());
+    CHECK_LE(n * 8, remains());
 
     if (__builtin_expect(mBitsLeft == 0, true)) {
         Object<Buffer> b = new Buffer(n);
@@ -173,17 +164,12 @@ Object<Buffer> BitReader::readB(size_t n) const {
 }
 
 uint8_t BitReader::r8() const {
-    CHECK_GE(numBitsLeft(), 8);
-
-    if (__builtin_expect(mBitsLeft == 0, true)) {
-        return (uint8_t)mData[mHead++];
-    }
-
+    CHECK_GE(remains(), 8);
     return read(8);
 }
 
 uint16_t BitReader::rl16() const {
-    CHECK_GE(numBitsLeft(), 16);
+    CHECK_GE(remains(), 16);
 
     uint16_t v = r8();
     v = v | r8() << 8;
@@ -191,7 +177,7 @@ uint16_t BitReader::rl16() const {
 }
 
 uint32_t BitReader::rl24() const {
-    CHECK_GE(numBitsLeft(), 24);
+    CHECK_GE(remains(), 24);
 
     uint32_t v = r8();
     v = v | (uint32_t)rl16() << 8;
@@ -199,7 +185,7 @@ uint32_t BitReader::rl24() const {
 }
 
 uint32_t BitReader::rl32() const {
-    CHECK_GE(numBitsLeft(), 32);
+    CHECK_GE(remains(), 32);
 
     uint32_t v = rl16();
     v = v | (uint32_t)rl16() << 16;
@@ -207,7 +193,7 @@ uint32_t BitReader::rl32() const {
 }
 
 uint64_t BitReader::rl64() const {
-    CHECK_GE(numBitsLeft(), 64);
+    CHECK_GE(remains(), 64);
 
     uint64_t v = rl32();
     v = v | (uint64_t)rl32() << 32;
@@ -215,7 +201,7 @@ uint64_t BitReader::rl64() const {
 }
 
 uint16_t BitReader::rb16() const {
-    CHECK_GE(numBitsLeft(), 16);
+    CHECK_GE(remains(), 16);
 
     uint16_t v = r8();
     v = r8() | v << 8;
@@ -223,7 +209,7 @@ uint16_t BitReader::rb16() const {
 }
 
 uint32_t BitReader::rb24() const {
-    CHECK_GE(numBitsLeft(), 24);
+    CHECK_GE(remains(), 24);
 
     uint32_t v = rb16();
     v = r8() | v << 8;
@@ -231,7 +217,7 @@ uint32_t BitReader::rb24() const {
 }
 
 uint32_t BitReader::rb32() const {
-    CHECK_GE(numBitsLeft(), 32);
+    CHECK_GE(remains(), 32);
 
     uint32_t v = rb16();
     v = rb16() | v << 16;
@@ -239,7 +225,7 @@ uint32_t BitReader::rb32() const {
 }
 
 uint64_t BitReader::rb64() const {
-    CHECK_GE(numBitsLeft(), 64);
+    CHECK_GE(remains(), 64);
 
     uint64_t v = rb32();
     v = rb32() | v << 32;

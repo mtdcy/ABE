@@ -34,7 +34,6 @@
 
 #define LOG_TAG "File"
 #include "ABE/basic/Log.h"
-#include "ABE/object/Content.h"
 
 #include "File.h" 
 
@@ -58,157 +57,154 @@
 #endif
 
 __BEGIN_NAMESPACE_ABE
+__BEGIN_NAMESPACE(protocol)
 
-namespace content_protocol {
-    File::File(const String& url, int mode) 
-        :
-            Content::Protocol(),
-            mUrl(url),
-            mMode(mode),
-            mStatus(NO_INIT),
-            mFd(-1), 
-            mOffset(0), 
-            mLength(0),
-            mPosition(0)
-    {
-        if (url.startsWithIgnoreCase("pipe://")) {
-            int64_t offset, length;
+File::File(const String& url, int mode) : Content::Protocol(),
+    mUrl(url),
+    mMode(mode),
+    mStatus(NO_INIT),
+    mFd(-1), 
+    mOffset(0), 
+    mLength(0),
+    mPosition(0)
+{
+    if (url.startsWithIgnoreCase("pipe://")) {
+        int64_t offset, length;
 
-            int index0 = url.indexOf(7, "+");
-            if (index0 < 7) return; // "+" not found.
-            mFd     = url.substring(7, index0 - 7).toInt32();
+        int index0 = url.indexOf(7, "+");
+        if (index0 < 7) return; // "+" not found.
+        mFd     = url.substring(7, index0 - 7).toInt32();
 
-            int index1 = url.indexOf(index0 + 1, "+");
-            mOffset = url.substring(index0 + 1, index1 - index0 - 1).toInt64();
-            mLength = url.substring(index1 + 1).toInt64();
+        int index1 = url.indexOf(index0 + 1, "+");
+        mOffset = url.substring(index0 + 1, index1 - index0 - 1).toInt64();
+        mLength = url.substring(index1 + 1).toInt64();
 
-            INFO("fd = %d, offset = %lld, length = %lld", mFd, mOffset, mLength);
+        INFO("fd = %d, offset = %lld, length = %lld", mFd, mOffset, mLength);
 
-            if (mFd <= 0) {
-                ERROR("invalid fd %d", mFd);
-                return;
-            }
-            mFd = dup(mFd);
+        if (mFd <= 0) {
+            ERROR("invalid fd %d", mFd);
+            return;
+        }
+        mFd = dup(mFd);
 
-            mLength += mOffset;
+        mLength += mOffset;
 
-            int64_t realLength = lseek64(mFd, 0, SEEK_END);
-            if (realLength > 0 && mLength > realLength) {
-                mLength = realLength;
-            }
+        int64_t realLength = lseek64(mFd, 0, SEEK_END);
+        if (realLength > 0 && mLength > realLength) {
+            mLength = realLength;
+        }
 
-        } else {
-            int flags = O_LARGEFILE;
-            if ((mode & READ) && (mode & WRITE)) {
-                flags |= O_CREAT;
-                flags |= O_RDWR;
-                flags |= O_BINARY;
-            } else if (mode & READ) {
-                flags |= O_RDONLY;
-                flags |= O_BINARY;
-            } else if (mode & WRITE) {
-                flags |= O_CREAT;
-                flags |= O_WRONLY;
-                flags |= O_BINARY;
-                //flags |= O_TRUNC; // it's better to let client do this.
-            }
+    } else {
+        int flags = O_LARGEFILE;
+        if ((mode & Read) && (mode & Write)) {
+            flags |= O_CREAT;
+            flags |= O_RDWR;
+            flags |= O_BINARY;
+        } else if (mode & Read) {
+            flags |= O_RDONLY;
+            flags |= O_BINARY;
+        } else if (mode & Write) {
+            flags |= O_CREAT;
+            flags |= O_WRONLY;
+            flags |= O_BINARY;
+            //flags |= O_TRUNC; // it's better to let client do this.
+        }
 
-            const char *pathname = url.c_str();
-            if (url.startsWithIgnoreCase("file://"))    pathname += 6;
+        const char *pathname = url.c_str();
+        if (url.startsWithIgnoreCase("file://"))    pathname += 6;
 
-            if (flags & O_CREAT) 
-                mFd = ::open(pathname, flags, S_IRUSR | S_IWUSR);
-            else
-                mFd = ::open(pathname, flags);
+        if (flags & O_CREAT) 
+            mFd = ::open(pathname, flags, S_IRUSR | S_IWUSR);
+        else
+            mFd = ::open(pathname, flags);
 
-            if (mFd < 0) {
-                ERROR("open %s failed. errno = %d(%s)", url.c_str(), errno, strerror(errno));
-                return;
-            }
+        if (mFd < 0) {
+            ERROR("open %s failed. errno = %d(%s)", url.c_str(), errno, strerror(errno));
+            return;
+        }
 
-            mOffset = 0;
-            mLength = ::lseek64(mFd, 0, SEEK_END);
-        } 
+        mOffset = 0;
+        mLength = ::lseek64(mFd, 0, SEEK_END);
+    } 
 
-        mPosition = lseek64(mFd, mOffset, SEEK_SET);
-        DEBUG("mOffset = %" PRId64 ", mPosition = %" PRId64 " mLength = %" PRId64, mOffset, mPosition, mLength);
+    mPosition = lseek64(mFd, mOffset, SEEK_SET);
+    DEBUG("mOffset = %" PRId64 ", mPosition = %" PRId64 " mLength = %" PRId64, mOffset, mPosition, mLength);
 
-        mStatus     = OK;
+    mStatus     = OK;
+}
+
+File::~File() {
+    if (mFd >= 0) {
+        ::close(mFd);
+        mFd = -1;
+    }
+}
+
+size_t File::readBytes(void * buffer, size_t bytes) {
+    int64_t remains = mLength - mPosition;
+
+    if (remains == 0) {
+        return 0;
     }
 
-    File::~File() {
-        if (mFd >= 0) {
-            ::close(mFd);
-            mFd = -1;
-        }
+    if (bytes > (size_t)remains) {
+        DEBUG("read reamins %d bytes", remains);
+        bytes = remains;
     }
 
-    ssize_t File::readBytes(void *buffer, size_t bytes) {
-        int64_t remains = mLength - mPosition;
+    ssize_t bytesRead = ::read(mFd, buffer, bytes);
 
-        if (remains == 0) {
-            return 0;
-        }
+    if (bytesRead >= 0) {
+        mPosition += bytesRead;
+        return (size_t)bytesRead;
+    } else {
+        ERROR("read@%lld return error(%d|%s) %d/%d", mPosition, 
+                errno, strerror(errno),
+                bytesRead, bytes);
+        return 0;
+    }
+}
 
-        if (bytes > (size_t)remains) {
-            DEBUG("read reamins %d bytes", remains);
-            bytes = remains;
-        }
+size_t File::writeBytes(const void * buffer, size_t bytes) {
 
-        ssize_t bytesRead = ::read(mFd, buffer, bytes);
+    ssize_t bytesWritten = ::write(mFd, buffer, bytes);
 
-        if (bytesRead >= 0)
-            mPosition += bytesRead;
-        else {
-            ERROR("read@%lld return error(%d|%s) %d/%d", mPosition, 
-                    errno, strerror(errno),
-                    bytesRead, bytes);
-        }
-
-        return bytesRead;
+    if (bytesWritten < 0) {
+        ERROR("write return error %d. errno = %d %s", bytesWritten, 
+                errno, strerror(errno));
+        return 0;
     }
 
-    ssize_t File::writeBytes(const void *buffer, size_t bytes) {
+    mPosition += (int64_t)bytesWritten;
 
-        ssize_t bytesWritten = ::write(mFd, buffer, bytes);
+    // we append more data.
+    if (mPosition > mLength) {
+        mLength += bytesWritten;
+    }
+    // else. we are writting in middle of file
 
-        if (bytesWritten < 0) {
-            ERROR("write return error %d. errno = %d %s", bytesWritten, 
-                    errno, strerror(errno));
-            return bytesWritten;
-        }
+    return (size_t)bytesWritten;
+}
 
-        mPosition += (int64_t)bytesWritten;
+int64_t File::seekBytes(int64_t offset) {
+    offset += mOffset;
 
-        // we append more data.
-        if (mPosition > mLength) {
-            mLength   += bytesWritten;
-        }
-        // else. we are writting in middle of file
-
-        return bytesWritten;
+    if (offset > mLength) {
+        DEBUG("seek heet boundary %lld", mOffset);
+        offset = mLength - mOffset;
+    } else if (offset < 0) {
+        DEBUG("seek heet boundary 0");
+        offset = 0;
     }
 
-    int64_t File::seekBytes(int64_t offset) {
-        offset += mOffset;
+    mPosition = ::lseek64(mFd, offset, SEEK_SET);
 
-        if (offset > mLength) {
-            DEBUG("seek heet boundary %lld", mOffset);
-            offset = mLength - mOffset;
-        } else if (offset < 0) {
-            DEBUG("seek heet boundary 0");
-            offset = 0;
-        }
+    return mPosition - mOffset;
+}
 
-        mPosition = ::lseek64(mFd, offset, SEEK_SET);
+int64_t File::totalBytes() const {
+    return mLength - mOffset;;
+}
 
-        return mPosition - mOffset;
-    }
-
-    int64_t File::totalBytes() const {
-        return mLength - mOffset;;
-    }
-
-};
-
+__END_NAMESPACE(protocol)
 __END_NAMESPACE_ABE

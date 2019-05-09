@@ -38,45 +38,36 @@
 #include "ABE/object/Content.h"
 
 __BEGIN_NAMESPACE_ABE
+__BEGIN_NAMESPACE(protocol)
 
-namespace content_protocol {
-    class File : public Content::Protocol {
-        public:
-            File(const String& url, int mode);
-
-            virtual ~File();
-
-            virtual status_t status() const { return mStatus; }
-
-            virtual uint32_t flags() const { return mMode; }
-
-            virtual ssize_t readBytes(void *buffer, size_t bytes);
-
-            virtual ssize_t writeBytes(const void *buffer, size_t bytes);
-
-            virtual int64_t totalBytes() const;
-
-            virtual int64_t seekBytes(int64_t offset);
-
-            virtual String string() const {
-                return String::format("File %d[%#x]@%s", mFd, mMode, mUrl.c_str());
-            }
-
-        private:
-            String          mUrl;
-            int             mMode;  // read | write
-            status_t        mStatus;
-
-            int             mFd;
-            int64_t         mOffset;
-            int64_t         mLength;
-            int64_t         mPosition;
-
-        private:
-            DISALLOW_EVILS(File);
-    };
+class File : public Content::Protocol {
+    public:
+        File(const String& url, int mode);
+    
+        virtual ~File();
+    
+        virtual uint32_t mode() const { return mMode; }
+    
+        virtual size_t readBytes(void *buffer, size_t bytes);
+    
+        virtual size_t writeBytes(const void *buffer, size_t bytes);
+    
+        virtual int64_t totalBytes() const;
+    
+        virtual int64_t seekBytes(int64_t offset);
+    
+    private:
+        String          mUrl;
+        int             mMode;  // read | write
+        status_t        mStatus;
+    
+        int             mFd;
+        int64_t         mOffset;
+        int64_t         mLength;
+        int64_t         mPosition;
 };
 
+__END_NAMESPACE(protocol)
 __END_NAMESPACE_ABE
 
 #endif // _TOOLKIT_HEADERS_PIPES_FILE_H

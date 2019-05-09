@@ -37,40 +37,47 @@
 
 #include <ABE/object/Buffer.h>
 __BEGIN_NAMESPACE_ABE
+
 /**
  * read bits from data
  * @note always do in-place operation
+ *
+ * TODO: BitReader as universal reader of content & buffer
  */
 class __ABE_EXPORT BitReader : public NonSharedObject {
     public:
         /**
          * create a bit reader based on data.
-         * @param data  reference to buffer holding data
+         * @param data  pointer to memory hoding bytes
+         * @param n     number bytes in memory
          */
         BitReader(const char *data, size_t n);
-        BitReader(const Buffer& data);
-        ~BitReader();
 
     public:
-        __ABE_INLINE size_t size() const { return mLength; }
+        /**
+         * get length in bits
+         */
+        __ABE_INLINE size_t length() const { return mLength << 3; }
 
         /**
          * get how many bits left for read
          * @return return total bits left in the data.
          */
-        size_t      numBitsLeft() const;
+        size_t      remains() const;
+        __ABE_INLINE size_t remianBytes() const { return (remains() + 7) / 8; }
 
+        /**
+         * get current read offset in bits
+         * @return return current bit offset
+         */
+        size_t      offset() const;
+    
         /**
          * reset context of bit reader, so we can read from
          * the begin again.
          */
         void        reset() const;
 
-        /**
-         * get current read offset
-         * @return return current bit offset
-         */
-        size_t      offset() const;
 
     public:
         /**
@@ -102,7 +109,6 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          * @return return a buffer reference contains the data
          */
         Object<Buffer>  readB(size_t nbytes) const;
-        Object<Buffer>  readB() const { return readB(numBitsLeft() >> 3); }
 
         /**
          * skip n bits at most of the data
@@ -192,7 +198,7 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
         __ABE_INLINE uint32_t   r32() const { return mByteOrder == Big ? rb32() : rl32(); }
         __ABE_INLINE uint64_t   r64() const { return mByteOrder == Big ? rb64() : rl64(); }
     
-    private:
+    protected:
         const char *        mData;
         size_t              mLength;
         mutable size_t      mHead;

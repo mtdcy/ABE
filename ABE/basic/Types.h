@@ -78,6 +78,9 @@
 #define __ABE_DEPRECATED            __attribute__ ((deprecated))
 #endif
 
+#define ABE_LIKELY(x)               __builtin_expect(x, true)
+#define ABE_UNLIKELY(x)             __builtin_expect(x, false)
+
 #ifdef __cplusplus
 #define __BEGIN_NAMESPACE(x)            namespace x {
 #define __END_NAMESPACE(x)              }
