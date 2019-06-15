@@ -45,7 +45,7 @@ endif()
 if (XCODE)
     #set (CMAKE_MACOSX_BUNDLE TRUE)
     set (CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    set (CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
+    set (CMAKE_OSX_DEPLOYMENT_TARGET 10.10)
 endif()
 
 # source files
