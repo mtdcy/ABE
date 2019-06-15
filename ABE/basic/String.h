@@ -41,7 +41,8 @@
 
 __BEGIN_NAMESPACE_ABE
 
-#ifndef __APPLE__
+// char16_t is a keyword introduce by c++11
+#if __cplusplus < 201103L
 typedef uint16_t char16_t;
 #endif
 
