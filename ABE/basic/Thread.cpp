@@ -113,7 +113,7 @@ static __ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
     int err = pthread_setschedparam(pthread_self(), policy, &par);
     switch (err) {
         case 0:
-            INFO("%s: %s => policy %d, sched_priority %d",
+            DEBUG("%s: %s => policy %d, sched_priority %d",
                     name.c_str(), NAMES[type/16], policy, par.sched_priority);
             break;
         case EINVAL:
