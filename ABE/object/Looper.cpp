@@ -143,10 +143,7 @@ struct Stat {
     }
 };
 
-static __thread Looper * __tls = NULL;
 struct JobDispatcher : public Runnable {
-    Looper * _interface;    // hack for Looper::Current()
-    
     // internal context
     Stat                            mStat;  // only used inside looper
 
@@ -266,25 +263,28 @@ struct JobDispatcher : public Runnable {
         return false;
     }
 
-    void clear() {
+    void flush() {
         AutoLock _l(mJobLock);
         mTimedJobs.clear();
         mJobs.clear();
         signal();
     }
 
+    virtual void loop() = 0;
     virtual void signal() = 0;
     virtual void terminate(bool wait) = 0;
 };
 
+static __thread JobDispatcher * __tls = NULL;
 struct NormalJobDispatcher : public JobDispatcher {
+    Thread                  mThread;
     bool                    mTerminated;
     bool                    mRequestExit;
     bool                    mWaitForJobDidFinished;
     mutable Mutex           mLock;
     Condition               mWait;
 
-    NormalJobDispatcher() : JobDispatcher(),
+    NormalJobDispatcher() : JobDispatcher(), mThread(this),
     mTerminated(false), mRequestExit(false), mWaitForJobDidFinished(false) { }
 
     virtual void signal() {
@@ -293,15 +293,20 @@ struct NormalJobDispatcher : public JobDispatcher {
     }
 
     virtual void terminate(bool wait) {
-        AutoLock _l(mLock);
-        if (mTerminated) return;
-        mRequestExit            = true;
-        mWaitForJobDidFinished  = wait;
-        mWait.signal();
+        {
+            AutoLock _l(mLock);
+            if (mTerminated) return;
+            mRequestExit            = true;
+            mWaitForJobDidFinished  = wait;
+            mWait.signal();
+        }
+        
+        if (wait)   mThread.join();
+        else        mThread.detach();
     }
 
     virtual void run() {
-        __tls = _interface;
+        __tls = this;
         
         mStat.start();
         
@@ -341,6 +346,10 @@ struct NormalJobDispatcher : public JobDispatcher {
         mWait.broadcast();
         mStat.stop();
         __tls = NULL;
+    }
+    
+    virtual void loop() {
+        mThread.run();
     }
 };
 
@@ -504,38 +513,37 @@ struct MainJobDispatcher : public JobDispatcher {
         }
         mStat.stop();
     }
-};
-
-struct SharedLooper : public SharedObject {
-    Object<JobDispatcher>   mDispatcher;
-    Thread                  mThread;
-
-    // for main looper
-    SharedLooper() : SharedObject(), mThread(Thread::Null) {
+    
+    virtual void loop() {
+        run();
     }
 };
 
 //////////////////////////////////////////////////////////////////////////////////
 Object<Looper> Looper::Current() {
-    return __tls;
+    if (__tls == NULL) return NULL;
+
+    Object<Looper> current = new Looper;
+    current->mShared = __tls;
+    return current;
 }
 
 // main looper without backend thread
-static Object<Looper> __main = NULL;
+// auto clear __main on last ref release
+static Looper * __main = NULL;
 Object<Looper> Looper::Main() {
     if (__main == NULL) {   // it is ok without lock
         DEBUG("init main looper");
         CHECK_TRUE(pthread_main(), "main looper must be intialized in main()");
         __main = new Looper;
-        Object<SharedLooper> shared = new SharedLooper;
-        shared->mDispatcher     = new MainJobDispatcher;
-        shared->mThread         = Thread::Null;
-        __main->mShared         = shared;
+        __main->mShared = new MainJobDispatcher;
         pthread_setname("main");
     }
     return __main;
 }
 
+// always keep a ref to global looper
+// client have to clear it by set global looper to NULL
 static Object<Looper> __global = NULL;
 Object<Looper> Looper::Global() { return __global; }
 void Looper::SetGlobal(const Object<Looper>& lp) { __global = lp; }
@@ -550,70 +558,68 @@ Looper::Looper() : SharedObject(OBJECT_ID_LOOPER) { }
 
 void Looper::onFirstRetain() {
     if (mShared == NULL) {
-        Object<SharedLooper> shared = new SharedLooper;
-        shared->mDispatcher = new NormalJobDispatcher;
-        shared->mThread = Thread(shared->mDispatcher);
-        shared->mDispatcher->_interface = this;     // hack for Looper::Current
-        mShared = shared;
+        mShared = new NormalJobDispatcher;
     }
 }
 
 void Looper::onLastRetain() {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->clear();
-    mShared.clear();
+    Object<JobDispatcher> shared = mShared;
+    shared->flush();
+    
+    mShared = NULL;
+    // clear main pointer
+    if (this == __main) {
+        INFO("on main looper last ref!!!");
+        __main = NULL;
+    }
 }
 
 Thread& Looper::thread() const {
-    Object<SharedLooper> looper = mShared;
-    return looper->mThread;
+    if (this == __main) {
+        return Thread::Main();
+    }
+    
+    Object<NormalJobDispatcher> shared = mShared;
+    return shared->mThread;
 }
 
 void Looper::loop() {
-    Object<SharedLooper> looper = mShared;
-    if (looper->mThread != Thread::Null) {
-        looper->mThread.run();
-    } else {
-        looper->mDispatcher->run();
-    }
+    Object<JobDispatcher> shared = mShared;
+    shared->loop();
 }
 
 void Looper::terminate(bool wait) {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->terminate(wait);
-    if (looper->mThread != Thread::Null) {
-        if (wait)   looper->mThread.join();
-        else        looper->mThread.detach();
-    }
+    Object<JobDispatcher> shared = mShared;
+    shared->terminate(wait);
 }
 
 void Looper::profile(int64_t interval) {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->profile(interval);
+    Object<JobDispatcher> shared = mShared;
+    shared->profile(interval);
 }
 
 void Looper::post(const Object<Runnable>& routine, int64_t delayUs) {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->post(routine, delayUs);
+    Object<JobDispatcher> shared = mShared;
+    shared->post(routine, delayUs);
 }
 
 void Looper::remove(const Object<Runnable>& routine) {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->remove(routine);
+    Object<JobDispatcher> shared = mShared;
+    shared->remove(routine);
 }
 
 bool Looper::exists(const Object<Runnable>& routine) const {
-    Object<SharedLooper> looper = mShared;
-    return looper->mDispatcher->exists(routine);
+    Object<JobDispatcher> shared = mShared;
+    return shared->exists(routine);
 }
 
 void Looper::flush() {
-    Object<SharedLooper> looper = mShared;
-    looper->mDispatcher->clear();
+    Object<JobDispatcher> shared = mShared;
+    shared->flush();
 }
 
 String Looper::string() const {
-    Object<SharedLooper> looper = mShared;
+    Object<JobDispatcher> shared = mShared;
     String info;
 #if 0
     String info = String::format("looper %s: jobs %zu",
@@ -632,32 +638,32 @@ String Looper::string() const {
 }
 
 size_t Looper::bind(void * user) {
-    Object<SharedLooper> looper = mShared;
+    Object<JobDispatcher> shared = mShared;
 
-    AutoLock _l(looper->mDispatcher->mJobLock);
-    looper->mDispatcher->mUserContext.push(user);
-    return looper->mDispatcher->mUserContext.size() - 1;
+    AutoLock _l(shared->mJobLock);
+    shared->mUserContext.push(user);
+    return shared->mUserContext.size() - 1;
 }
 
 void Looper::bind(size_t id, void *user) {
-    Object<SharedLooper> looper = mShared;
+    Object<JobDispatcher> shared = mShared;
 
-    AutoLock _l(looper->mDispatcher->mJobLock);
-    CHECK_LE(id, looper->mDispatcher->mUserContext.size());
-    if (id == looper->mDispatcher->mUserContext.size()) {
-        looper->mDispatcher->mUserContext.push(user);
+    AutoLock _l(shared->mJobLock);
+    CHECK_LE(id, shared->mUserContext.size());
+    if (id == shared->mUserContext.size()) {
+        shared->mUserContext.push(user);
     } else {
-        looper->mDispatcher->mUserContext[id] = user;
+        shared->mUserContext[id] = user;
     }
 }
 
 void * Looper::user(size_t id) const {
-    Object<SharedLooper> looper = mShared;
+    Object<JobDispatcher> shared = mShared;
 
-    AutoLock _l(looper->mDispatcher->mJobLock);
-    if (id >= looper->mDispatcher->mUserContext.size())
+    AutoLock _l(shared->mJobLock);
+    if (id >= shared->mUserContext.size())
         return NULL;
-    return looper->mDispatcher->mUserContext[id];
+    return shared->mUserContext[id];
 }
 
 __END_NAMESPACE_ABE

@@ -75,12 +75,13 @@ class __ABE_EXPORT Thread : public NonSharedObject {
          * yield current thread
          */
         static void         Yield();
-
+    
         /**
-         *
+         * main thread
+         * @note using this to control main thread through native_thread_handle
          */
-        static void         Once(const Object<Runnable>&);
-
+        static Thread&      Main();
+    
     public:
         /**
          * create a suspend thread with runnable
@@ -88,7 +89,6 @@ class __ABE_EXPORT Thread : public NonSharedObject {
          * @note thread is joinable until join() or detach()
          */
         Thread(const Object<Runnable>& runnable, const eThreadType type = kThreadDefault);
-        ~Thread();
 
         /**
          * thread state
@@ -154,13 +154,6 @@ class __ABE_EXPORT Thread : public NonSharedObject {
          * @return return native thread handle
          */
         pthread_t native_thread_handle() const;
-    
-    public:
-        __ABE_INLINE bool operator == (const Thread& rhs) const { return mShared == rhs.mShared; }
-        __ABE_INLINE bool operator != (const Thread& rhs) const { return mShared != rhs.mShared; }
-    
-    public:
-        static Thread Null;
 
     private:
         Thread() : mShared(NULL) { }
