@@ -132,14 +132,16 @@ class __ABE_EXPORT Looper : public SharedObject {
          * flush Runnable objects from this looper
          */
         void flush();
+    
+    protected:
+        Looper();
+        virtual void onFirstRetain();
+        virtual void onLastRetain();
 
     private:
         Object<SharedObject>    mShared;
 
-    private:
-        DISALLOW_EVILS(Looper);
-    
-    __OBJECT_DECLS(Looper);
+    DISALLOW_EVILS(Looper);
 };
 __END_NAMESPACE_ABE
 #endif // _TOOLKIT_HEADERS_LOOPER_H

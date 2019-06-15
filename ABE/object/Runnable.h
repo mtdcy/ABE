@@ -40,9 +40,8 @@
 __BEGIN_NAMESPACE_ABE
 
 struct __ABE_EXPORT Runnable : public SharedObject {
+    Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
     virtual void run() = 0;
-
-    __OBJECT_DECLS(Runnable);
     DISALLOW_EVILS(Runnable);
 };
 
