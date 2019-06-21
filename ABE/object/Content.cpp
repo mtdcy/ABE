@@ -39,8 +39,6 @@
 
 #include <string.h>  // memcpy
 
-#include "protocol/File.h"
-
 #define MIN(a, b)   ((a) > (b) ? (b) : (a))
 
 __BEGIN_NAMESPACE_ABE
@@ -74,7 +72,7 @@ bool Content::readBlock() {
 //! return true on success
 bool Content::writeBlockBack() {
     if (mBlockPopulated && mBlock->ready() > 0) {
-        CHECK_TRUE(mode() & Protocol::Write);
+        CHECK_TRUE(mode() & Write);
         DEBUG("write back, real offset %" PRId64 ", cache offset %" PRId64, 
                 mPosition, mBlockOffset);
 
@@ -84,7 +82,7 @@ bool Content::writeBlockBack() {
         // and then modify cache, then write back
         // so, we have to seek back before write back
         int64_t offset = mPosition;
-        const bool readMode = mode() & Protocol::Read;
+        const bool readMode = mode() & Read;
         if (readMode && mBlockLength) {
             offset  -= mBlockLength;
             mProto->seekBytes(offset);
@@ -110,7 +108,9 @@ bool Content::writeBlockBack() {
 
 ///////////////////////////////////////////////////////////////////////////
 // static
-Object<Content> Content::Create(const String& url, uint32_t mode) {
+Object<Content::Protocol> CreateFile(const String& url, Content::eMode mode);
+
+Object<Content> Content::Create(const String& url, eMode mode) {
     INFO("Open content %s", url.c_str());
 
     Object<Protocol> proto;
@@ -118,7 +118,7 @@ Object<Content> Content::Create(const String& url, uint32_t mode) {
             url.startsWithIgnoreCase("/") ||
             url.startsWithIgnoreCase("android://") ||
             url.startsWithIgnoreCase("pipe://")) {
-        proto = new protocol::File(url, mode);
+        proto = CreateFile(url, mode);
     }
 
     if (proto.isNIL()) {
@@ -145,7 +145,7 @@ Content::~Content() {
 }
 
 Object<Buffer> Content::read(size_t size) {
-    CHECK_TRUE(mode() & Protocol::Read);
+    CHECK_TRUE(mode() & Read);
 
     Object<Buffer> data = new Buffer(size);
 
@@ -235,7 +235,7 @@ int64_t Content::seek(int64_t offset) {
             mPosition,
             mBlockOffset, offset);
 
-    if (mode() & Protocol::Read) {
+    if (mode() & Read) {
         // read only mode or read & write mode.
         if (mBlock->ready() 
                 && offset < mPosition
@@ -269,7 +269,7 @@ int64_t Content::length() const {
 int64_t Content::tell() const {
     if (mBlock->ready() == 0) return mPosition;
 
-    if (mode() & Protocol::Read) {
+    if (mode() & Read) {
         return mPosition - (mBlock->ready() - mBlockOffset);
     } else {
         return mPosition + mBlockOffset;

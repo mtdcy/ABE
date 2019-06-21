@@ -58,15 +58,11 @@
 
 __BEGIN_NAMESPACE_ABE
 
-Runnable::Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
-void Runnable::onFirstRetain() { }
-void Runnable::onLastRetain() { }
-
 enum eThreadIntState {
     kThreadIntNew,
     kThreadIntReady,
-    kThreadIntRunning,      // set by client during start
-    kThreadIntWaiting,
+    kThreadIntReadyToRun,   // set by client when ready to run
+    kThreadIntRunning,
     kThreadIntTerminating,  // set by client during terminating
     kThreadIntTerminated,
 };
@@ -117,7 +113,7 @@ static __ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
     int err = pthread_setschedparam(pthread_self(), policy, &par);
     switch (err) {
         case 0:
-            INFO("%s: %s => policy %d, sched_priority %d",
+            DEBUG("%s: %s => policy %d, sched_priority %d",
                     name.c_str(), NAMES[type/16], policy, par.sched_priority);
             break;
         case EINVAL:
@@ -145,35 +141,44 @@ struct SharedThread : public SharedObject {
     String                  mName;
     pthread_t               mNativeHandler;     // no initial value to pthread_t
     Object<Runnable>        mRoutine;
-
+    
     // mutable context, access with lock
-    Mutex                   mLock;
+    mutable Mutex           mLock;
     Condition               mWait;
     eThreadIntState         mState;
-    bool                    mReadyToRun;
-    bool                    mJoinable;
-    bool                    mRequestExiting;
-
-    __ABE_INLINE SharedThread(const String& name,
-            const eThreadType type,
-            const Object<Runnable>& routine) :
-        SharedObject(),
-        mType(type), mName(name), mRoutine(routine),
-        mState(kThreadIntNew), mReadyToRun(false), mJoinable(false),
-        mRequestExiting(false)
-    {
-    }
-
-    __ABE_INLINE virtual ~SharedThread() {
+    
+    SharedThread(const String& name,
+                 const eThreadType type,
+                 const Object<Runnable>& routine) : SharedObject(),
+    mType(type), mName(name), mRoutine(routine), mState(kThreadIntNew) { }
+    
+    virtual ~SharedThread() {
         CHECK_EQ(mState, kThreadIntTerminated);
     }
-
+    
     __ABE_INLINE bool wouldBlock() {
         return pthread_equal(mNativeHandler, pthread_self());
     }
+    
+    __ABE_INLINE bool joinable() const {
+        AutoLock _l(mLock);
+        return mState >= kThreadIntReady && mState < kThreadIntTerminating;
+    }
+    
+    virtual void start() = 0;
+    virtual void run() = 0;
+    virtual void join() = 0;
+    virtual void detach() = 0;
+};
+
+struct NormalThread : public SharedThread {
+    __ABE_INLINE NormalThread(const String& name,
+            const eThreadType type,
+            const Object<Runnable>& routine) :
+        SharedThread(name, type, routine) { }
 
     static void* ThreadEntry(void * user) {
-        SharedThread * thiz = static_cast<SharedThread*>(user);
+        NormalThread * thiz = static_cast<NormalThread*>(user);
         // retain object
         thiz->RetainObject();
         // execution
@@ -191,38 +196,39 @@ struct SharedThread : public SharedObject {
 
     __ABE_INLINE void execution() {
         // local setup
-        mLock.lock();
+        AutoLock _l(mLock);
+        
         // simulate pthread_create_suspended_np()
         CHECK_EQ(mState, kThreadIntNew);
         setState_l(kThreadIntReady);
-        while (!mReadyToRun && !mRequestExiting) {
-            mWait.wait(mLock);          // wait until client is ready
-        }
+        while (mState == kThreadIntReady) mWait.wait(mLock);    // wait until client is ready
 
-        // set thread properties
-        pthread_setname(mName.c_str());
-        if (mType != kThreadDefault) SetThreadType(mName, mType);
+        if (mState == kThreadIntReadyToRun) {                   // in case join() or detach() without run
+            // set thread properties
+            pthread_setname(mName.c_str());
+            SetThreadType(mName, mType);
 
-        setState_l(kThreadIntRunning);
-        mLock.unlock();
+            setState_l(kThreadIntRunning);
+            mLock.unlock();
 
-        pthread_yield();            // give client chance to hold lock
+            pthread_yield();            // give client chance to hold lock
 
-        mLock.lock();
-        if (mReadyToRun) {              // in case join() or detach() without run
+            mLock.lock();
             mLock.unlock();
             mRoutine->run();
             mLock.lock();
         }
 
         // local cleanup
+        while (mState != kThreadIntTerminating) {
+            mWait.wait(mLock);
+        }
         setState_l(kThreadIntTerminated);
-        mLock.unlock();
         DEBUG("%s: end...", mName.c_str());
     }
 
     // client have to retain this object before start()
-    __ABE_INLINE void start() {
+    virtual void start() {
         CHECK_FALSE(wouldBlock());
 
         AutoLock _l(mLock);
@@ -248,7 +254,6 @@ struct SharedThread : public SharedObject {
                 break;
         }
 
-        mJoinable = true;
         // wait until thread is ready
         while (mState < kThreadIntReady) {
             mWait.wait(mLock);
@@ -256,26 +261,22 @@ struct SharedThread : public SharedObject {
         pthread_attr_destroy(&attr);
     }
 
-    __ABE_INLINE void run() {
+    virtual void run() {
         AutoLock _l(mLock);
         CHECK_LE(mState, kThreadIntReady);
-        CHECK_FALSE(mReadyToRun);
-        mReadyToRun     = true;
-        mWait.signal();
+        setState_l(kThreadIntReadyToRun);
 
         // wait until thread leaving ready state
-        while (mState <= kThreadIntReady) {
+        while (mState < kThreadIntRunning) {
             mWait.wait(mLock);
         }
     }
 
     // wait this thread's job done and join it
-    __ABE_INLINE void join() {
-        mLock.lock();
-        CHECK_TRUE(mJoinable);
-        mRequestExiting         = true;
-        mJoinable               = false;
-        mWait.signal();
+    virtual void join() {
+        AutoLock _l(mLock);
+        CHECK_TRUE(mState >= kThreadIntReady && mState < kThreadIntTerminating);
+        setState_l(kThreadIntTerminating);
         mLock.unlock();
 
         // pthread_join without lock
@@ -300,13 +301,14 @@ struct SharedThread : public SharedObject {
                     break;
             }
         }
+        
+        mLock.lock();
+        while (mState != kThreadIntTerminated) mWait.wait(mLock);
     }
 
-    __ABE_INLINE void detach() {
+    virtual void detach() {
         mLock.lock();
-        mRequestExiting         = true;
-        mJoinable               = false;
-        mWait.signal();
+        setState_l(kThreadIntTerminating);
         mLock.unlock();
 
         // detach without lock
@@ -326,37 +328,60 @@ struct SharedThread : public SharedObject {
     }
 };
 
-//////////////////////////////////////////////////////////////////////////////////
-static Object<Runnable> once_runnable;
-static void once_routine() {
-    once_runnable->run();
-}
-void Thread::Once(const Object<Runnable>& runnable) {
-    once_runnable = runnable;
-    pthread_once_t once = PTHREAD_ONCE_INIT;
-    // FIXME: put runnable in global variable is not right
-    CHECK_EQ(pthread_once(&once, once_routine), 0);
-    // on return from pthread_once, once_routine has completed
-    once_runnable.clear();
-}
+struct MainThread : public SharedThread {
+    MainThread() : SharedThread("main", kThreadNormal, NULL) {
+        mNativeHandler = pthread_self();
+        pthread_setname("main");
+    }
+    
+    virtual ~MainThread() {
+        mState = kThreadIntTerminated;
+    }
+    
+    virtual void start() {
+        mState = kThreadIntReady;
+    }
+    
+    virtual void run() {
+        CHECK_TRUE(mState == kThreadIntReady);
+        mState = kThreadIntRunning;
+    }
+    
+    virtual void join() {
+        CHECK_TRUE(mState >= kThreadIntReady && mState < kThreadIntTerminating);
+        mState = kThreadIntTerminated;
+    }
+    
+    virtual void detach() {
+        CHECK_TRUE(mState == kThreadIntRunning);
+        mState = kThreadIntTerminated;
+    }
+};
 
+//////////////////////////////////////////////////////////////////////////////////
 static Atomic<int> g_thread_id;
 static String MakeThreadName() {
     return String::format("thread%zu", ++g_thread_id);
 }
 
-Thread Thread::Null = Thread();
+Thread& Thread::Main() {
+    static Thread _main = Thread();
+    if (_main.mShared == NULL) {
+        CHECK_TRUE(pthread_main(), "thread is NOT initialized in main()");
+        Object<SharedThread> shared = new MainThread;
+        _main.mShared = shared;
+        
+        shared->start();
+    }
+    return _main;
+}
 
-Thread::Thread(const Object<Runnable>& runnable, const eThreadType type) : mShared(NULL)
-{
-    SharedThread *shared = new SharedThread(MakeThreadName(), type, runnable);
+Thread::Thread(const Object<Runnable>& runnable, const eThreadType type) : mShared(NULL) {
+    SharedThread *shared = new NormalThread(MakeThreadName(), type, runnable);
     mShared = shared;   // must retain object before start
 
     shared->start();
     // execute when run()
-}
-
-Thread::~Thread() {
 }
 
 Thread& Thread::setName(const String& name) {
@@ -395,8 +420,7 @@ Thread& Thread::run() {
 
 bool Thread::joinable() const {
     Object<SharedThread> shared = mShared;
-    AutoLock _l(shared->mLock);
-    return shared->mJoinable;
+    return shared->joinable();
 }
 
 void Thread::join() {
@@ -422,8 +446,8 @@ Thread::eThreadState Thread::state() const {
         case kThreadIntNew:
         case kThreadIntReady:
             return kThreadInitializing;
+        case kThreadIntReadyToRun:
         case kThreadIntRunning:
-        case kThreadIntWaiting:
             return kThreadRunning;
         case kThreadIntTerminating:
         case kThreadIntTerminated:

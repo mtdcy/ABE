@@ -50,45 +50,85 @@ __BEGIN_NAMESPACE_ABE
  */
 class __ABE_EXPORT Content : public SharedObject {
     public:
+        enum eMode {
+            Read        = 0x1,              ///< read only
+            Write       = 0x2,              ///< write only
+            ReadWrite   = Read | Write,     ///< read & write
+            Default     = Read              ///< default mode
+        };
+    
+    public:
         /**
          * protocol interface
          */
         struct __ABE_EXPORT Protocol : public SharedObject {
-            enum { Read = 0x1, Write = 0x2, Default = Read };
-            ///< get protocol mode
-            virtual uint32_t    mode() const = 0;
-            ///< read bytes from protocol, return 0 on eos or error
-            virtual size_t      readBytes(void * buffer, size_t bytes) = 0;
-            ///< write bytes to protocol, return 0 on error
-            virtual size_t      writeBytes(const void * buffer, size_t bytes) = 0;
-            ///< get protocol total bytes
-            virtual int64_t     totalBytes() const = 0;
-            ///< seek protocol to abs position
-            virtual int64_t     seekBytes(int64_t pos) = 0;
+            /**
+             * return mode of the protocol
+             * @return see @Content::eMode
+             */
+            virtual eMode   mode() const = 0;
+            
+            /**
+             * read bytes from protocol
+             * @param buffer pointer to memory
+             * @param length number bytes to read
+             * @return return bytes read, otherwise return 0 on eos or error
+             */
+            virtual size_t  readBytes(void * buffer, size_t length) = 0;
+
+            /**
+             * write bytes to protocol
+             * @param buffer pointer to memory
+             * @param length number bytes to write
+             * @return return bytes written, otherwise return 0
+             */
+            virtual size_t  writeBytes(const void * buffer, size_t length) = 0;
+            
+            /**
+             * get total bytes of the protocol
+             * @return return number bytes of the protocol, otherwise return -1 if unknown
+             */
+            virtual int64_t totalBytes() const = 0;
+            
+            /**
+             * seek to absolute position of the protocol
+             * @param pos   absolute position to seek to
+             * @return return the position after seek, otherwise return -1 on error
+             */
+            virtual int64_t seekBytes(int64_t pos) = 0;
         };
 
-    public: 
-        static Object<Content> Create(const String& url, uint32_t mode = Protocol::Default);
+    public:
+        /**
+         * create a content object
+         * @param url url to content object
+         * @param mode mode of the content object
+         * @return return a new content object
+         */
+        static Object<Content> Create(const String& url, eMode mode = Default);
 
+    protected:
         Content(const Object<Protocol>& proto, size_t blockLength = 4096);
 
         ~Content();
     
     public:
         /**
-         * get content mode
-         * @see Protocol
+         * return mode of the content
+         * @return see @eMode
          */
-        uint32_t        mode() const { return mProto->mode(); }
+        __ABE_INLINE eMode mode() const { return mProto->mode(); }
     
         /**
-         * get content length in bytes
+         * get total bytes of the content
+         * @return return number bytes of the content, otherwise return -1 if unknown
          */
         int64_t         length() const;
     
         /**
-         * get content current position in bytes
-         * @return
+         * get current position of the content
+         * @return return current position in bytes
+         * @note always return >= 0
          */
         int64_t         tell() const;
     
