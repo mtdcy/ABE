@@ -32,8 +32,8 @@
 //          1. 20160829     initial version
 //
 
-#ifndef _TOOLKIT_STL_TRAITS_H
-#define _TOOLKIT_STL_TRAITS_H
+#ifndef ABE_STL_TRAITS_H
+#define ABE_STL_TRAITS_H
 
 #include <ABE/basic/Types.h>
 
@@ -70,14 +70,14 @@ template <typename TYPE> struct is_trivial_dtor     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<TYPE>::value }; };
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
-#ifdef _TOOLKIT_HEADERS_SHARED_BUFFER_H
+#ifdef ABE_HEADERS_SHARED_BUFFER_H
 template <typename T> struct is_trivial_move<Object<T> >    { enum { value = true }; };
 #endif
 
-#ifdef _TOOLKIT_HEADERS_STRING_H    // String.h
+#ifdef ABE_HEADERS_STRING_H    // String.h
 template <> struct is_trivial_move<String>          { enum { value = true }; };
 #endif
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_STL_TRAITS_H
+#endif // ABE_STL_TRAITS_H

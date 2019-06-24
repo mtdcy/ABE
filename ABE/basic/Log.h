@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_LOG_H
-#define _TOOLKIT_HEADERS_LOG_H
+#ifndef ABE_HEADERS_LOG_H
+#define ABE_HEADERS_LOG_H
 
 #include <ABE/basic/Types.h>
 
@@ -49,7 +49,7 @@ enum eLogLevel {
 /**
  * print log message
  */
-__ABE_EXPORT void LogPrint(
+ABE_EXPORT void LogPrint(
         const char *    tag,        ///< @see LOG_TAG
         enum eLogLevel  lvl,        ///< @see eLogLevel
         const char *    func,       ///< @see __FUNCTION__
@@ -57,7 +57,7 @@ __ABE_EXPORT void LogPrint(
         const char *    format,     ///< @see man(3) printf
         ...);
 
-__ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
+ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
 
 #ifndef LOG_TAG
 #define LOG_TAG   __FILE__
@@ -118,7 +118,7 @@ __END_DECLS
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
 template <class A, class B>
-__ABE_INLINE String __MAKE_CHECK_STRING(const A& a, const B& b) {
+ABE_INLINE String __MAKE_CHECK_STRING(const A& a, const B& b) {
     String res;
     res.append(String(a));
     res.append(" vs ");
@@ -166,5 +166,5 @@ __END_NAMESPACE_ABE_PRIVATE
 #define CHECK_LT(a, b, ...)     _CHECK2(a, b, <, __VA_ARGS__)
 #define CHECK_GE(a, b, ...)     _CHECK2(a, b, >=, __VA_ARGS__)
 #define CHECK_LE(a, b, ...)     _CHECK2(a, b, <=, __VA_ARGS__)
-#endif // _TOOLKIT_HEADERS_LOG_H
+#endif // ABE_HEADERS_LOG_H
 

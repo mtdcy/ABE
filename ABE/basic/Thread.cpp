@@ -32,14 +32,6 @@
 //          1. 20160701     initial version
 //
 
-#if defined(__APPLE__)
-#include "basic/compat/pthread_macos.h"
-#elif defined(_WIN32) || defined(__MINGW32__)
-#include "basic/compat/pthread_win32.h"
-#else
-#include "basic/compat/pthread_linux.h"
-#endif
-
 #define LOG_TAG   "Thread"
 //#define LOG_NDEBUG 0
 #include "basic/Log.h"
@@ -53,6 +45,8 @@
 
 #include "basic/Atomic.h"
 #include <sched.h>
+
+#include "compat/pthread.h"
 
 #define JOINABLE 1
 
@@ -83,7 +77,7 @@ static const char * NAMES[] = {
 // kThreadLowest - kThreadForegroud :   SCHED_OTHER
 // kThreadSystem - kThreadKernel:       SCHED_FIFO
 // kThreadRealtime - kThreadHighest:    SCHED_RR
-static __ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
+static ABE_INLINE void SetThreadType(const String& name, eThreadType type) {
     sched_param old;
     sched_param par;
     int policy;
@@ -156,11 +150,11 @@ struct SharedThread : public SharedObject {
         CHECK_EQ(mState, kThreadIntTerminated);
     }
     
-    __ABE_INLINE bool wouldBlock() {
+    ABE_INLINE bool wouldBlock() {
         return pthread_equal(mNativeHandler, pthread_self());
     }
     
-    __ABE_INLINE bool joinable() const {
+    ABE_INLINE bool joinable() const {
         AutoLock _l(mLock);
         return mState >= kThreadIntReady && mState < kThreadIntTerminating;
     }
@@ -172,7 +166,7 @@ struct SharedThread : public SharedObject {
 };
 
 struct NormalThread : public SharedThread {
-    __ABE_INLINE NormalThread(const String& name,
+    ABE_INLINE NormalThread(const String& name,
             const eThreadType type,
             const Object<Runnable>& routine) :
         SharedThread(name, type, routine) { }
@@ -189,12 +183,12 @@ struct NormalThread : public SharedThread {
         return NULL;    // just fix build warnings
     }
 
-    __ABE_INLINE void setState_l(eThreadIntState state) {
+    ABE_INLINE void setState_l(eThreadIntState state) {
         mState  = state;
         mWait.signal();
     }
 
-    __ABE_INLINE void execution() {
+    ABE_INLINE void execution() {
         // local setup
         AutoLock _l(mLock);
         
@@ -460,6 +454,15 @@ Thread::eThreadState Thread::state() const {
 
 void Thread::Yield() {
     pthread_yield();
+}
+
+String Thread::Name() {
+    char name[16];
+    if (pthread_getname_np(pthread_self(), name, 16) < 0 ||  name[0] == '\0') {
+        pid_t id = pthread_gettid();
+        return String(id);
+    }
+    return String(name);
 }
 
 __END_NAMESPACE_ABE

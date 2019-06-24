@@ -32,26 +32,26 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_ALLOCATOR_H
-#define _TOOLKIT_HEADERS_ALLOCATOR_H
+#ifndef ABE_HEADERS_ALLOCATOR_H
+#define ABE_HEADERS_ALLOCATOR_H
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/SharedObject.h>
 
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_EXPORT Allocator : public SharedObject {
-    __ABE_INLINE Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
-    __ABE_INLINE virtual ~Allocator() { }
+struct ABE_EXPORT Allocator : public SharedObject {
+    ABE_INLINE Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
+    ABE_INLINE virtual ~Allocator() { }
     virtual void *  allocate(size_t size) = 0;
     virtual void *  reallocate(void * ptr, size_t size) = 0;
     virtual void    deallocate(void * ptr) = 0;
 };
-__ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
-__ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
+ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
+ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_HEADERS_ALLOCATOR_H
+#endif // ABE_HEADERS_ALLOCATOR_H
 
 

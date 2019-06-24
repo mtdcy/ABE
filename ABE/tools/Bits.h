@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_BITS_H
-#define _TOOLKIT_HEADERS_BITS_H
+#ifndef ABE_HEADERS_BITS_H
+#define ABE_HEADERS_BITS_H
 
 #include <ABE/object/Buffer.h>
 __BEGIN_NAMESPACE_ABE
@@ -44,7 +44,7 @@ __BEGIN_NAMESPACE_ABE
  *
  * TODO: BitReader as universal reader of content & buffer
  */
-class __ABE_EXPORT BitReader : public NonSharedObject {
+class ABE_EXPORT BitReader : public NonSharedObject {
     public:
         /**
          * create a bit reader based on data.
@@ -57,14 +57,14 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
         /**
          * get length in bits
          */
-        __ABE_INLINE size_t length() const { return mLength << 3; }
+        ABE_INLINE size_t length() const { return mLength << 3; }
 
         /**
          * get how many bits left for read
          * @return return total bits left in the data.
          */
         size_t      remains() const;
-        __ABE_INLINE size_t remianBytes() const { return (remains() + 7) / 8; }
+        ABE_INLINE size_t remianBytes() const { return (remains() + 7) / 8; }
 
         /**
          * get current read offset in bits
@@ -119,18 +119,18 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
         /**
          * skip current byte trailing.
          */
-        __ABE_INLINE void skip() const { skip(mBitsLeft); }
+        ABE_INLINE void skip() const { skip(mBitsLeft); }
 
         /**
          * skip n bytes of the data
          */
-        __ABE_INLINE void skipBytes(size_t nbytes) const { skip(nbytes << 3); }
+        ABE_INLINE void skipBytes(size_t nbytes) const { skip(nbytes << 3); }
     
         /**
          * seek to n bits
          */
-        __ABE_INLINE void seek(size_t nbits) const { reset(); skip(nbits); }
-        __ABE_INLINE void seekBytes(size_t nbytes) const { seek(nbytes << 3); }
+        ABE_INLINE void seek(size_t nbits) const { reset(); skip(nbits); }
+        ABE_INLINE void seekBytes(size_t nbytes) const { seek(nbytes << 3); }
 
         /**
          * read 8 bits from data
@@ -191,12 +191,12 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
          * set content byte order & read based on byte order
          */
         enum eByteOrder { Little, Big };
-        __ABE_INLINE eByteOrder byteOrder() const { return mByteOrder; }
-        __ABE_INLINE void       setByteOrder(eByteOrder order) const { mByteOrder = order; }
-        __ABE_INLINE uint16_t   r16() const { return mByteOrder == Big ? rb16() : rl16(); }
-        __ABE_INLINE uint32_t   r24() const { return mByteOrder == Big ? rb24() : rl24(); }
-        __ABE_INLINE uint32_t   r32() const { return mByteOrder == Big ? rb32() : rl32(); }
-        __ABE_INLINE uint64_t   r64() const { return mByteOrder == Big ? rb64() : rl64(); }
+        ABE_INLINE eByteOrder byteOrder() const { return mByteOrder; }
+        ABE_INLINE void       setByteOrder(eByteOrder order) const { mByteOrder = order; }
+        ABE_INLINE uint16_t   r16() const { return mByteOrder == Big ? rb16() : rl16(); }
+        ABE_INLINE uint32_t   r24() const { return mByteOrder == Big ? rb24() : rl24(); }
+        ABE_INLINE uint32_t   r32() const { return mByteOrder == Big ? rb32() : rl32(); }
+        ABE_INLINE uint64_t   r64() const { return mByteOrder == Big ? rb64() : rl64(); }
     
     protected:
         const char *        mData;
@@ -206,23 +206,19 @@ class __ABE_EXPORT BitReader : public NonSharedObject {
         mutable size_t      mBitsLeft;
         mutable eByteOrder  mByteOrder;
 
-    private:
-        // no need of copy
-        DISALLOW_EVILS(BitReader);
+    DISALLOW_EVILS(BitReader);
 };
 
-class __ABE_EXPORT BitWriter : public NonSharedObject {
+class ABE_EXPORT BitWriter : public NonSharedObject {
     public:
         BitWriter(char *data, size_t n);
 
         BitWriter(Buffer& data);
 
-        ~BitWriter();
-
     public:
-        __ABE_INLINE const char * data() const { return mData; }
+        ABE_INLINE const char * data() const { return mData; }
 
-        __ABE_INLINE size_t       size() const { return mHead + (mBitsPopulated + 7) / 8; }
+        ABE_INLINE size_t       size() const { return mHead + (mBitsPopulated + 7) / 8; }
 
     public:
         size_t      numBitsLeft() const;
@@ -320,27 +316,26 @@ class __ABE_EXPORT BitWriter : public NonSharedObject {
         uint64_t    mReservoir;
         size_t      mBitsPopulated;
 
-    private:
-        DISALLOW_EVILS(BitWriter);
+    DISALLOW_EVILS(BitWriter);
 };
 
-class __ABE_EXPORT BitSet : public NonSharedObject {
+class ABE_EXPORT BitSet : public NonSharedObject {
     public:
-        __ABE_INLINE BitSet() : mValue(0) { }
-        __ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
-         __ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
+        ABE_INLINE BitSet() : mValue(0) { }
+        ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
+         ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
     
     public:
-        __ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
-        __ABE_INLINE uint64_t   clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
-        __ABE_INLINE void       clear()         { mValue = 0;                           }
-        __ABE_INLINE bool       test(size_t n)  { return mValue & (1LL << n);           }
-        __ABE_INLINE uint64_t   flip(size_t n)  { mValue ^= (1LL << n); return mValue;  }
-        __ABE_INLINE bool       empty() const   { return mValue == 0;                   }
-        __ABE_INLINE uint64_t   value() const   { return mValue;                        }
+        ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
+        ABE_INLINE uint64_t   clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
+        ABE_INLINE void       clear()         { mValue = 0;                           }
+        ABE_INLINE bool       test(size_t n)  { return mValue & (1LL << n);           }
+        ABE_INLINE uint64_t   flip(size_t n)  { mValue ^= (1LL << n); return mValue;  }
+        ABE_INLINE bool       empty() const   { return mValue == 0;                   }
+        ABE_INLINE uint64_t   value() const   { return mValue;                        }
     
     private:
         uint64_t    mValue;
 };
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_BITS_H 
+#endif // ABE_HEADERS_BITS_H 

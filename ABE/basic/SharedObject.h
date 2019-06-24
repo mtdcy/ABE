@@ -31,8 +31,8 @@
 //          1. 20181112     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_OBJECT_H
-#define _TOOLKIT_HEADERS_OBJECT_H
+#ifndef ABE_HEADERS_OBJECT_H
+#define ABE_HEADERS_OBJECT_H
 #include <ABE/basic/Types.h>
 #include <ABE/basic/Atomic.h>
 
@@ -47,18 +47,20 @@ enum {
     OBJECT_ID_MESSAGE,
     OBJECT_ID_RUNNABLE,
     OBJECT_ID_LOOPER,
-    OBJECT_ID_EVENT
+    OBJECT_ID_EVENT,
+    OBJECT_ID_MAX   = INT32_MAX
 };
 
-
 // https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
-struct __ABE_EXPORT NonSharedObject {
-    protected:
-        NonSharedObject() { }
-        ~NonSharedObject() { }
+/**
+ * object can NOT be shared
+ * @note usally for local accessory class
+ */
+struct ABE_EXPORT NonSharedObject {
+    NonSharedObject() { }
+    ~NonSharedObject() { }
     
-    private:
-        DISALLOW_DYNAMIC(NonSharedObject);
+    DISALLOW_DYNAMIC(NonSharedObject);
 };
 
 /**
@@ -67,14 +69,13 @@ struct __ABE_EXPORT NonSharedObject {
  * @note client should NOT keep a pointer to SharedObject without retain, always
  *       retain first, use it later
  */
-struct __ABE_EXPORT SharedObject {
+struct ABE_EXPORT SharedObject {
     private:
         const uint32_t  mID;
         Atomic<size_t>  mRefs;
 
     protected:
-        SharedObject();
-        SharedObject(const uint32_t id);
+        SharedObject(const uint32_t id = OBJECT_ID_ANY);
         /**
          * @note it is a good practice to leave virtual destruction empty
          */
@@ -86,19 +87,25 @@ struct __ABE_EXPORT SharedObject {
          */
         virtual void    onFirstRetain() { }
         /**
-         * been called when last retain released
+         * been called when last retain released and before delete memory
          * @note put code here to avoid 'Pure virtual function called!'.
          */
         virtual void    onLastRetain() { }
 
     public:
-        __ABE_INLINE uint32_t    GetObjectID() const { return mID; }
+        ABE_INLINE uint32_t GetObjectID() const { return mID; }
+    
+        /**
+         * get this object reference count
+         * @return return current reference count
+         */
+        ABE_INLINE size_t   GetRetainCount() const { return mRefs.load(); }
 
         /**
          * retain this object by increase reference count
          * XXX: did subclass need to overload RetainObject() ?
          */
-        SharedObject *  RetainObject();
+        SharedObject *      RetainObject();
 
         /**
          * release this object by decrease reference count
@@ -107,64 +114,61 @@ struct __ABE_EXPORT SharedObject {
          * @return return new reference count
          * @note keep the memory if subclass need to do extra destruction work
          */
-        size_t          ReleaseObject(bool keep = false);
-
-        /**
-         * get this object reference count
-         * @return return current reference count
-         */
-        size_t          GetRetainCount() const;
+        size_t              ReleaseObject(bool keep = false);
 
         /**
          * is this object shared with others
          * @note if object is not shared, it is safe to do anything
          *       else either copy this object or lock it to modify its context
          */
-        __ABE_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
-        __ABE_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
+        ABE_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
+        ABE_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
     
-    private:
-        DISALLOW_EVILS(SharedObject);
+    DISALLOW_EVILS(SharedObject);
 };
 
 #define COMPARE(_op_)                                                   \
-    __ABE_INLINE bool operator _op_ (const Object<T>& o) const {        \
+    ABE_INLINE bool operator _op_ (const Object<T>& o) const {        \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
-    __ABE_INLINE bool operator _op_ (const T* o) const {                \
+    ABE_INLINE bool operator _op_ (const T* o) const {                \
         return mShared _op_ o;                                          \
     }                                                                   \
     template<typename U>                                                \
-    __ABE_INLINE bool operator _op_ (const Object<U>& o) const {        \
+    ABE_INLINE bool operator _op_ (const Object<U>& o) const {        \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
     template<typename U>                                                \
-    __ABE_INLINE bool operator _op_ (const U* o) const {                \
+    ABE_INLINE bool operator _op_ (const U* o) const {                \
         return mShared _op_ o;                                          \
     }                                                                   \
 
-template <class T> class __ABE_EXPORT Object {
+/**
+ * SharedObject accessory
+ * help retain & release SharedObject
+ */
+template <class T> class ABE_EXPORT Object : public NonSharedObject {
     public:
         // constructors
-        __ABE_INLINE Object() : mShared(NULL) { }
-        __ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);             }
-        __ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared);     }
-        template<typename U> __ABE_INLINE Object(U * rhs)               { set(rhs);             }
-        template<typename U> __ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared);     }
+        ABE_INLINE Object() : mShared(NULL) { }
+        ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);             }
+        ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared);     }
+        template<typename U> ABE_INLINE Object(U * rhs)               { set(rhs);             }
+        template<typename U> ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared);     }
 
         // destructors
-        __ABE_INLINE ~Object() { clear(); }
+        ABE_INLINE ~Object() { clear(); }
 
         // copy assignments
-        __ABE_INLINE Object& operator=(SharedObject * rhs)                          { clear(); set(rhs); return *this;          }
-        __ABE_INLINE Object& operator=(const Object<T>& rhs)                        { clear(); set(rhs.mShared); return *this;  }
-        template<typename U> __ABE_INLINE Object& operator=(U * rhs)                { clear(); set(rhs); return *this;          }
-        template<typename U> __ABE_INLINE Object& operator=(const Object<U>& rhs)   { clear(); set(rhs.mShared); return *this;  }
+        ABE_INLINE Object& operator=(SharedObject * rhs)                          { clear(); set(rhs); return *this;          }
+        ABE_INLINE Object& operator=(const Object<T>& rhs)                        { clear(); set(rhs.mShared); return *this;  }
+        template<typename U> ABE_INLINE Object& operator=(U * rhs)                { clear(); set(rhs); return *this;          }
+        template<typename U> ABE_INLINE Object& operator=(const Object<U>& rhs)   { clear(); set(rhs.mShared); return *this;  }
 
         // clear
-        __ABE_INLINE void clear();
+        ABE_INLINE void clear();
     
-        __ABE_INLINE bool isNIL() const { return mShared == NULL ; }
+        ABE_INLINE bool isNIL() const { return mShared == NULL ; }
 
     public:
         /**
@@ -175,23 +179,20 @@ template <class T> class __ABE_EXPORT Object {
 
     public:
         // access
-        __ABE_INLINE  T*         operator->()       { return static_cast<T*>(mShared);          }
-        __ABE_INLINE  const T*   operator->() const { return static_cast<const T*>(mShared);    }
+        ABE_INLINE  T*         operator->()       { return static_cast<T*>(mShared);          }
+        ABE_INLINE  const T*   operator->() const { return static_cast<const T*>(mShared);    }
 
-        __ABE_INLINE  T&         operator*()        { return *static_cast<T*>(mShared);         }
-        __ABE_INLINE  const T&   operator*() const  { return *static_cast<const T*>(mShared);   }
+        ABE_INLINE  T&         operator*()        { return *static_cast<T*>(mShared);         }
+        ABE_INLINE  const T&   operator*() const  { return *static_cast<const T*>(mShared);   }
 
-        __ABE_INLINE  T*         get() const        { return static_cast<T*>(mShared);          }
+        ABE_INLINE  T*         get() const        { return static_cast<T*>(mShared);          }
 
     public:
-        __ABE_INLINE size_t      refsCount() const  { return mShared->GetRetainCount();         }
-
-    private:
-        DISALLOW_DYNAMIC(Object);
+        ABE_INLINE size_t      refsCount() const  { return mShared->GetRetainCount();         }
     
         template<typename U> friend class Object;
-        __ABE_INLINE void                       set(SharedObject *);
-        template<typename U> __ABE_INLINE void  set(U * );
+        ABE_INLINE void                       set(SharedObject *);
+        template<typename U> ABE_INLINE void  set(U * );
         SharedObject *  mShared;
 };
 #undef COMPARE
@@ -218,5 +219,5 @@ template<typename T> void Object<T>::clear() {
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_HEADERS_OBJECT_H
+#endif // ABE_HEADERS_OBJECT_H
 

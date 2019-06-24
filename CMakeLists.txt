@@ -4,29 +4,34 @@ project (ABE)
 
 set (LIBNAME ${PROJECT_NAME}    CACHE STRING    "Library Name")
 
-# https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
-add_definitions(-Wall)
-#add_definitions(-O2)
-if (MSVC)
-else()
-add_definitions(-Wno-unused-function)
-add_definitions(-Wno-unused-variable)
-add_definitions(-Wno-unused-value)
-add_definitions(-Werror=non-virtual-dtor)
-add_definitions(-Werror=delete-non-virtual-dtor)
-add_definitions(-fvisibility=hidden)
-#add_definitions(-Wextra)
-#add_definitions (-Wno-multichar)
-#add_definitions (-Wno-switch)
-set (CMAKE_C_STANDARD   99)     # c98
+set (CMAKE_C_STANDARD   99)     # c99
 set (CMAKE_C_EXTENSIONS OFF)    # no gnu extensions
 set (CMAKE_CXX_STANDARD 98)     # c++98
 set (CMAKE_CXX_EXTENSIONS OFF)  # no gnu extensions
-# gnucc definitions
-if (CMAKE_COMPILER_IS_GNUCC)
-add_definitions(-Wno-attributes)
-add_definitions(-fPIC)
+
+# https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
+add_definitions(-Wall)
+
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    add_definitions(-O2)
 endif()
+
+if (MSVC)
+else()
+    add_definitions(-Wno-unused-function)
+    add_definitions(-Wno-unused-variable)
+    add_definitions(-Wno-unused-value)
+    add_definitions(-Werror=non-virtual-dtor)
+    add_definitions(-Werror=delete-non-virtual-dtor)
+    add_definitions(-fvisibility=hidden)
+    #add_definitions(-Wextra)
+    #add_definitions (-Wno-multichar)
+    #add_definitions (-Wno-switch)
+    # gnucc definitions
+    if (CMAKE_COMPILER_IS_GNUCC)
+    add_definitions(-Wno-attributes)
+    add_definitions(-fPIC)
+    endif()
 endif()
 
 add_definitions(-D_POSIX_C_SOURCE=200809L)
@@ -47,6 +52,9 @@ if (XCODE)
     set (CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     set (CMAKE_OSX_DEPLOYMENT_TARGET 10.10)
 endif()
+
+# build env check
+include (BuildEnvCheck.cmake)
 
 # source files
 set(ABE_SOURCES
@@ -81,6 +89,7 @@ set(ABE_SOURCES
     )
 
 # includes
+include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})     # Config.h
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/ABE)
 

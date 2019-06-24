@@ -1,0 +1,20 @@
+/** pthread test **/
+
+/** pthread.h **/
+#cmakedefine HAVE_PTHREAD_H                             1
+
+/** pthread_cond_timedwait_relative_np in pthread.h **/
+#cmakedefine HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP    1
+
+/** pthread_setname_np in pthread.h **/
+#cmakedefine HAVE_PTHREAD_SETNAME_NP                    1
+
+/** gettid **/
+#cmakedefine HAVE_GETTID                                1
+
+/** pthread_condattr_setclock in pthread.h **/
+#cmakedefine HAVE_PTHREAD_CONDATTR_SETCLOCK             1
+
+/** pthread_main_np in pthread.h **/
+#cmakedefine HAVE_PTHREAD_MAIN_NP                       1
+

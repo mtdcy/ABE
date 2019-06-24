@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_MESSAGE_H
-#define _TOOLKIT_HEADERS_MESSAGE_H 
+#ifndef ABE_HEADERS_MESSAGE_H
+#define ABE_HEADERS_MESSAGE_H 
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/String.h>
@@ -42,7 +42,7 @@
 #define MESSAGE_WITH_STL 1
 
 __BEGIN_NAMESPACE_ABE
-class __ABE_EXPORT Message : public SharedObject {
+class ABE_EXPORT Message : public SharedObject {
     public:
         Message(uint32_t what = 0);
         virtual ~Message();
@@ -64,8 +64,8 @@ class __ABE_EXPORT Message : public SharedObject {
         };
 
     public:
-        __ABE_INLINE uint32_t    what        () const { return mWhat; }
-        __ABE_INLINE size_t      countEntries() const { return mEntries.size(); }
+        ABE_INLINE uint32_t    what        () const { return mWhat; }
+        ABE_INLINE size_t      countEntries() const { return mEntries.size(); }
 
         void            clear       ();
         bool            contains    (const String& name) const;
@@ -84,7 +84,7 @@ class __ABE_EXPORT Message : public SharedObject {
         void            setString   (const String& name, const char *s, size_t len = 0);    // kTypeString
         void            setObject   (const String& name, SharedObject * object);            // kTypeObject
 
-        template <class T> __ABE_INLINE void setObject(const String& name, const Object<T>& o)
+        template <class T> ABE_INLINE void setObject(const String& name, const Object<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
         int32_t         findInt32   (const String& name, int32_t def = 0) const;            // kTypeInt32
@@ -96,7 +96,7 @@ class __ABE_EXPORT Message : public SharedObject {
         SharedObject *  findObject  (const String& name, SharedObject * def = NULL) const;  // kTypeObject
 
         // alias
-        __ABE_INLINE void setString(const String& name, const String &s)
+        ABE_INLINE void setString(const String& name, const String &s)
         { setString(name, s.c_str()); }
 
     private:
@@ -123,15 +123,15 @@ class __ABE_EXPORT Message : public SharedObject {
     public:
         template <class TYPE> struct holder : public SharedObject {
             TYPE    value;
-            __ABE_INLINE holder(const TYPE& _value) : SharedObject(), value(_value) { }
-            __ABE_INLINE virtual ~holder() { }
+            ABE_INLINE holder(const TYPE& _value) : SharedObject(), value(_value) { }
+            ABE_INLINE virtual ~holder() { }
         };
 
-        template <class TYPE> __ABE_INLINE void set(const String& name, const TYPE& value)
+        template <class TYPE> ABE_INLINE void set(const String& name, const TYPE& value)
         { _setValue(name, new holder<TYPE>(value)); }
 
         // assert if not exists
-        template <class TYPE> __ABE_INLINE const TYPE& find(const String& name) const
+        template <class TYPE> ABE_INLINE const TYPE& find(const String& name) const
         { return (static_cast<holder<TYPE> *>(_findValue(name)))->value; }
 #endif
     
@@ -139,5 +139,5 @@ class __ABE_EXPORT Message : public SharedObject {
 };
 
 __END_NAMESPACE_ABE
-#endif  // _TOOLKIT_HEADERS_MESSAGE_H
+#endif  // ABE_HEADERS_MESSAGE_H
 

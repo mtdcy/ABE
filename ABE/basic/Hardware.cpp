@@ -56,7 +56,7 @@
 __BEGIN_DECLS
 
 // https://stackoverflow.com/questions/150355/programmatically-find-the-number-of-cores-on-a-machine
-int GetCpuCount() {
+uint32_t GetCpuCount() {
 #if defined(__ANDROID__)
     return android_getCpuCount();
 #elif defined(__APPLE__)

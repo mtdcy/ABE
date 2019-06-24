@@ -60,32 +60,32 @@ template <typename TYPE, size_t N> struct Matrix : public NonSharedObject {
         Vector& operator=(TYPE v) { for (size_t i = 0; i < N; ++i) mEntries[i] = v; return *this; }
         Vector& operator=(const TYPE v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
         
-        __ABE_INLINE TYPE& operator[](size_t i) { return mEntries[i]; }
-        __ABE_INLINE const TYPE& operator[](size_t i) const { return mEntries[i]; }
+        ABE_INLINE TYPE& operator[](size_t i) { return mEntries[i]; }
+        ABE_INLINE const TYPE& operator[](size_t i) const { return mEntries[i]; }
         
-        __ABE_INLINE bool operator==(const Vector& rhs) const { for (size_t i = 0; i < N; ++i) if (mEntries[i] != rhs[i]) return false; return true; }
-        __ABE_INLINE bool operator!=(const Vector& rhs) const { return operator==(rhs) == false; }
+        ABE_INLINE bool operator==(const Vector& rhs) const { for (size_t i = 0; i < N; ++i) if (mEntries[i] != rhs[i]) return false; return true; }
+        ABE_INLINE bool operator!=(const Vector& rhs) const { return operator==(rhs) == false; }
         
         // per-entry calculation
-        __ABE_INLINE Vector operator+(const Vector& rhs) const {
+        ABE_INLINE Vector operator+(const Vector& rhs) const {
             Vector result;
             for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
             return result;
         }
         
-        __ABE_INLINE Vector& scale(const Vector& rhs) {
+        ABE_INLINE Vector& scale(const Vector& rhs) {
             for (size_t i = 0; i < N; ++i) mEntries[i] *= rhs[i];
             return *this;
         }
         
         // matrix multiplication - dot product
-        __ABE_INLINE TYPE operator*(const Vector& rhs) const {      // dot product
+        ABE_INLINE TYPE operator*(const Vector& rhs) const {      // dot product
             TYPE sum = 0;
             for (size_t i = 0; i < N; ++i) sum += mEntries[i] * rhs[i];
             return sum;
         }
         
-        __ABE_INLINE Vector operator*(const Matrix& rhs) const {    // dot product
+        ABE_INLINE Vector operator*(const Matrix& rhs) const {    // dot product
             Vector result;
             for (size_t i = 0; i < N; ++i) result[i] = operator*(rhs[i]);
             return result;
@@ -100,10 +100,10 @@ template <typename TYPE, size_t N> struct Matrix : public NonSharedObject {
     Matrix& operator=(const Vector v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
     Matrix& operator=(const TYPE v[N*N]) { for (size_t i = 0; i < N; ++i) for (size_t j = 0; j < N; ++j) mEntries[i][j] = v[i * N + j]; return *this; }
     
-    __ABE_INLINE Vector& operator[](size_t i) { return mEntries[i]; }
-    __ABE_INLINE const Vector& operator[](size_t i) const { return mEntries[i]; }
+    ABE_INLINE Vector& operator[](size_t i) { return mEntries[i]; }
+    ABE_INLINE const Vector& operator[](size_t i) const { return mEntries[i]; }
     
-    __ABE_INLINE Matrix& transpose() {
+    ABE_INLINE Matrix& transpose() {
         for (size_t i = 0; i < N; ++i) {
             for (size_t j = i; j < N; ++j) {
                 TYPE tmp = mEntries[i][j];
@@ -115,26 +115,26 @@ template <typename TYPE, size_t N> struct Matrix : public NonSharedObject {
     }
     
     // per-entry calculation
-    __ABE_INLINE Matrix operator+(const Matrix& rhs) const {
+    ABE_INLINE Matrix operator+(const Matrix& rhs) const {
         Matrix result;
         for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
         return result;
     }
     
-    __ABE_INLINE Matrix& scale(const Matrix& rhs) {
+    ABE_INLINE Matrix& scale(const Matrix& rhs) {
         for (size_t i = 0; i < N; ++i) mEntries[i].scale(rhs[i]);
         return *this;
     }
     
     // matrix . vector
-    __ABE_INLINE Vector operator*(const Vector& rhs) const {    // dot product
+    ABE_INLINE Vector operator*(const Vector& rhs) const {    // dot product
         Vector result;
         for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] * rhs;
         return result;
     }
     
     // matrix . matrix
-    __ABE_INLINE Matrix operator*(const Matrix& rhs) const {    // dot product
+    ABE_INLINE Matrix operator*(const Matrix& rhs) const {    // dot product
         Matrix result;
         for (size_t i = 0; i < N; ++i)          // row
             for (size_t j = 0; j < N; ++j)      // column

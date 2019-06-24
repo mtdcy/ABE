@@ -33,23 +33,18 @@
 //
 
 
-#ifndef _TOOLKIT_HEADERS_STRING_H
-#define _TOOLKIT_HEADERS_STRING_H
+#ifndef ABE_HEADERS_STRING_H
+#define ABE_HEADERS_STRING_H
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/SharedBuffer.h>
 
 __BEGIN_NAMESPACE_ABE
 
-// char16_t is a keyword introduce by c++11
-#if __cplusplus < 201103L
-typedef uint16_t char16_t;
-#endif
-
 /**
- * a cow string wrapper with all kinds of operations
+ * a utf8 string object with cow support
  */
-class __ABE_EXPORT String : public NonSharedObject {
+class ABE_EXPORT String : public NonSharedObject {
     public:
         /**
          * format a string
@@ -59,8 +54,8 @@ class __ABE_EXPORT String : public NonSharedObject {
 
     public:
         /**
-         * access to Null string will assert
-         * @note String::Null can only be used in compare
+         * Null string (empty string)
+         * @note access to Null string will assert, String::Null should only be used in compare
          */
         static String Null;
     
@@ -68,6 +63,7 @@ class __ABE_EXPORT String : public NonSharedObject {
          * create an empty string
          */
         String();
+    
         /**
          * copy a string
          * @param s     reference of another string
@@ -80,12 +76,13 @@ class __ABE_EXPORT String : public NonSharedObject {
          * @param n     length of that string excluding terminating null
          */
         String(const char *s, size_t n = 0);
+    
         /**
-         * duplicate a null terminated utf16 c-style string
-         * @param s     pointer to a c-style string
-         * @param n     size of that string excluding terminating null
+         * create a utf8 string from utf16 string.
+         * @param s     pointer to a c-style string, may be null terminated
+         * @param n     number bytes of this utf16 string excluding terminating null
          */
-        String(const char16_t *s, size_t n = 0);
+        static String UTF16(const char *s, size_t n);
 
         /**
          * create string from basic types
@@ -120,12 +117,12 @@ class __ABE_EXPORT String : public NonSharedObject {
         String&     replace(const char * s0, const char * s1);
         String&     replaceAll(const char * s0, const char * s1);
     
-        __ABE_INLINE String& replace(const String& s0, const String& s1)    { return replace(s0.c_str(), s1.c_str());       }
-        __ABE_INLINE String& replace(const String& s0, const char * s1)     { return replace(s0.c_str(), s1);               }
-        __ABE_INLINE String& replace(const char * s0, const String& s1)     { return replace(s0, s1.c_str());               }
-        __ABE_INLINE String& replaceAll(const String& s0, const String& s1) { return replaceAll(s0.c_str(), s1.c_str());    }
-        __ABE_INLINE String& replaceAll(const String& s0, const char * s1)  { return replaceAll(s0.c_str(), s1);            }
-        __ABE_INLINE String& replaceAll(const char * s0, const String& s1)  { return replaceAll(s0, s1.c_str());            }
+        ABE_INLINE String& replace(const String& s0, const String& s1)    { return replace(s0.c_str(), s1.c_str());       }
+        ABE_INLINE String& replace(const String& s0, const char * s1)     { return replace(s0.c_str(), s1);               }
+        ABE_INLINE String& replace(const char * s0, const String& s1)     { return replace(s0, s1.c_str());               }
+        ABE_INLINE String& replaceAll(const String& s0, const String& s1) { return replaceAll(s0.c_str(), s1.c_str());    }
+        ABE_INLINE String& replaceAll(const String& s0, const char * s1)  { return replaceAll(s0.c_str(), s1);            }
+        ABE_INLINE String& replaceAll(const char * s0, const String& s1)  { return replaceAll(s0, s1.c_str());            }
     
         String&     trim();
         void        clear();
@@ -135,12 +132,12 @@ class __ABE_EXPORT String : public NonSharedObject {
         String&     upper();
 
     public:
-        __ABE_INLINE String& operator=(const String &s)     { set(s); return *this;                 }
-        __ABE_INLINE String& operator+=(const String &s)    { append(s); return *this;              }
-        __ABE_INLINE String  operator+(const String &s)     { String a(*this); return a.append(s);  }
-        __ABE_INLINE String& operator=(const char * s)      { set(s); return *this;                 }
-        __ABE_INLINE String& operator+=(const char * s)     { append(s); return *this;              }
-        __ABE_INLINE String  operator+(const char * s)      { String a(*this); return a.append(s);  }
+        ABE_INLINE String& operator=(const String &s)     { set(s); return *this;                 }
+        ABE_INLINE String& operator+=(const String &s)    { append(s); return *this;              }
+        ABE_INLINE String  operator+(const String &s)     { String a(*this); return a.append(s);  }
+        ABE_INLINE String& operator=(const char * s)      { set(s); return *this;                 }
+        ABE_INLINE String& operator+=(const char * s)     { append(s); return *this;              }
+        ABE_INLINE String  operator+(const char * s)      { String a(*this); return a.append(s);  }
 
     public:
         /**
@@ -157,23 +154,23 @@ class __ABE_EXPORT String : public NonSharedObject {
          * @note always non-null, even size() == 0, except String::Null
          * @note no non-const version of c_str()
          */
-        __ABE_INLINE const char * c_str() const  { return mData->data(); }
-        __ABE_INLINE size_t  size() const        { return mSize;         }
-        __ABE_INLINE bool    empty() const       { return mSize == 0;    }
+        ABE_INLINE const char * c_str() const   { return mData->data(); }
+        ABE_INLINE size_t       size() const    { return mSize;         }
+        ABE_INLINE bool         empty() const   { return mSize == 0;    }
 
     public:
         ssize_t     indexOf(size_t start, const char * s) const;
         ssize_t     indexOf(size_t start, int c) const;
 
-        __ABE_INLINE ssize_t indexOf(size_t start, const String& s) const   { return indexOf(start, s.c_str()); }
-        __ABE_INLINE ssize_t indexOf(const String& s) const                 { return indexOf(0, s.c_str());     }
-        __ABE_INLINE ssize_t indexOf(const char * s) const                  { return indexOf(0, s);             }
-        __ABE_INLINE ssize_t indexOf(int c) const                           { return indexOf(0, c);             }
+        ABE_INLINE ssize_t indexOf(size_t start, const String& s) const   { return indexOf(start, s.c_str()); }
+        ABE_INLINE ssize_t indexOf(const String& s) const                 { return indexOf(0, s.c_str());     }
+        ABE_INLINE ssize_t indexOf(const char * s) const                  { return indexOf(0, s);             }
+        ABE_INLINE ssize_t indexOf(int c) const                           { return indexOf(0, c);             }
     
         ssize_t     lastIndexOf(const char * s) const;
         ssize_t     lastIndexOf(int c) const;
     
-        __ABE_INLINE ssize_t lastIndexOf(const String& s) const             { return lastIndexOf(s.c_str());    }
+        ABE_INLINE ssize_t lastIndexOf(const String& s) const             { return lastIndexOf(s.c_str());    }
 
     public:
         size_t      hash() const;
@@ -185,15 +182,15 @@ class __ABE_EXPORT String : public NonSharedObject {
         int         compareIgnoreCase(const String &s) const;
     
     public:
-        __ABE_INLINE bool equals(const String &s) const             { return !compare(s);                   }
-        __ABE_INLINE bool equals(const char * s) const              { return !compare(s);                   }
-        __ABE_INLINE bool equalsIgnoreCase(const String &s) const   { return !compareIgnoreCase(s);         }
-        __ABE_INLINE bool equalsIgnoreCase(const char * s) const    { return !compareIgnoreCase(s);         }
+        ABE_INLINE bool equals(const String &s) const             { return !compare(s);                   }
+        ABE_INLINE bool equals(const char * s) const              { return !compare(s);                   }
+        ABE_INLINE bool equalsIgnoreCase(const String &s) const   { return !compareIgnoreCase(s);         }
+        ABE_INLINE bool equalsIgnoreCase(const char * s) const    { return !compareIgnoreCase(s);         }
 
     public:
 #define OPERATOR(op) \
-__ABE_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }    \
-__ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0; }
+ABE_INLINE bool operator op(const String& rhs) const { return compare(rhs) op 0; }    \
+ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0; }
     OPERATOR(==)
     OPERATOR(!=)
     OPERATOR(<)
@@ -209,10 +206,10 @@ __ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0
         bool        endsWithIgnoreCase(const char * s, size_t n = 0) const;
     
     public:
-        __ABE_INLINE bool startsWith(const String &s) const             { return startsWith(s.c_str(), s.size());           }
-        __ABE_INLINE bool startsWithIgnoreCase(const String &s) const   { return startsWithIgnoreCase(s.c_str(), s.size()); }
-        __ABE_INLINE bool endsWith(const String &s) const               { return endsWith(s.c_str(), s.size());             }
-        __ABE_INLINE bool endsWithIgnoreCase(const String &s) const     { return endsWithIgnoreCase(s.c_str(), s.size());   }
+        ABE_INLINE bool startsWith(const String &s) const             { return startsWith(s.c_str(), s.size());           }
+        ABE_INLINE bool startsWithIgnoreCase(const String &s) const   { return startsWithIgnoreCase(s.c_str(), s.size()); }
+        ABE_INLINE bool endsWith(const String &s) const               { return endsWith(s.c_str(), s.size());             }
+        ABE_INLINE bool endsWithIgnoreCase(const String &s) const     { return endsWithIgnoreCase(s.c_str(), s.size());   }
 
     public:
         int32_t     toInt32() const;
@@ -232,6 +229,6 @@ __ABE_INLINE bool operator op(const char * rhs) const { return compare(rhs) op 0
 ///////////////////////////////////////////////////////////////////////////
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_STRING_H
+#endif // ABE_HEADERS_STRING_H
 
 

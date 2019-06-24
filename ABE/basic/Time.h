@@ -31,8 +31,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_TIME_H
-#define _TOOLKIT_HEADERS_TIME_H
+#ifndef ABE_HEADERS_TIME_H
+#define ABE_HEADERS_TIME_H
 
 #include <ABE/basic/Types.h>
 
@@ -40,12 +40,12 @@ __BEGIN_DECLS
 
 // get system time in nsecs since Epoch. @see CLOCK_REALTIME
 // @note it can jump forwards and backwards as the system time-of-day clock is changed, including by NTP.
-__ABE_EXPORT int64_t SystemTimeEpoch();
+ABE_EXPORT int64_t SystemTimeEpoch();
 
 // get system time in nsecs since an arbitrary point, @see CLOCK_MONOTONIC
 // For time measurement and timmer.
 // @note It isn't affected by changes in the system time-of-day clock.
-__ABE_EXPORT int64_t SystemTimeMonotonic();
+ABE_EXPORT int64_t SystemTimeMonotonic();
 
 #define SystemTimeNs()      SystemTimeMonotonic()
 #define SystemTimeUs()      (SystemTimeMonotonic() / 1000LL)
@@ -56,16 +56,16 @@ __ABE_EXPORT int64_t SystemTimeMonotonic();
  * @return return true on sleep complete, return false if was interrupted by signal
  * @note not all sleep implementation on different os will have guarantee.
  */
-__ABE_EXPORT bool SleepForInterval(int64_t ns);
+ABE_EXPORT bool SleepForInterval(int64_t ns);
 
 /**
  * suspend thread execution for an interval, guarantee time elapsed
  */
-__ABE_EXPORT void SleepForIntervalWithoutInterrupt(int64_t ns);
+ABE_EXPORT void SleepForIntervalWithoutInterrupt(int64_t ns);
 #define SleepTimeNs(ns)     SleepForIntervalWithoutInterrupt(ns)
 #define SleepTimeUs(us)     SleepForIntervalWithoutInterrupt(us * 1000LL)
 #define SleepTimeMs(ms)     SleepForIntervalWithoutInterrupt(ms * 1000000LL)
 
 __END_DECLS
 
-#endif // _TOOLKIT_HEADERS_TIME_H
+#endif // ABE_HEADERS_TIME_H

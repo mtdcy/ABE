@@ -32,27 +32,27 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_RUNNABLE_H
-#define _TOOLKIT_HEADERS_RUNNABLE_H
+#ifndef ABE_HEADERS_RUNNABLE_H
+#define ABE_HEADERS_RUNNABLE_H
 
 #include <ABE/basic/SharedObject.h>
 #include <ABE/basic/Mutex.h>
 __BEGIN_NAMESPACE_ABE
 
-struct __ABE_EXPORT Runnable : public SharedObject {
+struct ABE_EXPORT Runnable : public SharedObject {
     Runnable() : SharedObject(OBJECT_ID_RUNNABLE) { }
     virtual void run() = 0;
     DISALLOW_EVILS(Runnable);
 };
 
-class __ABE_EXPORT SyncRunnable : public Runnable {
+class ABE_EXPORT SyncRunnable : public Runnable {
     private:
         mutable Mutex   mLock;
         Condition       mWait;
         volatile int    mSync;
     
     protected:
-        __ABE_INLINE SyncRunnable() : Runnable(), mSync(0) { }
+        ABE_INLINE SyncRunnable() : Runnable(), mSync(0) { }
     
     public:
         virtual void sync() = 0;
@@ -62,7 +62,7 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
          * @param ns    timeout, always > 0
          * @return return true on success, else return false on timeout
          */
-        __ABE_INLINE bool wait(int64_t ns = 0) {
+        ABE_INLINE bool wait(int64_t ns = 0) {
             AutoLock _l(mLock);
             bool success = true;
             if (ns < 0) ns = 0;
@@ -87,4 +87,4 @@ class __ABE_EXPORT SyncRunnable : public Runnable {
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_HEADERS_RUNNABLE_H
+#endif // ABE_HEADERS_RUNNABLE_H

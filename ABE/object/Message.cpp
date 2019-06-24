@@ -142,7 +142,7 @@ BASIC_TYPE(Pointer, ptr,        void *);
 #undef BASIC_TYPE
 
 #ifdef __MINGW32__
-static __ABE_INLINE char * strndup(const char *s, size_t len) {
+static ABE_INLINE char * strndup(const char *s, size_t len) {
     // plus 1 for NULL terminating
     char * dup = (char *)malloc(len+1);
     memcpy(dup, s, len+1);

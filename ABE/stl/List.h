@@ -32,8 +32,8 @@
 //          1. 20160829     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_STL_LIST_H
-#define _TOOLKIT_HEADERS_STL_LIST_H 
+#ifndef ABE_HEADERS_STL_LIST_H
+#define ABE_HEADERS_STL_LIST_H 
 
 #include <ABE/stl/TypeHelper.h>
 #include <ABE/basic/SharedBuffer.h>
@@ -51,12 +51,12 @@ class ListNodeImpl {
         ListNodeImpl    *mNext;
 
     protected:
-        __ABE_INLINE ListNodeImpl() : mData(NULL), mPrev(NULL), mNext(NULL) { }
+        ABE_INLINE ListNodeImpl() : mData(NULL), mPrev(NULL), mNext(NULL) { }
 
     public:
-        __ABE_INLINE void *          data() const   { return mData; }
-        __ABE_INLINE ListNodeImpl *  next() const   { return mNext; }
-        __ABE_INLINE ListNodeImpl *  prev() const   { return mPrev; }
+        ABE_INLINE void *          data() const   { return mData; }
+        ABE_INLINE ListNodeImpl *  next() const   { return mNext; }
+        ABE_INLINE ListNodeImpl *  prev() const   { return mPrev; }
 
     protected:
         bool            orphan() const;
@@ -66,7 +66,7 @@ class ListNodeImpl {
         ListNodeImpl *  append(ListNodeImpl * prev);
 };
 
-class __ABE_EXPORT ListImpl {
+class ABE_EXPORT ListImpl {
     public:
         ListImpl(const Object<Allocator>& allocator, const TypeHelper& helper);
 
@@ -77,7 +77,7 @@ class __ABE_EXPORT ListImpl {
         ListImpl& operator=(const ListImpl& rhs);
 
     protected:
-        __ABE_INLINE size_t size() const    { return mListLength; }
+        ABE_INLINE size_t size() const    { return mListLength; }
         void                clear();
 
     protected:
@@ -111,22 +111,22 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl 
         // iterator for List, bidirection iterator
         template <typename NODE_TYPE, typename VALUE_TYPE> class Iterator {
             public:
-                __ABE_INLINE Iterator() : mNode(NULL) { }
-                __ABE_INLINE Iterator(NODE_TYPE node) : mNode(node) { }
-                __ABE_INLINE ~Iterator() { }
+                ABE_INLINE Iterator() : mNode(NULL) { }
+                ABE_INLINE Iterator(NODE_TYPE node) : mNode(node) { }
+                ABE_INLINE ~Iterator() { }
 
             public:
-                __ABE_INLINE Iterator&   operator++()    { mNode = mNode->next(); return *this;              }   // pre-increment
-                __ABE_INLINE Iterator    operator++(int) { Iterator old(*this); operator++(); return old;    }   // post-increment
-                __ABE_INLINE Iterator&   operator--()    { mNode = mNode->prev(); return *this;              }   // pre-decrement
-                __ABE_INLINE Iterator    operator--(int) { Iterator old(*this); operator--(); return old;    }   // post-decrement
+                ABE_INLINE Iterator&   operator++()    { mNode = mNode->next(); return *this;              }   // pre-increment
+                ABE_INLINE Iterator    operator++(int) { Iterator old(*this); operator++(); return old;    }   // post-increment
+                ABE_INLINE Iterator&   operator--()    { mNode = mNode->prev(); return *this;              }   // pre-decrement
+                ABE_INLINE Iterator    operator--(int) { Iterator old(*this); operator--(); return old;    }   // post-decrement
 
-                __ABE_INLINE VALUE_TYPE& operator*()     { return *(static_cast<VALUE_TYPE*>(mNode->data()));}
-                __ABE_INLINE VALUE_TYPE* operator->()    { return static_cast<VALUE_TYPE*>(mNode->data());   }
+                ABE_INLINE VALUE_TYPE& operator*()     { return *(static_cast<VALUE_TYPE*>(mNode->data()));}
+                ABE_INLINE VALUE_TYPE* operator->()    { return static_cast<VALUE_TYPE*>(mNode->data());   }
 
             public:
-                __ABE_INLINE bool        operator==(const Iterator& rhs) const   { return mNode == rhs.mNode;    }
-                __ABE_INLINE bool        operator!=(const Iterator& rhs) const   { return mNode != rhs.mNode;    }
+                ABE_INLINE bool        operator==(const Iterator& rhs) const   { return mNode == rhs.mNode;    }
+                ABE_INLINE bool        operator!=(const Iterator& rhs) const   { return mNode != rhs.mNode;    }
 
             protected:
                 friend class List<VALUE_TYPE>;
@@ -138,58 +138,58 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl 
         typedef Iterator<const __NAMESPACE_ABE_PRIVATE::ListNodeImpl *, const TYPE> const_iterator;
 
     public:
-        __ABE_INLINE List(const Object<Allocator>& allocator = kAllocatorDefault) :
+        ABE_INLINE List(const Object<Allocator>& allocator = kAllocatorDefault) :
             ListImpl(allocator, TypeHelperBuilder<TYPE, false, true, false>()) { }
 
-        __ABE_INLINE ~List() { }
+        ABE_INLINE ~List() { }
 
     public:
-        __ABE_INLINE void    clear()                    { return ListImpl::clear();         }
-        __ABE_INLINE size_t  size() const               { return ListImpl::size();          }
-        __ABE_INLINE bool    empty() const              { return size() == 0;               }
+        ABE_INLINE void    clear()                    { return ListImpl::clear();         }
+        ABE_INLINE size_t  size() const               { return ListImpl::size();          }
+        ABE_INLINE bool    empty() const              { return size() == 0;               }
 
     public:
         // stable sort, uses operator< or custom compare
         typedef bool (*compare_t)(const TYPE*, const TYPE*);
-        __ABE_INLINE void    sort(compare_t cmp)        { ListImpl::sort(reinterpret_cast<type_compare_t>(cmp));    }
-        __ABE_INLINE void    sort()                     { ListImpl::sort(type_compare_less<TYPE>);                  }
+        ABE_INLINE void    sort(compare_t cmp)        { ListImpl::sort(reinterpret_cast<type_compare_t>(cmp));    }
+        ABE_INLINE void    sort()                     { ListImpl::sort(type_compare_less<TYPE>);                  }
 
     public:
-        __ABE_INLINE TYPE&       front()                { return *static_cast<TYPE*>(list().next()->data());        }
-        __ABE_INLINE const TYPE& front() const          { return *static_cast<const TYPE*>(list().next()->data());  }
-        __ABE_INLINE TYPE&       back()                 { return *static_cast<TYPE*>(list().prev()->data());        }
-        __ABE_INLINE const TYPE& back() const           { return *static_cast<const TYPE*>(list().prev()->data());  }
+        ABE_INLINE TYPE&       front()                { return *static_cast<TYPE*>(list().next()->data());        }
+        ABE_INLINE const TYPE& front() const          { return *static_cast<const TYPE*>(list().next()->data());  }
+        ABE_INLINE TYPE&       back()                 { return *static_cast<TYPE*>(list().prev()->data());        }
+        ABE_INLINE const TYPE& back() const           { return *static_cast<const TYPE*>(list().prev()->data());  }
 
     public:
-        __ABE_INLINE void    push(const TYPE& v)        { ListImpl::push(ListImpl::list(), &v);         }
-        __ABE_INLINE void    push_back(const TYPE& v)   { push(v);                                      }
-        __ABE_INLINE void    push_front(const TYPE& v)  { ListImpl::push(*ListImpl::list().next(), &v); }
+        ABE_INLINE void    push(const TYPE& v)        { ListImpl::push(ListImpl::list(), &v);         }
+        ABE_INLINE void    push_back(const TYPE& v)   { push(v);                                      }
+        ABE_INLINE void    push_front(const TYPE& v)  { ListImpl::push(*ListImpl::list().next(), &v); }
 
-        __ABE_INLINE void    pop()                      { ListImpl::pop(*ListImpl::list().next());      }
-        __ABE_INLINE void    pop_front()                { pop();                                        }
-        __ABE_INLINE void    pop_back()                 { ListImpl::pop(*ListImpl::list().prev());      }
+        ABE_INLINE void    pop()                      { ListImpl::pop(*ListImpl::list().next());      }
+        ABE_INLINE void    pop_front()                { pop();                                        }
+        ABE_INLINE void    pop_back()                 { ListImpl::pop(*ListImpl::list().prev());      }
 
     public:
         // emplace operations
-        __ABE_INLINE TYPE&   push()                     { return *static_cast<TYPE*>(ListImpl::emplace(ListImpl::list(), type_construct<TYPE>).data());            }
-        __ABE_INLINE TYPE&   push_back()                { return push();                                                                                            }
-        __ABE_INLINE TYPE&   push_front()               { return *static_cast<TYPE*>(ListImpl::emplace(*ListImpl::list().next(), type_construct<TYPE>).data());    }
+        ABE_INLINE TYPE&   push()                     { return *static_cast<TYPE*>(ListImpl::emplace(ListImpl::list(), type_construct<TYPE>).data());            }
+        ABE_INLINE TYPE&   push_back()                { return push();                                                                                            }
+        ABE_INLINE TYPE&   push_front()               { return *static_cast<TYPE*>(ListImpl::emplace(*ListImpl::list().next(), type_construct<TYPE>).data());    }
 
     public:
-        __ABE_INLINE iterator        begin()            { return iterator(ListImpl::list().next());         }
-        __ABE_INLINE iterator        end()              { return iterator(&ListImpl::list());               }
-        __ABE_INLINE iterator        rbegin()           { return iterator(ListImpl::list().prev());         }
-        __ABE_INLINE iterator        rend()             { return iterator(&ListImpl::list());               }
+        ABE_INLINE iterator        begin()            { return iterator(ListImpl::list().next());         }
+        ABE_INLINE iterator        end()              { return iterator(&ListImpl::list());               }
+        ABE_INLINE iterator        rbegin()           { return iterator(ListImpl::list().prev());         }
+        ABE_INLINE iterator        rend()             { return iterator(&ListImpl::list());               }
 
-        __ABE_INLINE const_iterator  cbegin() const     { return const_iterator(ListImpl::list().next());   }
-        __ABE_INLINE const_iterator  cend() const       { return const_iterator(&ListImpl::list());         }
-        __ABE_INLINE const_iterator  crbegin() const    { return const_iterator(ListImpl::list().prev());   }
-        __ABE_INLINE const_iterator  crend() const      { return const_iterator(&ListImpl::list());         }
+        ABE_INLINE const_iterator  cbegin() const     { return const_iterator(ListImpl::list().next());   }
+        ABE_INLINE const_iterator  cend() const       { return const_iterator(&ListImpl::list());         }
+        ABE_INLINE const_iterator  crbegin() const    { return const_iterator(ListImpl::list().prev());   }
+        ABE_INLINE const_iterator  crend() const      { return const_iterator(&ListImpl::list());         }
 
     public:
-        __ABE_INLINE iterator    insert(iterator pos, const TYPE& v) { return iterator(&ListImpl::push(*pos.mNode, &v));   }
-        __ABE_INLINE iterator    erase(iterator pos)                 { return iterator(&ListImpl::pop(*pos.mNode));        }
+        ABE_INLINE iterator    insert(iterator pos, const TYPE& v) { return iterator(&ListImpl::push(*pos.mNode, &v));   }
+        ABE_INLINE iterator    erase(iterator pos)                 { return iterator(&ListImpl::pop(*pos.mNode));        }
 };
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_STL_LIST_H 
+#endif // ABE_HEADERS_STL_LIST_H 

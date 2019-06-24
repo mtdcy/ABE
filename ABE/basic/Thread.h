@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_THREAD_H
-#define _TOOLKIT_HEADERS_THREAD_H
+#ifndef ABE_HEADERS_THREAD_H
+#define ABE_HEADERS_THREAD_H
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/String.h>
@@ -69,12 +69,17 @@ enum eThreadType {
  * Thread(new MyRunnable()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
-class __ABE_EXPORT Thread : public NonSharedObject {
+class ABE_EXPORT Thread : public NonSharedObject {
     public:
         /**
          * yield current thread
          */
         static void         Yield();
+    
+        /**
+         * get current thread name
+         */
+        static String       Name();
     
         /**
          * main thread
@@ -161,5 +166,5 @@ class __ABE_EXPORT Thread : public NonSharedObject {
 };
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_THREAD_H
+#endif // ABE_HEADERS_THREAD_H
 
