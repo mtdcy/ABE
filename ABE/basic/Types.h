@@ -47,7 +47,7 @@
  * Compiler:
  *    _MSC_VER & __clang__ & __GNUC__
  * Platform:
- *    __APPLE__ & _WIN32 & _WIN64 & __MINGW32__ & __ANDROID__ & __GNU__
+ *    __APPLE__ & _WIN32 & _WIN64 & __MINGW32__ & __ANDROID__ & __linux__
  *
  *
  * @note we assume everything in bytes-order
@@ -145,7 +145,7 @@
 // make sure we share the same errorno on all platforms
 enum status_t {
     OK                  = 0,
-    ERROR_UNKNOWN       = -INT32_MIN,
+    ERROR_UNKNOWN       = INT32_MIN,
     ERROR_AGAIN         = -EAGAIN,      ///< try again, @see EAGAIN
     ERROR_OOM           = -ENOMEM,      ///< out of memory, @see ENOMEM
     ERROR_INVALID       = -EINVAL,      ///< invalid argument or operation, @see EINVAL, @see ENOSYS

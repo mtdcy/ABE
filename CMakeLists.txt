@@ -112,6 +112,7 @@ set_target_properties (${LIBNAME}_static PROPERTIES
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # dlopen & pthread
     target_link_libraries(${LIBNAME}_shared -ldl -lpthread)
+    target_link_libraries(${LIBNAME}_static -ldl -lpthread)
 endif()
 
 #------------------------------------------------------------------------------#

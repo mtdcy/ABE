@@ -104,7 +104,7 @@ Condition::Condition() {
     pthread_condattr_t attr;
     CHECK_EQ(pthread_condattr_init(&attr), 0);
 #if HAVE_PTHREAD_CONDATTR_SETCLOCK
-    CHECK_EQ(pthread_condattr_setclock(&attr, CLOCK_MONOTONIC, 0), 0);
+    CHECK_EQ(pthread_condattr_setclock(&attr, CLOCK_MONOTONIC), 0);
 #endif
     CHECK_EQ(pthread_cond_init(&mWait, &attr), 0);
 }

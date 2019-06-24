@@ -29,7 +29,6 @@
 #ifndef ABE_compat_pthread_h
 #define ABE_compat_pthread_h 
 
-
 #include "basic/Types.h"
 #include "Config.h"
 
@@ -99,6 +98,12 @@ static inline int pthread_cond_signal(pthread_cond_t *cond) {
 
 #include <pthread.h>
 
+#if defined(__linux__)
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#endif
+
 static ABE_INLINE void pthread_setname(const char * name) {
 #if HAVE_PTHREAD_SETNAME_NP
 #if defined(__APPLE__)
@@ -134,7 +139,6 @@ static ABE_INLINE bool pthread_main() {
 #if defined(__APPLE__)
 #define pthread_yield       pthread_yield_np
 #endif
-
 
 #endif
 
