@@ -370,12 +370,25 @@ Thread& Thread::Main() {
     return _main;
 }
 
-Thread::Thread(const Object<Runnable>& runnable, const eThreadType type) : mShared(NULL) {
-    SharedThread *shared = new NormalThread(MakeThreadName(), type, runnable);
-    mShared = shared;   // must retain object before start
+// static
+Thread Thread::Null = Thread();
 
+Thread::Thread(const Object<Runnable>& runnable, const eThreadType type) : mShared(NULL) {
+    Object<SharedThread> shared = new NormalThread(MakeThreadName(), type, runnable);
     shared->start();
+    
+    mShared = shared;
     // execute when run()
+}
+
+Thread::Thread(const Thread& rhs) : mShared(NULL) {
+    if (rhs.mShared.isNIL()) return;
+    
+    Object<SharedThread> from = rhs.mShared;
+    Object<SharedThread> shared = new NormalThread(MakeThreadName(), from->mType, from->mRoutine);
+    shared->start();
+    
+    mShared = shared;
 }
 
 Thread& Thread::setName(const String& name) {

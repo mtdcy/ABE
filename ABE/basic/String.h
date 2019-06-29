@@ -98,8 +98,11 @@ class ABE_EXPORT String : public NonSharedObject {
         explicit String(const int64_t v);
         explicit String(const float v);
         explicit String(const double v);
-#ifdef  __APPLE__
+#ifndef size_t
         explicit String(const size_t v);
+#endif
+#ifndef ssize_t
+        explicit String(const ssize_t v);
 #endif
         explicit String(const void *p);
 

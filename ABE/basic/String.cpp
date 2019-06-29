@@ -150,8 +150,11 @@ STRING_FROM_NUMBER(uint64_t,    32,     PRIu64);
 STRING_FROM_NUMBER(int64_t,     32,     PRId64);
 STRING_FROM_NUMBER(float,       32,     "f");
 STRING_FROM_NUMBER(double,      64,     "f");
-#ifdef __APPLE__
-STRING_FROM_NUMBER(size_t,      16,     "zu");
+#ifndef size_t
+STRING_FROM_NUMBER(size_t,      32,     "zu");
+#endif
+#ifndef ssize_t
+STRING_FROM_NUMBER(ssize_t,     32,     "zd");
 #endif
 STRING_FROM_NUMBER(void *,      32,     "xp");
 

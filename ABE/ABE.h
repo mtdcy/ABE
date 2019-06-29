@@ -142,23 +142,23 @@ ABE_EXPORT SharedObjectRef      MessageObjectGetObject  (const MessageObjectRef,
 
 
 typedef SharedObjectRef         ContentObjectRef;
-ABE_EXPORT ContentObjectRef   ContentObjectCreate(const char *);
-ABE_EXPORT size_t             ContentObjectLength(ContentObjectRef);
-ABE_EXPORT BufferObjectRef    ContentObjectRead(ContentObjectRef, size_t);
-ABE_EXPORT BufferObjectRef    ContentObjectReadPosition(ContentObjectRef, size_t, int64_t);
+ABE_EXPORT ContentObjectRef     ContentObjectCreate(const char *);
+ABE_EXPORT size_t               ContentObjectLength(ContentObjectRef);
+ABE_EXPORT BufferObjectRef      ContentObjectRead(ContentObjectRef, size_t);
+ABE_EXPORT BufferObjectRef      ContentObjectReadPosition(ContentObjectRef, size_t, int64_t);
 
 
 typedef SharedObjectRef         LooperObjectRef;
 typedef SharedObjectRef         RunnableObjectRef;
 LooperObjectRef                 LooperObjectCreate(const char * name);
-ABE_EXPORT void               LooperObjectLoop(LooperObjectRef);
-ABE_EXPORT void               LooperObjectTerminate(LooperObjectRef);
-ABE_EXPORT void               LooperObjectTerminateAndWait(LooperObjectRef);
-ABE_EXPORT void               LooperObjectPostRunnable(LooperObjectRef, RunnableObjectRef);
-ABE_EXPORT void               LooperObjectPostRunnableWithDelay(LooperObjectRef, RunnableObjectRef, int64_t);
-ABE_EXPORT void               LooperObjectRemoveRunnable(LooperObjectRef, RunnableObjectRef);
-ABE_EXPORT bool               LooperObjectFindRunnable(LooperObjectRef, RunnableObjectRef);
-ABE_EXPORT void               LooperObjectFlush(LooperObjectRef);
+ABE_EXPORT void                 LooperObjectLoop(LooperObjectRef);
+ABE_EXPORT void                 LooperObjectTerminate(LooperObjectRef);
+ABE_EXPORT void                 LooperObjectTerminateAndWait(LooperObjectRef);
+ABE_EXPORT void                 LooperObjectPostRunnable(LooperObjectRef, RunnableObjectRef);
+ABE_EXPORT void                 LooperObjectPostRunnableWithDelay(LooperObjectRef, RunnableObjectRef, int64_t);
+ABE_EXPORT void                 LooperObjectRemoveRunnable(LooperObjectRef, RunnableObjectRef);
+ABE_EXPORT bool                 LooperObjectFindRunnable(LooperObjectRef, RunnableObjectRef);
+ABE_EXPORT void                 LooperObjectFlush(LooperObjectRef);
 
 __END_DECLS
 

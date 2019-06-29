@@ -87,6 +87,12 @@ class ABE_EXPORT Thread : public NonSharedObject {
          */
         static Thread&      Main();
     
+        /**
+         * Null thread
+         * @note for compare only
+         */
+        static Thread       Null;
+    
     public:
         /**
          * create a suspend thread with runnable
@@ -94,6 +100,11 @@ class ABE_EXPORT Thread : public NonSharedObject {
          * @note thread is joinable until join() or detach()
          */
         Thread(const Object<Runnable>& runnable, const eThreadType type = kThreadDefault);
+    
+        /**
+         * copy a thread & its properties
+         */
+        Thread(const Thread&);
 
         /**
          * thread state
@@ -151,6 +162,11 @@ class ABE_EXPORT Thread : public NonSharedObject {
          * @note join() or detach() is neccessary even without run()
          */
         void detach();
+    
+        /**
+         * is this a Null thread
+         */
+        bool isNull() const { return mShared.isNIL(); }
 
     public:
         /**
@@ -163,6 +179,8 @@ class ABE_EXPORT Thread : public NonSharedObject {
     private:
         Thread() : mShared(NULL) { }
         Object<SharedObject> mShared;
+    
+    DISALLOW_ASSIGN(Thread);
 };
 
 __END_NAMESPACE_ABE
