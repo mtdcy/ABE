@@ -96,7 +96,7 @@ extern __typeof (realloc) __libc_realloc;
 
 // can NOT garentee static global variable initialization order,
 // so put it inside function as static local variable.
-static __ABE_INLINE void * real_malloc(size_t size) {
+static ABE_INLINE void * real_malloc(size_t size) {
 #if USING_DLSYM == 0
     static real_malloc_t _real_malloc = __libc_malloc;
 #else
@@ -109,7 +109,7 @@ static __ABE_INLINE void * real_malloc(size_t size) {
     return _real_malloc(size);
 }
 
-static __ABE_INLINE void real_free(void *ptr) {
+static ABE_INLINE void real_free(void *ptr) {
 #if USING_DLSYM == 0
     static real_free_t _real_free = __libc_free;
 #else
@@ -122,7 +122,7 @@ static __ABE_INLINE void real_free(void *ptr) {
     return _real_free(ptr);
 }
 
-static __ABE_INLINE void * real_realloc(void *ptr, size_t size) {
+static ABE_INLINE void * real_realloc(void *ptr, size_t size) {
 #if USING_DLSYM == 0
     static real_realloc_t _real_realloc = __libc_realloc;
 #else
@@ -135,7 +135,7 @@ static __ABE_INLINE void * real_realloc(void *ptr, size_t size) {
     return _real_realloc(ptr, size);
 }
 
-static __ABE_INLINE int real_posix_memalign(void **memptr, size_t alignment, size_t n) {
+static ABE_INLINE int real_posix_memalign(void **memptr, size_t alignment, size_t n) {
     static real_posix_memalign_t _real_posix_memalign = NULL;
     if (__builtin_expect(_real_posix_memalign == NULL, false)) {
         DEBUG("initial real_posix_memalign");
@@ -170,7 +170,7 @@ struct MallocBlock {
 //    always a multiple of eight (or sixteen on 64-bit systems)
 // 2. https://www.cocoawithlove.com/2010/05/look-at-how-malloc-works-on-mac.html
 //
-static __ABE_INLINE size_t do_hash(void * p) {
+static ABE_INLINE size_t do_hash(void * p) {
 #if __LP64__
     return (size_t)((((intptr_t)p >> 32) | (intptr_t)p) / 16);
 #else
@@ -182,7 +182,7 @@ static __ABE_INLINE size_t do_hash(void * p) {
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static HashTable<void *, MallocBlock *> g_blocks(8192, new RealAllocator);
 
-static __ABE_INLINE void printBlocks() {
+static ABE_INLINE void printBlocks() {
     size_t n = 0;
     size_t total = 0;
     HashTable<void *, MallocBlock*>::const_iterator it = g_blocks.cbegin();
@@ -201,7 +201,7 @@ static __ABE_INLINE void printBlocks() {
     INFO("===============================================================");
 }
 
-static __ABE_INLINE MallocBlock* validateBlock(void *p) {
+static ABE_INLINE MallocBlock* validateBlock(void *p) {
     CHECK_NULL(p);
 
     pthread_mutex_lock(&g_lock);
@@ -359,40 +359,40 @@ static int malloc_impl_posix_memalign_body(void **memptr, size_t alignment, size
 //////////////////////////////////////////////////////////////////////////////
 __BEGIN_DECLS
 
-__ABE_EXPORT void* malloc(size_t n) {
+ABE_EXPORT void* malloc(size_t n) {
     DEBUG("malloc %zu", n);
     //BTRACE();
     return g_malloc_impl_malloc(n);
 }
 
-__ABE_EXPORT void* calloc(size_t count, size_t n) {
+ABE_EXPORT void* calloc(size_t count, size_t n) {
     void *p = malloc(count * n);
     CHECK_NULL(p);
     memset(p, 0, count * n);
     return p;
 }
 
-__ABE_EXPORT void free(void *p) {
+ABE_EXPORT void free(void *p) {
     g_malloc_impl_free(p);
 }
 
-__ABE_EXPORT void* realloc(void *p, size_t n) {
+ABE_EXPORT void* realloc(void *p, size_t n) {
     return g_malloc_impl_realloc(p, n);
 }
 
-__ABE_EXPORT int posix_memalign(void **memptr, size_t alignment, size_t n) {
+ABE_EXPORT int posix_memalign(void **memptr, size_t alignment, size_t n) {
     return g_malloc_impl_posix_memalign(memptr, alignment, n);
 }
 
 #if 1
-__ABE_EXPORT char* strndup(const char *s, size_t n) {
+ABE_EXPORT char* strndup(const char *s, size_t n) {
     char *p = (char *)malloc(n + 1);
     strncpy(p, s, n);
     ((char*)(p))[n] = '\0';
     return (char*)p;
 }
 
-__ABE_EXPORT char* strdup(const char *s) {
+ABE_EXPORT char* strdup(const char *s) {
     char *p = strndup(s, strlen(s));
     return p;
 }
@@ -417,21 +417,21 @@ void operator delete[](void* ptr) throw() {
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-__ABE_EXPORT void malloc_prepare() {
+ABE_EXPORT void malloc_prepare() {
     g_malloc_impl_malloc            = malloc_impl_malloc_body;
     g_malloc_impl_free              = malloc_impl_free_body;
     g_malloc_impl_realloc           = malloc_impl_realloc_body;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_body;
 }
 
-__ABE_EXPORT void malloc_bypass() {
+ABE_EXPORT void malloc_bypass() {
     g_malloc_impl_malloc            = malloc_impl_malloc_bypass;
     g_malloc_impl_free              = malloc_impl_free_bypass;
     g_malloc_impl_realloc           = malloc_impl_realloc_bypass;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_bypass;
 }
 
-__ABE_EXPORT void malloc_finalize() {
+ABE_EXPORT void malloc_finalize() {
     if (g_blocks.size()) printBlocks();
     malloc_bypass();
 }
@@ -442,9 +442,9 @@ __END_DECLS
 
 #include "basic/Types.h"
 __BEGIN_DECLS
-__ABE_EXPORT void malloc_prepare() { }
-__ABE_EXPORT void malloc_bypass() { }
-__ABE_EXPORT void malloc_finalize() { }
+ABE_EXPORT void malloc_prepare() { }
+ABE_EXPORT void malloc_bypass() { }
+ABE_EXPORT void malloc_finalize() { }
 __END_DECLS
 
 #endif

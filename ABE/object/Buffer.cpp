@@ -121,12 +121,12 @@ Buffer::~Buffer() {
     mAllocator->deallocate(mData);
 }
 
-status_t Buffer::resize(size_t cap) {
+int Buffer::resize(size_t cap) {
     size_t allocLength = cap;
     if (mType == kBufferTypeRing) allocLength <<= 1;
     mData = (char *)mAllocator->reallocate(mData, allocLength);
     mCapacity = cap;
-    return OK;
+    return 0;
 }
 
 String Buffer::string(bool hex) const {

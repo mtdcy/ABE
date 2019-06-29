@@ -32,14 +32,14 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_LOOPER_H
-#define _TOOLKIT_HEADERS_LOOPER_H 
+#ifndef ABE_HEADERS_LOOPER_H
+#define ABE_HEADERS_LOOPER_H 
 
 #include <ABE/object/Runnable.h>
 #include <ABE/basic/Thread.h>
 __BEGIN_NAMESPACE_ABE
 
-class __ABE_EXPORT Looper : public SharedObject {
+class ABE_EXPORT Looper : public SharedObject {
     public:
         /**
          * get 'main looper', prepare one if not exists.
@@ -144,4 +144,4 @@ class __ABE_EXPORT Looper : public SharedObject {
     DISALLOW_EVILS(Looper);
 };
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_LOOPER_H
+#endif // ABE_HEADERS_LOOPER_H

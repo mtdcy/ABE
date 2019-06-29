@@ -62,9 +62,6 @@
 
 __BEGIN_NAMESPACE_ABE
 
-SharedObject::SharedObject() : mID(ID_UNKNOWN), mRefs(0) {
-}
-
 SharedObject::SharedObject(const uint32_t id) : mID(id), mRefs(0) {
 }
 
@@ -85,10 +82,6 @@ size_t SharedObject::ReleaseObject(bool keep) {
     return (size_t)refs;
 }
 
-size_t SharedObject::GetRetainCount() const {
-    return mRefs.load();
-}
-
 SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(0) {
 }
 
@@ -106,10 +99,6 @@ __BEGIN_NAMESPACE_ABE
 
 SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
 mAllocator(NULL), mData(NULL), mSize(0) { }
-
-void SharedBuffer::onLastRetain() {
-    // 
-}
 
 SharedBuffer * SharedBuffer::Create(const Object<Allocator> & _allocator, size_t sz) {
     // FIXME: if allocator is aligned, make sure data is also aligned

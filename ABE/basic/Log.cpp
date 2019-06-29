@@ -31,16 +31,6 @@
 // Changes: 
 //          1. 20160701     initial version
 //
-#if defined(__APPLE__)
-#include "basic/compat/pthread_macos.h"
-#include "basic/compat/time_macos.h"
-#elif defined(_WIN32) || defined(__MINGW32__)
-#include "basic/compat/pthread_win32.h"
-#include "basic/compat/time_win32.h"
-#else
-#include "basic/compat/pthread_linux.h"
-#include "basic/compat/time_linux.h"
-#endif
 
 #include <stdio.h> // printf
 #ifdef __ANDROID__
@@ -49,6 +39,9 @@
 
 #include "Log.h"
 #include "debug/backtrace.h"
+
+#include "Time.h"
+#include "Thread.h"
 
 #if defined(_WIN32) || defined(__MINGW32__)
 #define PRIpid_t    "lld"
@@ -62,54 +55,8 @@ __BEGIN_DECLS
 //  1. should avoid having dependency to others as possible as you can
 //  2. must avoid calling others which uses Log.
 
-#if 0
-static void _default_callback(const char *tag, int level, const char *text) {
-#ifdef __ANDROID__
-    // android does have an log driver, so no need service here.
-    static int android_levels[] = {
-        ANDROID_LOG_FATAL,
-        ANDROID_LOG_ERROR,
-        ANDROID_LOG_WARN,
-        ANDROID_LOG_INFO,
-        ANDROID_LOG_DEBUG
-    };
-
-    __android_log_write(android_levels[level], tag, text);
-#else
-    static const char * LEVELS[] = {
-        "F",
-        "E",
-        "W",
-        "I",
-        "D",
-        NULL
-    };
-
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    char name[32];
-    pthread_getname_mpx(pthread_self(), name, 32);
-    if (name[0] == '\0') {
-        fprintf(stdout, "[%08.03f] [%06d] [%-14.14s] [%1s] >> %s\n",
-                nseconds(ts) / 1E9,
-                pthread_gettid(),
-                tag,
-                LEVELS[level],
-                text);
-    } else {
-        fprintf(stdout, "[%08.03f] [%-6.6s] [%-14.14s] [%1s] >> %s\n",
-                nseconds(ts) / 1E9,
-                name,
-                tag,
-                LEVELS[level],
-                text);
-    }
-#endif
-}
-#endif
-
 static bool __init = false;
-static __ABE_INLINE void _init() {
+static ABE_INLINE void _init() {
 #if defined(_WIN32) || defined(__MINGW32__)
     setvbuf(stdout, 0, _IOLBF, 2048);
 #endif
@@ -147,29 +94,17 @@ void LogPrint(const char *      tag,
         NULL
     };
 
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts); // time since Epoch.
-    char name[32];
-    pthread_getname(pthread_self(), name, 32);
-    if (name[0] == '\0') {
-        snprintf(buf1, 1024, "[%08.03f][%07" PRIpid_t "][%-7.7s][%1s][%14.14s:%zu] : %s\n",
-                nseconds(ts) / 1E9,
-                pthread_gettid(),
-                tag,
-                LEVELS[level],
-                func,
-                line,
-                buf0);
-    } else {
-        snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
-                nseconds(ts) / 1E9,
-                name,
-                tag,
-                LEVELS[level],
-                func,
-                line,
-                buf0);
-    }
+    int64_t ts = SystemTimeEpoch();
+    abe::String name = abe::Thread::Name();
+
+    snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+            ts / 1E9,
+            name.c_str(),
+            tag,
+            LEVELS[level],
+            func,
+            line,
+            buf0);
     
     if (__callback) {
         __callback(buf1);

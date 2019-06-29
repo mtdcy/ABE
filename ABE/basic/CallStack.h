@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_CALLSTACK_H
-#define _TOOLKIT_HEADERS_CALLSTACK_H
+#ifndef ABE_HEADERS_CALLSTACK_H
+#define ABE_HEADERS_CALLSTACK_H
 
 #include <ABE/Types.h>
 

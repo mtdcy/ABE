@@ -31,8 +31,8 @@
 //          1. 20181112     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_SHARED_BUFFER_H
-#define _TOOLKIT_HEADERS_SHARED_BUFFER_H
+#ifndef ABE_HEADERS_SHARED_BUFFER_H
+#define ABE_HEADERS_SHARED_BUFFER_H
 #include <ABE/basic/Types.h>
 #include <ABE/basic/Allocator.h>
 
@@ -42,40 +42,72 @@ __BEGIN_NAMESPACE_ABE
  * a cow buffer
  * @note DON'T use sp to hold SharedBuffer
  */
-struct __ABE_EXPORT SharedBuffer : protected SharedObject {
+struct ABE_EXPORT SharedBuffer : protected SharedObject {
     protected:
         SharedBuffer();
         ~SharedBuffer() { }
-        virtual void onLastRetain();
 
     public:
-        static SharedBuffer * Create(const Object<Allocator>&, size_t);
-        void            deallocate();
+        /**
+         * create a cow buffer with given size and backend allocator
+         */
+        static SharedBuffer *       Create(const Object<Allocator>&, size_t);
+        /**
+         * manually release backend memory
+         */
+        void                        deallocate();
 
     public:
-        __ABE_INLINE SharedBuffer *  RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
-        size_t                       ReleaseBuffer(bool keep = false);
-        __ABE_INLINE size_t          GetRetainCount() const      { return SharedObject::GetRetainCount();    }
-        __ABE_INLINE bool            IsBufferShared() const      { return SharedObject::IsObjectShared();    }
-        __ABE_INLINE bool            IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
+        /**
+         * retain this cow buffer
+         * @note retain is thread safe, can perform at any time
+         */
+        ABE_INLINE SharedBuffer *   RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
+        /**
+         * release this cow buffer
+         * @param keep  if keep == false & this is the last ref, backend memory will be released
+         *              if keep == true & this is the last ref, manually release backend memory using deallocate
+         *
+         * @note release is thread safe, can perform at any time
+         * @note if client have to do extra destruction work on this cow buffer, please always using keep = true
+         */
+        size_t                      ReleaseBuffer(bool keep = false);
+    
+        /**
+         * get this cow buffer's ref count
+         */
+        ABE_INLINE size_t           GetRetainCount() const      { return SharedObject::GetRetainCount();    }
+    
+        /**
+         * is this cow buffer shared with others
+         * @note if IsBufferNotShared() == true, it is safe to do anything later
+         * @note if IsBufferShared() == true, you may have to test again later
+         */
+        ABE_INLINE bool             IsBufferShared() const      { return SharedObject::IsObjectShared();    }
+        ABE_INLINE bool             IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
 
     public:
-        __ABE_INLINE char *          data()                      { return mData;                             }
-        __ABE_INLINE const char *    data() const                { return mData;                             }
-        __ABE_INLINE size_t          size() const                { return mSize;                             }
+        ABE_INLINE char *           data()                      { return mData;                             }
+        ABE_INLINE const char *     data() const                { return mData;                             }
+        ABE_INLINE size_t           size() const                { return mSize;                             }
 
     public:
-        SharedBuffer *  edit();
-        SharedBuffer *  edit(size_t);
+        /**
+         * perform edit before you write to this cow buffer
+         * @note if this cow is not shared, it does NOTHING. otherwise it perform a cow action
+         * @note edit with new size always perform a cow action.
+         * @note edit with new size will assert on failure
+         */
+        SharedBuffer *              edit();
+        SharedBuffer *              edit(size_t);
 
     private:
         Object<Allocator>   mAllocator;
         char *              mData;
         size_t              mSize;
     
-    private:
-        DISALLOW_EVILS(SharedBuffer);
+    DISALLOW_EVILS(SharedBuffer);
 };
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_SHARED_BUFFER_H
+#endif // ABE_HEADERS_SHARED_BUFFER_H

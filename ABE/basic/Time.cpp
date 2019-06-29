@@ -31,33 +31,77 @@
 //          1. 20160701     initial version
 //
 
-#if defined(__APPLE__)
-#include "basic/compat/time_macos.h"
-#elif defined(_WIN32) || defined(__MINGW32__)
-#include "basic/compat/time_win32.h"
-#else
-#include "basic/compat/time_linux.h"
-#endif
-
 #define LOG_TAG "Time"
 #include "Log.h"
 #include "Time.h"
 
+#include <time.h>
+
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
 __BEGIN_DECLS
 
 int64_t SystemTimeEpoch() {
+#if defined(_WIN32)
+    // borrow from ffmpeg, 100ns resolution
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    int64_t t = (int64_t)ft.dwHighDateTime << 32 | ft.dwLowDateTime;
+    t -= 116444736000000000LL;    //1jan1601 to 1jan1970
+    return t * 100LL;
+#else
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
 }
 
 int64_t SystemTimeMonotonic() {
+#if defined(_WIN32)
+    static LARGE_INTEGER performanceFrequency = { 0 };
+    if (ABE_UNLIKELY(performanceFrequency.QuadPart == 0)) {
+        QueryPerformanceFrequency(&performanceFrequency);
+    }
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    return (t.QuadPart * 1000000000LL) / performanceFrequency.QuadPart;
+#else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
 }
 
-__ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
+ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
+#if defined(_WIN32)
+    // https://gist.github.com/Youka/4153f12cf2e17a77314c
+    // FIXME: return the unslept time properly
+    /* Windows sleep in 100ns units */
+    /* Declarations */
+    HANDLE timer;     /* Timer handle */
+    LARGE_INTEGER li; /* Time defintion */
+    if (unslept) *unslept = 0;
+    /* Create timer */
+    if (!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+        return false;
+    
+    /* Set timer properties */
+    li.QuadPart = -ns;
+    if (!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)) {
+        CloseHandle(timer);
+        return false;
+    }
+    /* Start & wait for timer */
+    if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0) {
+        // failed ?
+    }
+    /* Clean resources */
+    CloseHandle(timer);
+    /* Slept without problems */
+    return true;
+#else
     struct timespec rqtp;
     struct timespec rmtp;
     rqtp.tv_sec     = ns / 1000000000LL;
@@ -71,6 +115,7 @@ __ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
     // man(3) usleep:
     // "The usleep() function is obsolescent. Use nanosleep(2) instead."
     //return usleep(usecs);
+#endif
 }
 
 bool SleepForInterval(int64_t ns) {

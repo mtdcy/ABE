@@ -61,7 +61,6 @@ __BEGIN_NAMESPACE_ABE
 struct File : public Content::Protocol {
     String          mUrl;
     Content::eMode  mMode;  // read | write
-    status_t        mStatus;
     
     int             mFd;
     int64_t         mOffset;
@@ -69,7 +68,7 @@ struct File : public Content::Protocol {
     int64_t         mPosition;
     
     File(const String& url, Content::eMode mode) : Content::Protocol(),
-    mUrl(url), mMode(mode), mStatus(NO_INIT), mFd(-1),
+    mUrl(url), mMode(mode), mFd(-1),
     mOffset(0), mLength(0), mPosition(0)
     {
         if (url.startsWithIgnoreCase("pipe://")) {
@@ -133,8 +132,6 @@ struct File : public Content::Protocol {
         
         mPosition = lseek64(mFd, mOffset, SEEK_SET);
         DEBUG("mOffset = %" PRId64 ", mPosition = %" PRId64 " mLength = %" PRId64, mOffset, mPosition, mLength);
-        
-        mStatus     = OK;
     }
     
     ~File() {

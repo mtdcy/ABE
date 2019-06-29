@@ -32,14 +32,14 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_ATOMIC_H
-#define _TOOLKIT_HEADERS_ATOMIC_H
+#ifndef ABE_HEADERS_ATOMIC_H
+#define ABE_HEADERS_ATOMIC_H
 
 #include <ABE/basic/Types.h>
 
 // we don't understand the memmodel, always using the same
 #ifndef ABE_ATOMIC_MEMMODEL
-#define ABE_ATOMIC_MEMMODEL     __ATOMIC_SEQ_CST
+#define ABE_ATOMIC_MEMMODEL             __ATOMIC_SEQ_CST
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -66,7 +66,7 @@
 #define ABE_ATOMIC_FETCH_XOR(p, val)    __atomic_fetch_xor(p, val, ABE_ATOMIC_MEMMODEL)
 #define ABE_ATOMIC_FETCH_NAND(p, val)   __atomic_fetch_nand(p, val, ABE_ATOMIC_MEMMODEL)
 #elif _MSC_VER
-// FIXME
+#error "TODO: ATOMIC is missing for MSVC"
 #endif
 
 #ifdef __cplusplus
@@ -76,34 +76,32 @@ private:
     volatile T value;
     
 public:
-    Atomic()                                    { ABE_ATOMIC_STORE(&value, static_cast<T>(0));  }
-    explicit Atomic(T _value)                   { ABE_ATOMIC_STORE(&value, _value);             }
-    T operator=(T _value)                       { return ABE_ATOMIC_STORE(&value, _value);      }
+    ABE_INLINE Atomic()                     { ABE_ATOMIC_STORE(&value, static_cast<T>(0));  }
+    ABE_INLINE explicit Atomic(T _value)    { ABE_ATOMIC_STORE(&value, _value);             }
+    ABE_INLINE T operator=(T _value)        { return ABE_ATOMIC_STORE(&value, _value);      }
     
-    __ABE_INLINE void   store(T val)            { ABE_ATOMIC_STORE(&value, val);                }
-    __ABE_INLINE T      load() const            { return ABE_ATOMIC_LOAD(&value);               }
-    __ABE_INLINE T      exchange(T val)         { return ABE_ATOMIC_EXCHANGE(&value, val);      }
-    __ABE_INLINE bool   cas(T& to, T val)       { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
+    ABE_INLINE void   store(T val)          { ABE_ATOMIC_STORE(&value, val);                }
+    ABE_INLINE T      load() const          { return ABE_ATOMIC_LOAD(&value);               }
+    ABE_INLINE T      exchange(T val)       { return ABE_ATOMIC_EXCHANGE(&value, val);      }
+    ABE_INLINE bool   cas(T& to, T val)     { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
     
+    ABE_INLINE T      operator++()          { return ABE_ATOMIC_ADD(&value, 1);             }   // pre-increment
+    ABE_INLINE T      operator++(int)       { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
+    ABE_INLINE T      operator--()          { return ABE_ATOMIC_SUB(&value, 1);             }
+    ABE_INLINE T      operator--(int)       { return ABE_ATOMIC_FETCH_SUB(&value, 1);       }
     
-    __ABE_INLINE T      operator++()            { return ABE_ATOMIC_ADD(&value, 1);             }   // pre-increment
-    __ABE_INLINE T      operator++(int)         { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
-    __ABE_INLINE T      operator--()            { return ABE_ATOMIC_SUB(&value, 1);             }
-    __ABE_INLINE T      operator--(int)         { return ABE_ATOMIC_FETCH_SUB(&value, 1);       }
+    ABE_INLINE T      operator+=(T val)     { return ABE_ATOMIC_ADD(&value, val);           }
+    ABE_INLINE T      operator-=(T val)     { return ABE_ATOMIC_SUB(&value, val);           }
+    ABE_INLINE T      operator&=(T val)     { return ABE_ATOMIC_AND(&value, val);           }
+    ABE_INLINE T      operator|=(T val)     { return ABE_ATOMIC_OR(&value, val);            }
+    ABE_INLINE T      operator^=(T val)     { return ABE_ATOMIC_XOR(&value, val);           }
     
-    __ABE_INLINE T      operator+=(T val)       { return ABE_ATOMIC_ADD(&value, val);           }
-    __ABE_INLINE T      operator-=(T val)       { return ABE_ATOMIC_SUB(&value, val);           }
-    __ABE_INLINE T      operator&=(T val)       { return ABE_ATOMIC_AND(&value, val);           }
-    __ABE_INLINE T      operator|=(T val)       { return ABE_ATOMIC_OR(&value, val);            }
-    __ABE_INLINE T      operator^=(T val)       { return ABE_ATOMIC_XOR(&value, val);           }
+    ABE_INLINE T      fetch_add(T val)      { return ABE_ATOMIC_FETCH_ADD(&value, val);     }
+    ABE_INLINE T      fetch_sub(T val)      { return ABE_ATOMIC_FETCH_SUB(&value, val);     }
+    ABE_INLINE T      fetch_and(T val)      { return ABE_ATOMIC_FETCH_AND(&value, val);     }
+    ABE_INLINE T      fetch_or(T val)       { return ABE_ATOMIC_FETCH_OR(&value, val);      }
+    ABE_INLINE T      fetch_xor(T val)      { return ABE_ATOMIC_FETCH_XOR(&value, val);     }
     
-    __ABE_INLINE T      fetch_add(T val)        { return ABE_ATOMIC_FETCH_ADD(&value, val);     }
-    __ABE_INLINE T      fetch_sub(T val)        { return ABE_ATOMIC_FETCH_SUB(&value, val);     }
-    __ABE_INLINE T      fetch_and(T val)        { return ABE_ATOMIC_FETCH_AND(&value, val);     }
-    __ABE_INLINE T      fetch_or(T val)         { return ABE_ATOMIC_FETCH_OR(&value, val);      }
-    __ABE_INLINE T      fetch_xor(T val)        { return ABE_ATOMIC_FETCH_XOR(&value, val);     }
-    
-private:
     DISALLOW_DYNAMIC(Atomic);
     DISALLOW_EVILS(Atomic);
 };
@@ -113,4 +111,4 @@ __END_NAMESPACE_ABE
 // fence
 #define atomic_fence()          __atomic_thread_fence(ABE_ATOMIC_MEMMODEL)
 
-#endif // _TOOLKIT_HEADERS_ATOMIC_H 
+#endif // ABE_HEADERS_ATOMIC_H 

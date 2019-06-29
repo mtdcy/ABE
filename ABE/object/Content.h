@@ -33,8 +33,8 @@
 //
 
 
-#ifndef _TOOLKIT_HEADERS_CONTENT_H
-#define _TOOLKIT_HEADERS_CONTENT_H
+#ifndef ABE_HEADERS_CONTENT_H
+#define ABE_HEADERS_CONTENT_H
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/SharedObject.h>
@@ -48,7 +48,7 @@ __BEGIN_NAMESPACE_ABE
  * a content manager
  * @note not thread safe
  */
-class __ABE_EXPORT Content : public SharedObject {
+class ABE_EXPORT Content : public SharedObject {
     public:
         enum eMode {
             Read        = 0x1,              ///< read only
@@ -61,7 +61,7 @@ class __ABE_EXPORT Content : public SharedObject {
         /**
          * protocol interface
          */
-        struct __ABE_EXPORT Protocol : public SharedObject {
+        struct ABE_EXPORT Protocol : public SharedObject {
             /**
              * return mode of the protocol
              * @return see @Content::eMode
@@ -117,7 +117,7 @@ class __ABE_EXPORT Content : public SharedObject {
          * return mode of the content
          * @return see @eMode
          */
-        __ABE_INLINE eMode mode() const { return mProto->mode(); }
+        ABE_INLINE eMode mode() const { return mProto->mode(); }
     
         /**
          * get total bytes of the content
@@ -176,5 +176,5 @@ class __ABE_EXPORT Content : public SharedObject {
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_HEADERS_CONTENT_H
+#endif // ABE_HEADERS_CONTENT_H
 

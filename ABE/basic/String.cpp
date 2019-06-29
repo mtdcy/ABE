@@ -63,12 +63,6 @@ static size_t CStringPrintf(void *str, size_t size, const char *format, ...) {
 
 __BEGIN_NAMESPACE_ABE
 
-static __ABE_INLINE size_t strlen16(const char16_t *s) {
-    const char16_t *ss = s;
-    while (*ss) ss++;
-    return ss - s;
-}
-
 String String::format(const char *format, ...) {
     va_list ap;
     char buf[1024];
@@ -111,29 +105,28 @@ String::String(const String &rhs) : mData(NULL), mSize(0)
     mSize   = rhs.mSize;
 }
 
-String::String(const char16_t *s, size_t n)  : mData(NULL), mSize(0)
-{
+String String::UTF16(const char *s, size_t n) {
     CHECK_NULL(s);
-    if (n == 0)  n = strlen16(s);
-
+    CHECK_GT(n, 0);
+    
     // is the size right?
-    mData = SharedBuffer::Create(kAllocatorDefault, n * 4 + 1);
-    char * buf_start = mData->data();
-    char * buf_end = buf_start + mData->size();
+    const size_t length = n * 4 + 1;
+    char utf8[length];
+    char * buf_start = utf8;
+    char * buf_end = buf_start + length;
     char * buf = buf_start;
 
     ConversionResult result = ConvertUTF16toUTF8(
-            (const UTF16**)&s, (const UTF16*)(s + n),
+            (const ::UTF16**)&s, (const ::UTF16*)(s + n),
             (UTF8**)&buf,
             (UTF8*)buf_end,
             lenientConversion);
     if (result != conversionOK) {
         ERROR("ConvertUTF16toUTF8 failed, ret = %d.", result);
-        return;
+        return String::Null;
     }
 
-    mSize = buf - buf_start;
-    buf_start[mSize] = '\0';
+    return String(utf8, buf - buf_start);
 }
 
 #define STRING_FROM_NUMBER(TYPE, SIZE, PRI)                                 \
@@ -157,8 +150,11 @@ STRING_FROM_NUMBER(uint64_t,    32,     PRIu64);
 STRING_FROM_NUMBER(int64_t,     32,     PRId64);
 STRING_FROM_NUMBER(float,       32,     "f");
 STRING_FROM_NUMBER(double,      64,     "f");
-#ifdef __APPLE__
-STRING_FROM_NUMBER(size_t,      16,     "zu");
+#ifndef size_t
+STRING_FROM_NUMBER(size_t,      32,     "zu");
+#endif
+#ifndef ssize_t
+STRING_FROM_NUMBER(ssize_t,     32,     "zd");
 #endif
 STRING_FROM_NUMBER(void *,      32,     "xp");
 

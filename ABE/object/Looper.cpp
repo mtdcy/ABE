@@ -32,13 +32,7 @@
 //          1. 20160701     initial version
 //
 
-#if defined(__APPLE__)
-#include "basic/compat/pthread_macos.h"
-#elif defined(_WIN32) || defined(__MINGW32__)
-#include "basic/compat/pthread_win32.h"
-#else
-#include "basic/compat/pthread_linux.h"
-#endif
+#define _DARWIN_C_SOURCE    // sys_signame
 
 #define LOG_TAG   "Looper"
 //#define LOG_NDEBUG 0
@@ -54,6 +48,8 @@
 
 // https://stackoverflow.com/questions/24854580/how-to-properly-suspend-threads
 #include <signal.h>
+
+#include "basic/compat/pthread.h"
 
 __BEGIN_NAMESPACE_ABE
 
@@ -85,27 +81,27 @@ struct Stat {
     int64_t     profile_interval;
     int64_t     last_profile_time;
 
-    __ABE_INLINE Stat() {
+    ABE_INLINE Stat() {
         start_time = sleep_time = exec_time = 0;
         num_job = num_job_late = num_job_early = 0;
         job_late_time = job_early_time = 0;
         profile_enabled = false;
     }
 
-    __ABE_INLINE void start() {
+    ABE_INLINE void start() {
         start_time = SystemTimeUs();
     }
 
-    __ABE_INLINE void stop() {
+    ABE_INLINE void stop() {
     }
 
-    __ABE_INLINE void profile(int64_t interval) {
+    ABE_INLINE void profile(int64_t interval) {
         profile_enabled = true;
         profile_interval = interval;
         last_profile_time = SystemTimeUs();
     }
 
-    __ABE_INLINE void start_profile(const Job& job) {
+    ABE_INLINE void start_profile(const Job& job) {
         ++num_job;
         last_exec = SystemTimeUs();
         if (job.mTime < last_exec) {
@@ -117,7 +113,7 @@ struct Stat {
         }
     }
 
-    __ABE_INLINE void end_profile(const Job& job) {
+    ABE_INLINE void end_profile(const Job& job) {
         const int64_t now = SystemTimeUs();
         exec_time += now - last_exec;
 
@@ -133,11 +129,11 @@ struct Stat {
         }
     }
 
-    __ABE_INLINE void sleep() {
+    ABE_INLINE void sleep() {
         last_sleep = SystemTimeUs();
     }
 
-    __ABE_INLINE void wakeup() {
+    ABE_INLINE void wakeup() {
         const int64_t ns = SystemTimeUs() - last_sleep;
         sleep_time += ns;
     }
@@ -353,7 +349,7 @@ struct NormalJobDispatcher : public JobDispatcher {
     }
 };
 
-static __ABE_INLINE const char * signame(int signo) {
+static ABE_INLINE const char * signame(int signo) {
 #ifdef __APPLE__
     return sys_signame[signo];
 #elif defined(_WIN32) || defined(__MINGW32__)
@@ -377,7 +373,7 @@ static pthread_t g_threadid;
 #if defined(_WIN32) || defined(__MINGW32__)
 // signal on win32 is very simple, we need some help
 #define SIG_RESUME 	SIGINT
-static __ABE_INLINE void wait_for_signals() {
+static ABE_INLINE void wait_for_signals() {
     DEBUG("goto sleep");
     SleepForInterval(1000000000LL);
     DEBUG("wake up from sleep");
@@ -390,13 +386,13 @@ static void signal_exit(int signo) {
 static void signal_null(int signo) {
 }
 
-static __ABE_INLINE void init_signals() {
+static ABE_INLINE void init_signals() {
     DEBUG("install signal handlers");
     signal(SIG_RESUME, signal_null);
 }
 #else
 #define SIG_RESUME      SIGUSR1
-static __ABE_INLINE void wait_for_signals() {
+static ABE_INLINE void wait_for_signals() {
     /* save errno to keep it unchanged in the interrupted thread. */
     const int saved = errno;
 
@@ -416,7 +412,7 @@ static __ABE_INLINE void wait_for_signals() {
     errno = saved;
 }
 
-static __ABE_INLINE void uninstall(int sig) {
+static ABE_INLINE void uninstall(int sig) {
     struct sigaction act;
     sigemptyset(&act.sa_mask);
     sigaddset(&act.sa_mask, sig);
@@ -439,7 +435,7 @@ static void sigaction_null(int sig, siginfo_t *info, void *vcontext) {
     // NOTHING
 }
 
-static __ABE_INLINE void init_signals() {
+static ABE_INLINE void init_signals() {
     g_threadid = pthread_self();
     
     // install signal handlers

@@ -32,16 +32,24 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_MUTEX_H
-#define _TOOLKIT_HEADERS_MUTEX_H
+#ifndef ABE_HEADERS_MUTEX_H
+#define ABE_HEADERS_MUTEX_H
 
 #include <ABE/basic/Types.h>
+
+#if defined(_WIN32)
+#include <Windows.h>
+/* use light weight mutex/condition variable API for Windows Vista and later */
+typedef SRWLOCK                 pthread_mutex_t;
+typedef CONDITION_VARIABLE      pthread_cond_t;
+#else
 #include <pthread.h>
+#endif
 
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
-class __ABE_EXPORT Mutex : public NonSharedObject {
+class ABE_EXPORT Mutex : public NonSharedObject {
     public:
         Mutex(bool recursive = false);
         ~Mutex();
@@ -59,11 +67,11 @@ class __ABE_EXPORT Mutex : public NonSharedObject {
     DISALLOW_EVILS(Mutex);
 };
 
-class __ABE_EXPORT AutoLock : public NonSharedObject {
+class ABE_EXPORT AutoLock : public NonSharedObject {
     public:
-        __ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
-        __ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
-        __ABE_INLINE ~AutoLock()                            { mLock.unlock(); }
+        ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
+        ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
+        ABE_INLINE ~AutoLock()                            { mLock.unlock(); }
 
     private:
         Mutex&  mLock;
@@ -71,7 +79,7 @@ class __ABE_EXPORT AutoLock : public NonSharedObject {
     DISALLOW_EVILS(AutoLock);
 };
 
-class __ABE_EXPORT Condition : public NonSharedObject {
+class ABE_EXPORT Condition : public NonSharedObject {
     public:
         Condition();
         ~Condition();
@@ -90,7 +98,8 @@ class __ABE_EXPORT Condition : public NonSharedObject {
     DISALLOW_EVILS(Condition);
 };
 
-class __ABE_EXPORT RWLock : public NonSharedObject {
+#if 0
+class ABE_EXPORT RWLock : public NonSharedObject {
     public:
         RWLock();
         ~RWLock();
@@ -104,7 +113,8 @@ class __ABE_EXPORT RWLock : public NonSharedObject {
 
     DISALLOW_EVILS(RWLock);
 };
+#endif
 
 __END_NAMESPACE_ABE
 
-#endif // _TOOLKIT_HEADERS_MUTEX_H
+#endif // ABE_HEADERS_MUTEX_H

@@ -36,20 +36,11 @@
  *  20151205    mtdcy           initial version
  *****************************************************************************/
 
-#if defined(__APPLE__)
-#include "basic/compat/pthread_macos.h"
-#include "basic/compat/time_macos.h"
-#elif defined(_WIN32) || defined(__MINGW32__)
-#include "basic/compat/pthread_win32.h"
-#include "basic/compat/time_win32.h"
-#else
-#include "basic/compat/pthread_linux.h"
-#include "basic/compat/time_linux.h"
-#endif
-
 #define LOG_TAG   "Mutex"
 #include "ABE/basic/Log.h"
 #include "ABE/basic/Mutex.h"
+
+#include "compat/pthread.h"
 
 __BEGIN_NAMESPACE_ABE
 
@@ -80,6 +71,7 @@ bool Mutex::tryLock() {
     return pthread_mutex_trylock(&mLock) == 0;
 }
 
+#if 0
 RWLock::RWLock() {
     CHECK_EQ(pthread_rwlock_init(&mLock, NULL), 0);
 }
@@ -105,13 +97,14 @@ bool RWLock::tryLock(bool write) {
 void RWLock::unlock(bool write) {
     CHECK_EQ(pthread_rwlock_unlock(&mLock), 0);
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////
 Condition::Condition() {
     pthread_condattr_t attr;
     CHECK_EQ(pthread_condattr_init(&attr), 0);
-#ifdef PTHREAD_COND_CLOCK_ID
-    CHECK_EQ(pthread_condattr_setclock(&attr, PTHREAD_COND_CLOCK_ID), 0);
+#if HAVE_PTHREAD_CONDATTR_SETCLOCK
+    CHECK_EQ(pthread_condattr_setclock(&attr, CLOCK_MONOTONIC), 0);
 #endif
     CHECK_EQ(pthread_cond_init(&mWait, &attr), 0);
 }
@@ -128,9 +121,21 @@ bool Condition::waitRelative(Mutex& lock, int64_t reltime /* ns */) {
     struct timespec ts;
     ts.tv_sec  = reltime / 1000000000;
     ts.tv_nsec = reltime % 1000000000;
-    int rt = pthread_cond_timedwait_relative(&mWait, &lock.mLock, &ts);
+#if HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP
+    int rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
     if (rt == ETIMEDOUT)    return true;
     else                    return false;
+#else
+    struct timespec abs;
+    clock_gettime(CLOCK_MONOTONIC, &abs);
+    abs.tv_nsec += ts.tv_nsec;
+    abs.tv_sec  += ts.tv_sec;
+    if (abs.tv_nsec >= 1000000000LL) {
+        abs.tv_sec  += abs.tv_nsec / 1000000000LL;
+        abs.tv_nsec %= 1000000000LL;
+    }
+    return pthread_cond_timedwait(&mWait, &lock.mLock, &abs);
+#endif
 }
 
 void Condition::signal() {

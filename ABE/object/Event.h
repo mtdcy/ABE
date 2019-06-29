@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_EVENT_H
-#define _TOOLKIT_HEADERS_EVENT_H 
+#ifndef ABE_HEADERS_EVENT_H
+#define ABE_HEADERS_EVENT_H 
 
 #include <ABE/object/Looper.h>
 #include <ABE/stl/Queue.h>
@@ -45,7 +45,7 @@ __BEGIN_NAMESPACE_ABE
  * if looper exists, it will run async by runnable.
  * otherwise it run directly and blocked.
  */
-class __ABE_EXPORT Event : public SharedObject {
+class ABE_EXPORT Event : public SharedObject {
     protected:
         /**
          * construct a event
@@ -86,12 +86,12 @@ class __ABE_EXPORT Event : public SharedObject {
 
 template <class TYPE> class TypedEvent : public Event {
     protected:
-        __ABE_INLINE TypedEvent() : Event() { }
-        __ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
-        __ABE_INLINE virtual ~TypedEvent() { }
+        ABE_INLINE TypedEvent() : Event() { }
+        ABE_INLINE TypedEvent(const Object<Looper>& looper) : Event(looper) { }
+        ABE_INLINE virtual ~TypedEvent() { }
     
     public:
-        __ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
+        ABE_INLINE void fire(const TYPE& v, int64_t delay = 0) { mQueue.push(v); Event::fire(); }
 
     protected:
         //virtual void fire() { Event::fire(); }
@@ -106,4 +106,4 @@ template <class TYPE> class TypedEvent : public Event {
         DISALLOW_EVILS(TypedEvent);
 };
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_EVENT_H
+#endif // ABE_HEADERS_EVENT_H

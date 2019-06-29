@@ -33,15 +33,15 @@
 //
 
 
-#ifndef _TOOLKIT_HEADERS_STL_VECTOR_H
-#define _TOOLKIT_HEADERS_STL_VECTOR_H 
+#ifndef ABE_HEADERS_STL_VECTOR_H
+#define ABE_HEADERS_STL_VECTOR_H 
 
 #include <ABE/stl/TypeHelper.h>
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/SharedBuffer.h>
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
-class __ABE_EXPORT VectorImpl {
+class ABE_EXPORT VectorImpl {
     public:
         VectorImpl(const Object<Allocator>& allocator,
                 size_t capacity, const TypeHelper& helper);
@@ -56,8 +56,8 @@ class __ABE_EXPORT VectorImpl {
         void        clear();
         void        shrink();
 
-        __ABE_INLINE size_t      size() const        { return mItemCount; }
-        __ABE_INLINE size_t      capacity() const    { return mCapacity; }
+        ABE_INLINE size_t      size() const        { return mItemCount; }
+        ABE_INLINE size_t      capacity() const    { return mCapacity; }
 
     protected:
         const void* access  (size_t index) const;
@@ -91,46 +91,46 @@ __BEGIN_NAMESPACE_ABE
 // 2. No auto memory shrink
 template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl {
     public:
-        __ABE_INLINE Vector(size_t capacity = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
+        ABE_INLINE Vector(size_t capacity = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
             VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, false, true, true>()) { }
 
-        __ABE_INLINE ~Vector() { }
+        ABE_INLINE ~Vector() { }
 
     public:
-        __ABE_INLINE void        clear()             { VectorImpl::clear();              }
-        __ABE_INLINE void        shrink()            { VectorImpl::shrink();             }
-        __ABE_INLINE size_t      size() const        { return VectorImpl::size();        }
-        __ABE_INLINE bool        empty() const       { return size() == 0;               }
-        __ABE_INLINE size_t      capacity() const    { return VectorImpl::capacity();    }
+        ABE_INLINE void        clear()             { VectorImpl::clear();              }
+        ABE_INLINE void        shrink()            { VectorImpl::shrink();             }
+        ABE_INLINE size_t      size() const        { return VectorImpl::size();        }
+        ABE_INLINE bool        empty() const       { return size() == 0;               }
+        ABE_INLINE size_t      capacity() const    { return VectorImpl::capacity();    }
 
     public:
         // stable sort, uses operator<
-        __ABE_INLINE void        sort()              { VectorImpl::sort(type_compare_less<TYPE>);                }
+        ABE_INLINE void        sort()              { VectorImpl::sort(type_compare_less<TYPE>);                }
         typedef     bool compare_t (const TYPE *lhs, const TYPE *rhs);
-        __ABE_INLINE void        sort(compare_t cmp) { VectorImpl::sort(reinterpret_cast<type_compare_t>(cmp));  }
+        ABE_INLINE void        sort(compare_t cmp) { VectorImpl::sort(reinterpret_cast<type_compare_t>(cmp));  }
 
     public:
         // element access with range check which is not like std::vector::operator[]
-        __ABE_INLINE TYPE&       operator[](size_t index)        { return *static_cast<TYPE*>(access(index));        }
-        __ABE_INLINE const TYPE& operator[](size_t index) const  { return *static_cast<const TYPE*>(access(index));  }
+        ABE_INLINE TYPE&       operator[](size_t index)        { return *static_cast<TYPE*>(access(index));        }
+        ABE_INLINE const TYPE& operator[](size_t index) const  { return *static_cast<const TYPE*>(access(index));  }
 
     public:
-        __ABE_INLINE TYPE&       front()             { return *static_cast<TYPE*>(VectorImpl::access(0));                }
-        __ABE_INLINE TYPE&       back()              { return *static_cast<TYPE*>(VectorImpl::access(size()-1));         }
-        __ABE_INLINE const TYPE& front() const       { return *static_cast<const TYPE*>(VectorImpl::access(0));          }
-        __ABE_INLINE const TYPE& back() const        { return *static_cast<const TYPE*>(VectorImpl::access(size()-1));   }
+        ABE_INLINE TYPE&       front()             { return *static_cast<TYPE*>(VectorImpl::access(0));                }
+        ABE_INLINE TYPE&       back()              { return *static_cast<TYPE*>(VectorImpl::access(size()-1));         }
+        ABE_INLINE const TYPE& front() const       { return *static_cast<const TYPE*>(VectorImpl::access(0));          }
+        ABE_INLINE const TYPE& back() const        { return *static_cast<const TYPE*>(VectorImpl::access(size()-1));   }
 
     public:
-        __ABE_INLINE void        push(const TYPE& v) { VectorImpl::insert(size(), &v);                                                   }
-        __ABE_INLINE TYPE&       push()              { return *static_cast<TYPE*>(VectorImpl::emplace(size(), type_construct<TYPE>));    }
-        __ABE_INLINE void        pop()               { VectorImpl::erase(size()-1);                                                      }
+        ABE_INLINE void        push(const TYPE& v) { VectorImpl::insert(size(), &v);                                                   }
+        ABE_INLINE TYPE&       push()              { return *static_cast<TYPE*>(VectorImpl::emplace(size(), type_construct<TYPE>));    }
+        ABE_INLINE void        pop()               { VectorImpl::erase(size()-1);                                                      }
 
     public:
-        __ABE_INLINE void        erase(size_t index)                 { VectorImpl::erase(index);                                 }
-        __ABE_INLINE void        erase(size_t first, size_t last)    { VectorImpl::erase(first, last);                           }
-        __ABE_INLINE void        insert(size_t index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
-        __ABE_INLINE TYPE&       insert(size_t index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
+        ABE_INLINE void        erase(size_t index)                 { VectorImpl::erase(index);                                 }
+        ABE_INLINE void        erase(size_t first, size_t last)    { VectorImpl::erase(first, last);                           }
+        ABE_INLINE void        insert(size_t index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
+        ABE_INLINE TYPE&       insert(size_t index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
 };
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_STL_VECTOR_H 
+#endif // ABE_HEADERS_STL_VECTOR_H 

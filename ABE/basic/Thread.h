@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_THREAD_H
-#define _TOOLKIT_HEADERS_THREAD_H
+#ifndef ABE_HEADERS_THREAD_H
+#define ABE_HEADERS_THREAD_H
 
 #include <ABE/basic/Types.h>
 #include <ABE/basic/String.h>
@@ -69,7 +69,7 @@ enum eThreadType {
  * Thread(new MyRunnable()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
-class __ABE_EXPORT Thread : public NonSharedObject {
+class ABE_EXPORT Thread : public NonSharedObject {
     public:
         /**
          * yield current thread
@@ -77,10 +77,21 @@ class __ABE_EXPORT Thread : public NonSharedObject {
         static void         Yield();
     
         /**
+         * get current thread name
+         */
+        static String       Name();
+    
+        /**
          * main thread
          * @note using this to control main thread through native_thread_handle
          */
         static Thread&      Main();
+    
+        /**
+         * Null thread
+         * @note for compare only
+         */
+        static Thread       Null;
     
     public:
         /**
@@ -89,6 +100,11 @@ class __ABE_EXPORT Thread : public NonSharedObject {
          * @note thread is joinable until join() or detach()
          */
         Thread(const Object<Runnable>& runnable, const eThreadType type = kThreadDefault);
+    
+        /**
+         * copy a thread & its properties
+         */
+        Thread(const Thread&);
 
         /**
          * thread state
@@ -146,6 +162,11 @@ class __ABE_EXPORT Thread : public NonSharedObject {
          * @note join() or detach() is neccessary even without run()
          */
         void detach();
+    
+        /**
+         * is this a Null thread
+         */
+        bool isNull() const { return mShared.isNIL(); }
 
     public:
         /**
@@ -158,8 +179,10 @@ class __ABE_EXPORT Thread : public NonSharedObject {
     private:
         Thread() : mShared(NULL) { }
         Object<SharedObject> mShared;
+    
+    DISALLOW_ASSIGN(Thread);
 };
 
 __END_NAMESPACE_ABE
-#endif // _TOOLKIT_HEADERS_THREAD_H
+#endif // ABE_HEADERS_THREAD_H
 

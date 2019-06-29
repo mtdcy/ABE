@@ -32,15 +32,15 @@
 //          1. 20160701     initial version
 //
 
-#ifndef _TOOLKIT_HEADERS_HARDWARE_H
-#define _TOOLKIT_HEADERS_HARDWARE_H 
+#ifndef ABE_HEADERS_HARDWARE_H
+#define ABE_HEADERS_HARDWARE_H 
 
 #include <ABE/basic/Types.h>
 
 __BEGIN_DECLS
 
-__ABE_EXPORT int GetCpuCount();
+ABE_EXPORT uint32_t GetCpuCount();
 
 __END_DECLS
 
-#endif // _TOOLKIT_HEADERS_HARDWARE_H
+#endif // ABE_HEADERS_HARDWARE_H

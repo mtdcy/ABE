@@ -246,9 +246,6 @@ BitWriter::BitWriter(Buffer& data) : mData(data.data()), mSize(data.capacity()),
     CHECK_NULL(mData);
 }
 
-BitWriter::~BitWriter() {
-}
-
 size_t BitWriter::numBitsLeft() const {
     return 8 * (mSize - mHead) - mBitsPopulated;
 }
