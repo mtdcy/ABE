@@ -63,36 +63,36 @@ class ABE_EXPORT HashTableImpl {
         };
 
     protected:
-        ABE_INLINE size_t size () const { return mNumElements; }
+        ABE_INLINE size_t   size () const { return mNumElements; }
 
     protected:
-        void            insert      (const void *k, const void *v, size_t hash);
-        size_t          erase       (const void *k, size_t hash);
-        void            clear       ();
+        void                insert      (const void *k, const void *v, size_t hash);
+        size_t              erase       (const void *k, size_t hash);
+        void                clear       ();
 
     protected:
         // return NULL if not exists
-        void *          find        (const void *k, size_t hash);
-        const void *    find        (const void *k, size_t hash) const;
+        void *              find        (const void *k, size_t hash);
+        const void *        find        (const void *k, size_t hash) const;
         // assert if not exists
-        void *          access      (const void *k, size_t hash);
-        const void *    access      (const void *k, size_t hash) const;
+        void *              access      (const void *k, size_t hash);
+        const void *        access      (const void *k, size_t hash) const;
 
     protected:
         // for iterator
-        ABE_INLINE size_t tableLength() const { return mTableLength; }
-        Element *       next        (const Element *, size_t *);
-        const Element * next        (const Element *, size_t *) const;
+        ABE_INLINE size_t   tableLength() const { return mTableLength; }
+        Element *           next        (const Element *, size_t *);
+        const Element *     next        (const Element *, size_t *) const;
 
     private:
-        Element *       allocateElement     (size_t);
-        void            deallocateElement   (Element *);
-        void            grow        ();
-        void            shrink      ();
+        Element *           allocateElement     (size_t);
+        void                deallocateElement   (Element *);
+        void                grow        ();
+        void                shrink      ();
 
     private:
-        Element **      _edit();
-        void            _release(SharedBuffer *);
+        Element **          _edit();
+        void                _release(SharedBuffer *);
 
     private:
         TypeHelper          mKeyHelper;
@@ -194,28 +194,28 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
         ABE_INLINE ~HashTable() { }
 
     public:
-        ABE_INLINE size_t          size() const        { return HashTableImpl::size();         }
-        ABE_INLINE bool     empty() const       { return size() == 0;                   }
-        ABE_INLINE void            clear()             { HashTableImpl::clear();               }
+        ABE_INLINE size_t           size() const        { return HashTableImpl::size();         }
+        ABE_INLINE bool             empty() const       { return size() == 0;                   }
+        ABE_INLINE void             clear()             { HashTableImpl::clear();               }
 
     public:
         // insert value with key, replace if exists
-        ABE_INLINE void            insert(const KEY& k, const VALUE& v){ HashTableImpl::insert(&k, &v, hash(k));                                   }
+        ABE_INLINE void             insert(const KEY& k, const VALUE& v){ HashTableImpl::insert(&k, &v, hash(k));                                   }
         // erase element with key, return 1 if exists, and 0 otherwise.
-        ABE_INLINE size_t          erase(const KEY& k)                 { return HashTableImpl::erase(&k, hash(k));                                 }
+        ABE_INLINE size_t           erase(const KEY& k)                 { return HashTableImpl::erase(&k, hash(k));                                 }
         // return NULL if not exists
-        ABE_INLINE VALUE *         find(const KEY& k)                  { return static_cast<VALUE*>(HashTableImpl::find(&k, hash(k)));             }
-        ABE_INLINE const VALUE*    find(const KEY& k) const            { return static_cast<const VALUE*>(HashTableImpl::find(&k, hash(k)));       }
+        ABE_INLINE VALUE *          find(const KEY& k)                  { return static_cast<VALUE*>(HashTableImpl::find(&k, hash(k)));             }
+        ABE_INLINE const VALUE*     find(const KEY& k) const            { return static_cast<const VALUE*>(HashTableImpl::find(&k, hash(k)));       }
         // assert if not exists
-        ABE_INLINE VALUE&          operator[](const KEY& k)            { return *static_cast<VALUE*>(HashTableImpl::access(&k, hash(k)));          }
-        ABE_INLINE const VALUE&    operator[](const KEY& k) const      { return *static_cast<const VALUE*>(HashTableImpl::access(&k, hash(k)));    }
+        ABE_INLINE VALUE&           operator[](const KEY& k)            { return *static_cast<VALUE*>(HashTableImpl::access(&k, hash(k)));          }
+        ABE_INLINE const VALUE&     operator[](const KEY& k) const      { return *static_cast<const VALUE*>(HashTableImpl::access(&k, hash(k)));    }
 
     public:
-        // iterator
-        ABE_INLINE iterator        begin()         { return ++iterator(this, 0, NULL);                                 }
-        ABE_INLINE iterator        end()           { return iterator(this, HashTableImpl::tableLength(), NULL);        }
-        ABE_INLINE const_iterator  cbegin() const  { return ++const_iterator(this, 0, NULL);                           }
-        ABE_INLINE const_iterator  cend() const    { return const_iterator(this, HashTableImpl::tableLength(), NULL);  }
+        // forward iterator
+        ABE_INLINE iterator         begin()         { return ++iterator(this, 0, NULL);                                 }
+        ABE_INLINE iterator         end()           { return iterator(this, HashTableImpl::tableLength(), NULL);        }
+        ABE_INLINE const_iterator   cbegin() const  { return ++const_iterator(this, 0, NULL);                           }
+        ABE_INLINE const_iterator   cend() const    { return const_iterator(this, HashTableImpl::tableLength(), NULL);  }
 };
 
 __END_NAMESPACE_ABE
