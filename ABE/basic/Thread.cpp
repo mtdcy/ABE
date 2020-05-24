@@ -43,7 +43,6 @@
 #include "basic/Mutex.h"
 #include "basic/Thread.h"
 
-#include "basic/Atomic.h"
 #include <sched.h>
 
 #include "compat/pthread.h"

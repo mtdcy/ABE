@@ -36,7 +36,6 @@
 #define ABE_HEADERS_ALLOCATOR_H
 
 #include <ABE/basic/Types.h>
-#include <ABE/basic/SharedObject.h>
 
 __BEGIN_NAMESPACE_ABE
 

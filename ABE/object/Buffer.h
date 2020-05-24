@@ -41,7 +41,6 @@
 // Memory Management Layer [C++ Implementation]
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/String.h>
-#include <ABE/basic/SharedObject.h>
 
 __BEGIN_NAMESPACE_ABE
 

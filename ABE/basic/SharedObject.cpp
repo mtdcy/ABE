@@ -35,10 +35,7 @@
 #define LOG_TAG "SharedObject"
 //#define LOG_NDEBUG 0
 #include "Log.h"
-#include "SharedObject.h"
 #include "SharedBuffer.h"
-
-#include "Atomic.h"
 
 #include <string.h>
 #include <stdlib.h>

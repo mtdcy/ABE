@@ -35,7 +35,7 @@
 #ifndef ABE_HEADERS_RUNNABLE_H
 #define ABE_HEADERS_RUNNABLE_H
 
-#include <ABE/basic/SharedObject.h>
+#include <ABE/basic/Types.h>
 #include <ABE/basic/Mutex.h>
 __BEGIN_NAMESPACE_ABE
 

@@ -36,8 +36,6 @@
 //#define LOG_NDEBUG 0
 #include "basic/Log.h"
 
-#include "basic/Atomic.h"
-
 #include "Queue.h"
 #include <stdlib.h>
 

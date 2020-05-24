@@ -32,7 +32,6 @@
 // basic [c & c++]
 #include <ABE/basic/Version.h>
 #include <ABE/basic/Types.h>
-#include <ABE/basic/Atomic.h>
 
 #ifdef LOG_TAG
 #include <ABE/basic/Log.h>
@@ -42,9 +41,7 @@
 #include <ABE/basic/Time.h>
 
 #ifdef __cplusplus  // only available for c++
-#include <ABE/basic/SharedObject.h>
 #define sp  Object  // for api compatible, keep for sometime
-
 #include <ABE/basic/Allocator.h>
 #include <ABE/basic/SharedBuffer.h>
 #include <ABE/basic/String.h>

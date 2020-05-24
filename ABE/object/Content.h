@@ -37,7 +37,6 @@
 #define ABE_HEADERS_CONTENT_H
 
 #include <ABE/basic/Types.h>
-#include <ABE/basic/SharedObject.h>
 #include <ABE/object/Buffer.h>
 #include <ABE/tools/Bits.h>
 
