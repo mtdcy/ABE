@@ -60,6 +60,7 @@
 #include <stdarg.h>         // va_list
 #include <sys/types.h>      // other types: ssize_t
 #include <inttypes.h>       // for PRId32/PRId64/...
+#include <errno.h>          // errno, ...do NOT expose errno in your API, define your own or nothing.
 
 // at least these types should be defined.
 // uint8_t  int8_t
@@ -69,21 +70,6 @@
 // size_t ssize_t
 // bool     true false
 // null
-// status_t
-#include <errno.h>
-// make sure we share the same errorno on all platforms
-enum status_t {
-    OK                  = 0,
-    ERROR_UNKNOWN       = INT32_MIN,
-    ERROR_AGAIN         = -EAGAIN,      ///< try again, @see EAGAIN
-    ERROR_OOM           = -ENOMEM,      ///< out of memory, @see ENOMEM
-    ERROR_INVALID       = -EINVAL,      ///< invalid argument or operation, @see EINVAL, @see ENOSYS
-    ERROR_DENIED        = -EPERM,       ///< permission denied, @see EPERM
-    ERROR_TIMEOUT       = -ETIMEDOUT,   ///< time out, @see ETIMEDOUT
-    ERROR_DEADLOCK      = -EDEADLK,     ///< dead lock, @see EDEADLK, @see EWOULDBLOCK
-    ERROR_BUSY          = -EBUSY,       ///< device or resource is busy, @see EBUSY
-    ERROR_EXIST         = -EEXIST,      ///< file or resource is exists, @see EEXIST
-};
 
 // atomic
 // FIXME: understand the memmodel
