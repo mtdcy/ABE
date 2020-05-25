@@ -29,32 +29,29 @@
 #ifndef ABE_HEADERS_ALL_H
 #define ABE_HEADERS_ALL_H
 
-// basic [c & c++]
-#include <ABE/basic/Version.h>
-#include <ABE/basic/Types.h>
+// core [c & c++]
+#include <ABE/core/Version.h>
+#include <ABE/core/Types.h>
 
 #ifdef LOG_TAG
-#include <ABE/basic/Log.h>
+#include <ABE/core/Log.h>
 #endif
 
-#include <ABE/basic/Hardware.h>
-#include <ABE/basic/Time.h>
+#include <ABE/core/Hardware.h>
+#include <ABE/core/Time.h>
 
 #ifdef __cplusplus  // only available for c++
 #define sp  Object  // for api compatible, keep for sometime
-#include <ABE/basic/Allocator.h>
-#include <ABE/basic/SharedBuffer.h>
-#include <ABE/basic/String.h>
-#include <ABE/basic/Mutex.h>
-#include <ABE/basic/Thread.h>
+#include <ABE/core/Allocator.h>
+#include <ABE/core/SharedBuffer.h>
+#include <ABE/core/String.h>
+#include <ABE/core/Mutex.h>
 
 // object types [SharedObject] [c & c++]
-#include <ABE/object/Buffer.h>
-#include <ABE/object/Message.h>
-#include <ABE/object/Content.h>
-#include <ABE/object/Runnable.h>
-#include <ABE/object/Looper.h>
-#include <ABE/object/Event.h>
+#include <ABE/core/Buffer.h>
+#include <ABE/core/Message.h>
+#include <ABE/core/Content.h>
+#include <ABE/core/Looper.h>
 
 // tools [non-SharedObject]
 #include <ABE/tools/Bits.h>
@@ -73,6 +70,9 @@
 
 // c bindings
 __BEGIN_DECLS
+
+typedef void (*UserCallback)(void *user);
+
 typedef void *                  SharedObjectRef;
 #define NIL                     (SharedObjectRef)0
 
@@ -96,8 +96,9 @@ ABE_EXPORT void                 AllocatorDeallocate(AllocatorRef, void *);
 typedef SharedObjectRef         SharedBufferRef;
 ABE_EXPORT SharedBufferRef      SharedBufferCreate(AllocatorRef allocator, size_t);
 ABE_EXPORT void                 SharedBufferRelease(SharedBufferRef);
-ABE_EXPORT char *               SharedBufferGetData(const SharedBufferRef);
-ABE_EXPORT size_t               SharedBufferGetLength(const SharedBufferRef);
+ABE_EXPORT char *               SharedBufferGetDataPointer(SharedBufferRef);
+ABE_EXPORT const char *         SharedBufferGetConstDataPointer(const SharedBufferRef);
+ABE_EXPORT size_t               SharedBufferGetDataLength(const SharedBufferRef);
 ABE_EXPORT SharedBufferRef      SharedBufferEdit(SharedBufferRef);
 ABE_EXPORT SharedBufferRef      SharedBufferEditWithSize(SharedBufferRef, size_t);
 ABE_EXPORT size_t               SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
@@ -106,9 +107,10 @@ ABE_EXPORT void                 SharedBufferDeallocate(SharedBufferRef);
 
 typedef SharedObjectRef         BufferObjectRef;
 ABE_EXPORT BufferObjectRef      BufferObjectCreate(size_t);
-ABE_EXPORT const char *         BufferObjectGetData(const BufferObjectRef);
+ABE_EXPORT char *               BufferObjectGetDataPointer(BufferObjectRef);
+ABE_EXPORT const char *         BufferObjectGetConstDataPointer(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectGetCapacity(const BufferObjectRef);
-ABE_EXPORT size_t               BufferObjectGetLength(const BufferObjectRef);
+ABE_EXPORT size_t               BufferObjectGetDataLength(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectGetEmptyLength(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectPutData(BufferObjectRef, const char *, size_t);
 
@@ -144,17 +146,19 @@ ABE_EXPORT size_t               ContentObjectLength(ContentObjectRef);
 ABE_EXPORT BufferObjectRef      ContentObjectRead(ContentObjectRef, size_t);
 ABE_EXPORT BufferObjectRef      ContentObjectReadPosition(ContentObjectRef, size_t, int64_t);
 
-
+typedef SharedObjectRef         JobObjectRef;
 typedef SharedObjectRef         LooperObjectRef;
-typedef SharedObjectRef         RunnableObjectRef;
-LooperObjectRef                 LooperObjectCreate(const char * name);
-ABE_EXPORT void                 LooperObjectLoop(LooperObjectRef);
-ABE_EXPORT void                 LooperObjectTerminate(LooperObjectRef);
-ABE_EXPORT void                 LooperObjectTerminateAndWait(LooperObjectRef);
-ABE_EXPORT void                 LooperObjectPostRunnable(LooperObjectRef, RunnableObjectRef);
-ABE_EXPORT void                 LooperObjectPostRunnableWithDelay(LooperObjectRef, RunnableObjectRef, int64_t);
-ABE_EXPORT void                 LooperObjectRemoveRunnable(LooperObjectRef, RunnableObjectRef);
-ABE_EXPORT bool                 LooperObjectFindRunnable(LooperObjectRef, RunnableObjectRef);
+
+ABE_EXPORT JobObjectRef         JobObjectCreate(UserCallback, void *);
+ABE_EXPORT void                 JobObjectBind(JobObjectRef, LooperObjectRef);
+ABE_EXPORT size_t               JobObjectRun(JobObjectRef);
+ABE_EXPORT void                 JobObjectCancel(JobObjectRef);
+
+ABE_EXPORT LooperObjectRef      LooperObjectCreate(const char * name);
+ABE_EXPORT void                 LooperObjectPostJob(LooperObjectRef, JobObjectRef);
+ABE_EXPORT void                 LooperObjectPostJobWithDelay(LooperObjectRef, JobObjectRef, int64_t);
+ABE_EXPORT void                 LooperObjectRemoveJob(LooperObjectRef, JobObjectRef);
+ABE_EXPORT bool                 LooperObjectFindJob(LooperObjectRef, JobObjectRef);
 ABE_EXPORT void                 LooperObjectFlush(LooperObjectRef);
 
 __END_DECLS

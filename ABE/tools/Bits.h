@@ -35,7 +35,7 @@
 #ifndef ABE_HEADERS_BITS_H
 #define ABE_HEADERS_BITS_H
 
-#include <ABE/object/Buffer.h>
+#include <ABE/core/Buffer.h>
 __BEGIN_NAMESPACE_ABE
 
 /**

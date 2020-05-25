@@ -108,7 +108,7 @@ __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 //////////////////////////////////////////////////////////////////////////////
-// implementation of hash of basic types
+// implementation of hash of core types
 template <typename TYPE> static ABE_INLINE size_t hash(const TYPE& value) {
     return value.hash();
 };
@@ -148,7 +148,7 @@ template <typename TYPE> ABE_INLINE size_t hash(TYPE * const& p) {
     return hash<uintptr_t>(uintptr_t(p));
 };
 
-template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_ABE_PRIVATE::HashTableImpl {
+template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_ABE_PRIVATE::HashTableImpl, public NonSharedObject {
     private:
         // increment only iterator
         template <class TABLE_TYPE, class VALUE_TYPE, class ELEM_TYPE> class Iterator {

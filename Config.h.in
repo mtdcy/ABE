@@ -6,6 +6,9 @@
 /** pthread_cond_timedwait_relative_np in pthread.h **/
 #cmakedefine HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP    1
 
+/** pthread_getname_np in pthread.h **/
+#cmakedefine HAVE_PTHREAD_GETNAME_NP                    1
+
 /** pthread_setname_np in pthread.h **/
 #cmakedefine HAVE_PTHREAD_SETNAME_NP                    1
 

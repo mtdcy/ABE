@@ -37,8 +37,8 @@
 #define ABE_HEADERS_STL_VECTOR_H 
 
 #include <ABE/stl/TypeHelper.h>
-#include <ABE/basic/Allocator.h>
-#include <ABE/basic/SharedBuffer.h>
+#include <ABE/core/Allocator.h>
+#include <ABE/core/SharedBuffer.h>
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 class ABE_EXPORT VectorImpl {
@@ -89,7 +89,7 @@ __BEGIN_NAMESPACE_ABE
 // Note:
 // 1. No interator for Vector because it's random access has constant time.
 // 2. No auto memory shrink
-template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl {
+template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl, public NonSharedObject {
     public:
         ABE_INLINE Vector(size_t capacity = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
             VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, false, true, true>()) { }

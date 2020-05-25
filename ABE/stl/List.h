@@ -36,7 +36,7 @@
 #define ABE_HEADERS_STL_LIST_H 
 
 #include <ABE/stl/TypeHelper.h>
-#include <ABE/basic/SharedBuffer.h>
+#include <ABE/core/SharedBuffer.h>
 
 ////////////////////////////////////////////////////////////////////////////// 
 // c++ implementation of doubly-linked list container.
@@ -106,7 +106,7 @@ class ABE_EXPORT ListImpl {
 __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
-template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl {
+template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl, public  NonSharedObject {
     protected:
         // iterator for List, bidirection iterator
         template <typename NODE_TYPE, typename VALUE_TYPE> class Iterator {

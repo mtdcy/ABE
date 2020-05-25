@@ -32,6 +32,7 @@
 USING_NAMESPACE_ABE
 
 __BEGIN_DECLS
+
 SharedObjectRef SharedObjectRetain(SharedObjectRef ref) {
     return static_cast<SharedObject *>(ref)->RetainObject();
 }
@@ -76,11 +77,15 @@ void SharedBufferRelease(SharedBufferRef ref) {
     static_cast<SharedBuffer *>(ref)->ReleaseBuffer(false);
 }
 
-char * SharedBufferGetData(const SharedBufferRef ref) {
+char * SharedBufferGetDataPointer(SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->data();
 }
 
-size_t SharedBufferGetLength(const SharedBufferRef ref) {
+const char * SharedBufferGetConstDataPointer(const SharedBufferRef ref) {
+    return static_cast<const SharedBuffer *>(ref)->data();
+}
+
+size_t SharedBufferGetDataLength(const SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->size();
 }
 
@@ -105,7 +110,11 @@ BufferObjectRef BufferObjectCreate(size_t cap) {
     return buffer->RetainObject();
 }
 
-const char * BufferObjectGetData(const BufferObjectRef ref) {
+char * BufferObjectGetDataPointer(BufferObjectRef ref) {
+    return static_cast<Buffer *>(ref)->data();
+}
+
+const char * BufferObjectGetConstDataPointer(const BufferObjectRef ref) {
     return static_cast<const Buffer *>(ref)->data();
 }
 
@@ -113,7 +122,7 @@ size_t BufferObjectGetCapacity(const BufferObjectRef ref) {
     return static_cast<const Buffer *>(ref)->capacity();
 }
 
-size_t BufferObjectGetLength(const BufferObjectRef ref) {
+size_t BufferObjectGetDataLength(const BufferObjectRef ref) {
     return static_cast<const Buffer *>(ref)->size();
 }
 
@@ -194,7 +203,7 @@ SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, const char * 
 }
 
 ContentObjectRef ContentObjectCreate(const char * url) {
-    Object<Content> content = Content::Create(url);
+    Object<Content> content = Content::Create(String(url));
     if (content == NULL) return NULL;
     return (ContentObjectRef)content->RetainObject();
 }
@@ -215,50 +224,50 @@ BufferObjectRef ContentObjectReadPosition(ContentObjectRef ref, size_t size, int
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-struct UserRunnable : public Runnable {
-    void (*callback)(void *);
-    void * user;
-    UserRunnable(void (*Callback)(void *), void * User) : Runnable(),
-    callback(Callback), user(User) { }
-    virtual void run() { callback(user); }
+struct UserJob : public Job {
+    UserCallback    mCallback;
+    void *          mUserContext;
+    UserJob(UserCallback callback, void * user) : Job(),
+    mCallback(callback), mUserContext(user) { }
+    virtual void onJob() { mCallback(mUserContext); }
 };
 
-RunnableObjectRef  RunnableObjectCreate(void (*Callback)(void *), void * User) {
-    Object<Runnable> runnable = new UserRunnable(Callback, User);
-    return (Runnable *)runnable->RetainObject();
+JobObjectRef  JobObjectCreate(UserCallback callback, void * user) {
+    Object<Job> runnable = new UserJob(callback, user);
+    return (Job *)runnable->RetainObject();
+}
+
+void JobObjectBind(JobObjectRef ref, LooperObjectRef lp) {
+    static_cast<Job *>(ref)->bind(lp);
+}
+
+size_t JobObjectRun(JobObjectRef ref) {
+    return static_cast<Job *>(ref)->run();
+}
+
+void JobObjectCancel(JobObjectRef ref) {
+    static_cast<Job *>(ref)->cancel();
 }
 
 LooperObjectRef SharedLooperCreate(const char * name) {
-    Object<Looper> looper = Looper::Create(name);
+    Object<Looper> looper = new Looper(name);
     return (LooperObjectRef)looper->RetainObject();
 }
 
-void SharedLooperLoop(LooperObjectRef ref) {
-    static_cast<Looper *>(ref)->loop();
+void SharedLooperPostJob(LooperObjectRef ref, JobObjectRef job) {
+    static_cast<Looper *>(ref)->post(job);
 }
 
-void SharedLooperTerminate(LooperObjectRef ref) {
-    static_cast<Looper *>(ref)->terminate();
+void SharedLooperPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, int64_t delay) {
+    static_cast<Looper *>(ref)->post(job, delay);
 }
 
-void SharedLooperTerminateAndWait(LooperObjectRef ref) {
-    static_cast<Looper *>(ref)->terminate(true);
+void SharedLooperRemoveJob(LooperObjectRef ref, JobObjectRef job) {
+    static_cast<Looper *>(ref)->remove(job);
 }
 
-void SharedLooperPostRunnable(LooperObjectRef ref, RunnableObjectRef run) {
-    static_cast<Looper *>(ref)->post(run);
-}
-
-void SharedLooperPostRunnableWithDelay(LooperObjectRef ref, RunnableObjectRef run, int64_t delay) {
-    static_cast<Looper *>(ref)->post(run, delay);
-}
-
-void SharedLooperRemoveRunnable(LooperObjectRef ref, RunnableObjectRef run) {
-    static_cast<Looper *>(ref)->remove(run);
-}
-
-bool SharedLooperFindRunnable(LooperObjectRef ref, RunnableObjectRef run) {
-    return static_cast<Looper *>(ref)->exists(run);
+bool SharedLooperFindJob(LooperObjectRef ref, JobObjectRef job) {
+    return static_cast<Looper *>(ref)->exists(job);
 }
 
 void SharedLooperFlush(LooperObjectRef ref) {

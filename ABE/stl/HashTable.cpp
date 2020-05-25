@@ -35,7 +35,7 @@
 
 #define LOG_TAG "HashTable"
 //#define LOG_NDEBUG 0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 
 #include "HashTable.h"
 

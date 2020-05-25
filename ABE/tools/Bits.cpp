@@ -34,7 +34,7 @@
 
 #define LOG_TAG "Bits"
 //#define LOG_NDEBUG    0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 #include "Bits.h"
 
 #define _bitmask(n)     ((1u << (n)) - 1)

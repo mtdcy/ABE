@@ -34,7 +34,7 @@
 
 #define LOG_TAG "List"
 //#define LOG_NDEBUG 0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 
 
 #include "List.h"

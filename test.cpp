@@ -78,6 +78,18 @@ struct MySharedObject : public SharedObject {
     MySharedObject() { }
 };
 
+void testAtomic() {
+    Atomic<int> a;
+    ASSERT_EQ(a.load(), 0);
+
+    a.store(1);
+    ASSERT_EQ(a.load(), 1);
+    ASSERT_EQ(a++, 1);  // a == 2
+    ASSERT_EQ(++a, 3);  // a == 3
+    ASSERT_EQ(a--, 3);  // a == 2
+    ASSERT_EQ(--a, 1);  // a == 1
+}
+
 void testSharedObject() {
     SharedObject * shared = new MySharedObject;
     ASSERT_EQ(shared->GetRetainCount(), 0);
@@ -202,7 +214,7 @@ void testString() {
 
 void testBuffer() {
     Object<Buffer> buffer = new Buffer(128);
-    ASSERT_EQ(buffer->type(), kBufferTypeDefault);
+    ASSERT_EQ(buffer->type(), Buffer::Linear);
     ASSERT_EQ(buffer->capacity(), 128);
     ASSERT_EQ(buffer->empty(), 128);
     ASSERT_EQ(buffer->ready(), 0);
@@ -272,110 +284,87 @@ void testMessage() {
     ASSERT_EQ(message.find<Integer>("Integer"), Int);
 }
 
-struct ThreadRunnable : public Runnable {
+struct ThreadJob : public Job {
     const String name;
-    ThreadRunnable(const String& _name) : name(_name) { }
-    virtual void run() {
-        INFO("ThreadRunnable %s", name.c_str());
-    }
-};
-
-struct ThreadSyncRunnable : public SyncRunnable {
-    virtual void sync() {
-        INFO("ThreadSyncRunnable");
+    ThreadJob(const String& _name) : name(_name) { }
+    virtual void onJob() {
+        INFO("ThreadJob %s", name.c_str());
     }
 };
 
 void testThread() {
     // easy way
-    Thread(new ThreadRunnable("Thread 0")).detach();    // detach without run
-    Thread(new ThreadRunnable("Thread 0")).join();      // join without run
-    Thread(new ThreadRunnable("Thread 1")).run().detach();
-    Thread(new ThreadRunnable("Thread 2")).run().join();
+    Thread(new ThreadJob("Thread 0")).join();      // join without run
+    Thread(new ThreadJob("Thread 2")).run().join();
     
     // thread type
-    Thread(new ThreadRunnable("Lowest Thread"), kThreadLowest).run().join();
-    Thread(new ThreadRunnable("Backgroud Thread"), kThreadBackgroud).run().join();
-    Thread(new ThreadRunnable("Normal Thread"), kThreadNormal).run().join();
-    Thread(new ThreadRunnable("Foregroud Thread"), kThreadForegroud).run().join();
-    Thread(new ThreadRunnable("System Thread"), kThreadSystem).run().join();
-    Thread(new ThreadRunnable("Kernel Thread"), kThreadKernel).run().join();
-    Thread(new ThreadRunnable("Realtime Thread"), kThreadRealtime).run().join();
-    Thread(new ThreadRunnable("Highest Thread"), kThreadHighest).run().join();
+    Thread(new ThreadJob("Lowest Thread"), kThreadLowest).run().join();
+    Thread(new ThreadJob("Backgroud Thread"), kThreadBackgroud).run().join();
+    Thread(new ThreadJob("Normal Thread"), kThreadNormal).run().join();
+    Thread(new ThreadJob("Foregroud Thread"), kThreadForegroud).run().join();
+    Thread(new ThreadJob("System Thread"), kThreadSystem).run().join();
+    Thread(new ThreadJob("Kernel Thread"), kThreadKernel).run().join();
+    Thread(new ThreadJob("Realtime Thread"), kThreadRealtime).run().join();
+    Thread(new ThreadJob("Highest Thread"), kThreadHighest).run().join();
 
     
     // hard way
-    Thread thread(new ThreadRunnable("Thread 3"));
-    ASSERT_TRUE(thread.joinable());
+    Thread thread(new ThreadJob("Thread 3"));
     thread.setName("Thread 3").setType(kThreadNormal);
     ASSERT_STREQ("Thread 3", thread.name().c_str());
     ASSERT_EQ(kThreadNormal, thread.type());
     ASSERT_EQ(Thread::kThreadInitializing, thread.state());
     thread.run();
     ASSERT_EQ(Thread::kThreadRunning, thread.state());
-    ASSERT_TRUE(thread.joinable());
     thread.join();
-    ASSERT_FALSE(thread.joinable());
     ASSERT_EQ(Thread::kThreadTerminated, thread.state());
     
-    // sync
-    Object<SyncRunnable> sync = new ThreadSyncRunnable;
-    Thread(sync).run().detach();
-    SleepTimeMs(100);
-    sync->wait();
-    
     // static members
-    
+    Thread& current = Thread::Current(); 
+    ASSERT_TRUE(current.name() == "main");
 }
 
-struct MainLooperAssist : public Runnable {
-    virtual void run() {
+struct MainLooperAssist : public Job {
+    virtual void onJob() {
         INFO("post prepare");
         SleepTimeMs(1000); // 1s
         Object<Looper> main = Looper::Main();
         
         INFO("post assist 0");
-        main->post(new ThreadRunnable("assist 0"));
+        main->post(new ThreadJob("assist 0"));
         
         INFO("post assist 1");
-        main->post(new ThreadRunnable("assist 1"), 500000LL);   // 500ms
+        main->post(new ThreadJob("assist 1"), 500000LL);   // 500ms
         SleepTimeMs(10);
         INFO("post assist 2");
-        main->post(new ThreadRunnable("assist 2"));
-        
-        SleepTimeMs(500);
-        main->flush();
+        main->post(new ThreadJob("assist 2"));
         
         main->terminate();
     }
 };
 
 void testLooper() {
-    Object<Looper> looper1 = Looper::Create("Looper 1");
-    looper1->loop();
-    looper1->post(new ThreadRunnable("Looper run 1"));
-    looper1->terminate(true);
+    Object<Looper> looper1 = new Looper("Looper 1");
+    looper1->post(new ThreadJob("Looper run 1"));
     looper1.clear();
 
     Object<Looper> current = Looper::Current();
-    ASSERT_TRUE(current == NULL);
+    ASSERT_TRUE(current != NULL);
 
     Object<Looper> main = Looper::Main();
-    Object<Looper> assist = Looper::Create("assist");
+    Object<Looper> assist = new Looper("assist");
     assist->post(new MainLooperAssist);
-    assist->loop();
     ASSERT_TRUE(main != NULL);
+    
     main->loop();
-    main->terminate();
-    assist->terminate();
 }
 
-template <class TYPE> struct QueueConsumer : public Runnable {
+template <class TYPE> struct QueueConsumer : public Job {
     LockFree::Queue<TYPE> mQueue;
     const int kCount;
-    QueueConsumer() : Runnable(), kCount(10000) { }
+    QueueConsumer() : Job(), kCount(10000) { }
     
-    virtual void run() {
+    virtual void onJob() {
         int next = 0;
         for (;;) {
             TYPE value;
@@ -592,6 +581,7 @@ extern "C" void malloc_finalize();
         INFO("End Test MyTest."#FUNC);      \
     }
 
+TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
 TEST_ENTRY(testAllocator);
 TEST_ENTRY(testQueue1);

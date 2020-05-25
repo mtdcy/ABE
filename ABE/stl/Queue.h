@@ -68,7 +68,7 @@ __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 namespace LockFree {
-    template <class TYPE> class Queue : protected __NAMESPACE_ABE_PRIVATE::LockFreeQueueImpl {
+    template <class TYPE> class Queue : protected __NAMESPACE_ABE_PRIVATE::LockFreeQueueImpl, public NonSharedObject {
         public:
             ABE_INLINE Queue() : LockFreeQueueImpl(TypeHelperBuilder<TYPE, false, true, true>()) { }
             ABE_INLINE ~Queue() { }

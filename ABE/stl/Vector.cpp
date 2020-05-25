@@ -36,7 +36,7 @@
 
 #define LOG_TAG "Vector"
 //#define LOG_NDEBUG 0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 
 #include "Vector.h"
 
