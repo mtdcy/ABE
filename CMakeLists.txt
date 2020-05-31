@@ -178,7 +178,7 @@ add_custom_target(${LIBNAME}_test ALL
     DEPENDS test test_c 
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND echo test
-    COMMAND ${BASH} test
+    COMMAND ${BASH} test ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND echo test_c
     COMMAND ${BASH} test_c
     )

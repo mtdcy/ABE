@@ -50,11 +50,6 @@ static size_t kMaxLineLength = 1024;
 bool Content::readBlock() {
     writeBlockBack();
 
-    mBlock->reset();
-    mBlockOffset    = 0;
-    mBlockLength    = 0;
-    mBlockPopulated = false;
-
     // read cache first, and then read from cache.
     ssize_t ret = mProto->readBytes(mBlock->data(), mBlock->empty());
     if (ret == 0) {
@@ -102,6 +97,11 @@ bool Content::writeBlockBack() {
         // update range offset & length
         mPosition    = offset + ret;
     }
+    
+    mBlock->reset();
+    mBlockOffset        = 0;
+    mBlockLength        = 0;
+    mBlockPopulated     = false;
 
     return true;
 }

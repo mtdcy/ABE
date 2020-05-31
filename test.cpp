@@ -45,6 +45,8 @@
 
 USING_NAMESPACE_ABE
 
+static const char * gCurrentDir = NULL;
+
 struct MyTest : public ::testing::Test {
     MyTest () {
     }
@@ -569,6 +571,36 @@ template <class TYPE> void testHashTable() {
 void testHashTable1() { testHashTable<int>();       }
 void testHashTable2() { testHashTable<Integer>();   }
 
+void testContent() {
+    String url = String::format("%s/file2", gCurrentDir);
+    sp<Content> pipe = Content::Create(url);
+    
+    ASSERT_EQ(pipe->mode(), Content::Read);
+    ASSERT_EQ(pipe->tell(), 0);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    sp<Buffer> data = pipe->read(256);
+    for (size_t i = 0; i < 256; ++i) {
+        ASSERT_EQ((uint8_t)data->at(i), (uint8_t)i);
+    }
+    ASSERT_EQ(pipe->tell(), 256);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    // seek test
+    pipe->seek(0);  // seek in cache
+    ASSERT_EQ(pipe->tell(), 0);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    pipe->read(256);
+    pipe->seek(1024);   // seek in cache @ 1k
+    ASSERT_EQ(pipe->tell(), 1024);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    pipe->seek(512*1024);   // seek @ 5k
+    ASSERT_EQ(pipe->tell(), 512*1024);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+}
+
 extern "C" void malloc_prepare();
 extern "C" void malloc_bypass();
 extern "C" void malloc_finalize();
@@ -597,9 +629,14 @@ TEST_ENTRY(testBuffer);
 TEST_ENTRY(testMessage);
 TEST_ENTRY(testThread);
 TEST_ENTRY(testLooper);
+TEST_ENTRY(testContent);
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
+    
+    assert(argc == 2);
+    
+    gCurrentDir = argv[1];
 
     int result = RUN_ALL_TESTS();
 
