@@ -53,6 +53,8 @@
 #include <unistd.h>
 #endif
 
+#include <stdlib.h>
+
 __BEGIN_DECLS
 
 // https://stackoverflow.com/questions/150355/programmatically-find-the-number-of-cores-on-a-machine
@@ -80,6 +82,12 @@ uint32_t GetCpuCount() {
 #else
     return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
+}
+
+const char * GetEnvironmentValue(const char *name) {
+    static const char * empty = "";
+    const char *value = getenv(name);
+    return value ? value : empty;
 }
 
 __END_DECLS

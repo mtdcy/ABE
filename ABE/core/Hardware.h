@@ -41,6 +41,10 @@ __BEGIN_DECLS
 
 ABE_EXPORT uint32_t GetCpuCount();
 
+// always return a nul-terminated string
+// if env does NOT exists, return a empty string
+ABE_EXPORT const char * GetEnvironmentValue(const char *);
+
 __END_DECLS
 
 #endif // ABE_HEADERS_HARDWARE_H
