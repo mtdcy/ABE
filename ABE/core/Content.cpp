@@ -73,16 +73,18 @@ bool Content::writeBlockBack() {
 
         DEBUG("write back: %s", mBlock->string().c_str());
 
+        int64_t offset = mPosition;
+#if 0   // TODO
         // in read & write mode, which read cache first, 
         // and then modify cache, then write back
         // so, we have to seek back before write back
-        int64_t offset = mPosition;
         const bool readMode = mode() & Read;
         if (readMode && mBlockLength) {
             offset  -= mBlockLength;
             mProto->seekBytes(offset);
         }
-
+#endif
+        
         ssize_t ret = mProto->writeBytes(mBlock->data(), mBlock->ready());
 
         if (ret < 0) { 
@@ -115,9 +117,11 @@ Object<Content> Content::Create(const String& url, eMode mode) {
 
     Object<Protocol> proto;
     if (url.startsWithIgnoreCase("file://") || 
-            url.startsWithIgnoreCase("/") ||
             url.startsWithIgnoreCase("android://") ||
             url.startsWithIgnoreCase("pipe://")) {
+        proto = CreateFile(url, mode);
+    } else {
+        // normal file path
         proto = CreateFile(url, mode);
     }
 
@@ -185,54 +189,30 @@ Object<Buffer> Content::read(size_t size) {
     return data;
 }
 
-#if 0
-size_t Content::write(const Buffer& data) {
-    CHECK_TRUE(mode() & Protocol::Write);
-    DEBUG("write: %s", PRINTABLE(data.string()));
+size_t Content::write(const char *data, size_t size) {
+    CHECK_TRUE(mode() & Write);
+    
+    // TODO: write in Read&Write mode
+    CHECK_FALSE(mode() & Read);
+    //const bool readMode = mode() & Read;
 
-    const bool readMode = mode() & Protocol::Read;
-
-    const char *s = data.data();
-    size_t n = data.ready();
-
-    // in read&write mode, we fill cache before modify data. 
-    // and at the very beginning, the cache block is empty.
-    // but when eof, the cache block is empty too
-    while (n > 0) {
-        bool replace = readMode && mBlockLength;
-        size_t m = MIN(n, replace ? 
-                mBlock->ready() - mBlockOffset : 
-                mBlock->capacity() - mBlockOffset);
+    size_t n = size;
+    while (n) {
+        size_t m = MIN(n, mBlock->empty() - mBlockOffset);
 
         if (!m) {
             writeBlockBack();
-
-            if (replace) readBlock();
-            else {
-                // reset cache manually
-                mBlock->reset();
-                mBlockOffset = 0;
-            }
         } else {
-            if (replace) {
-                DEBUG("replace %zu bytes", m);
-                mBlock->replace(mBlockOffset, 
-                        s, m);
-            } else {
-                DEBUG("append %zu bytes", m);
-                mBlock->write(s, m);
-            }
+            mBlock->write(data, m);
 
-            n -= m;
-            s += m;
-            mBlockOffset      += m;
-            mBlockPopulated   = true;
+            n       -= m;
+            data    += m;
+            mBlockPopulated = true;
         }
     }
 
-    return (ssize_t)(data.ready() - n);
+    return size - n;
 }
-#endif
 
 int64_t Content::seek(int64_t offset) {
     DEBUG("real offset %" PRId64 ", cache offset %" PRId64 ", seek to %" PRId64, 

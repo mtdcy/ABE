@@ -162,13 +162,16 @@ class ABE_EXPORT Content : public SharedObject {
          */
         Object<Buffer>  read(size_t size);
 
-#if 0   // TODO
         /**
          * write bytes to content
          * @return
          */
-        size_t          write(const Buffer& buffer);
-#endif
+        size_t          write(const char *, size_t);
+    
+        ABE_INLINE size_t write(const Object<Buffer>& buffer) {
+            return write(buffer->data(), buffer->size());
+        }
+
     private:
         bool            readBlock();
         bool            writeBlockBack();
