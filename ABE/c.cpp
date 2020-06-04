@@ -249,24 +249,24 @@ void JobObjectCancel(JobObjectRef ref) {
     static_cast<Job *>(ref)->cancel();
 }
 
-LooperObjectRef SharedLooperCreate(const char * name) {
+LooperObjectRef LooperObjectCreate(const char * name) {
     Object<Looper> looper = new Looper(name);
     return (LooperObjectRef)looper->RetainObject();
 }
 
-void SharedLooperPostJob(LooperObjectRef ref, JobObjectRef job) {
+void LooperObjectPostJob(LooperObjectRef ref, JobObjectRef job) {
     static_cast<Looper *>(ref)->post(job);
 }
 
-void SharedLooperPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, int64_t delay) {
+void LooperObjectPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, int64_t delay) {
     static_cast<Looper *>(ref)->post(job, delay);
 }
 
-void SharedLooperRemoveJob(LooperObjectRef ref, JobObjectRef job) {
+void LooperObjectRemoveJob(LooperObjectRef ref, JobObjectRef job) {
     static_cast<Looper *>(ref)->remove(job);
 }
 
-bool SharedLooperFindJob(LooperObjectRef ref, JobObjectRef job) {
+bool LooperObjectFindJob(LooperObjectRef ref, JobObjectRef job) {
     return static_cast<Looper *>(ref)->exists(job);
 }
 
