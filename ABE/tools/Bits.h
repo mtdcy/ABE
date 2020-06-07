@@ -322,8 +322,9 @@ class ABE_EXPORT BitWriter : public NonSharedObject {
 class ABE_EXPORT BitSet : public NonSharedObject {
     public:
         ABE_INLINE BitSet() : mValue(0) { }
+        ABE_INLINE BitSet(uint64_t v) : mValue(v) { }
         ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
-         ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
+        ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
     
     public:
         ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
