@@ -69,7 +69,19 @@ __BEGIN_NAMESPACE_ABE
  * @note we prefer looper instead of thread, so keep thread simple
  */
 class Job;
-class ABE_EXPORT Thread : public SharedObject {
+class ABE_EXPORT Thread : public NonSharedObject {
+    public:
+        /**
+         * get current thread reference
+         * if current thread is main thread return its ref
+         */
+        static Thread& Current();
+    
+        /**
+         * no interface available for main thread except native_thread_handle
+         */
+        static Thread& Main();
+        
     public:
         /**
          * create a suspend thread with runnable
@@ -77,23 +89,7 @@ class ABE_EXPORT Thread : public SharedObject {
          * @note thread is joinable until join() or detach()
          */
         Thread(const Object<Job>& runnable, const eThreadType type = kThreadDefault);
-    
-        /**
-         * get current thread reference
-         * if current thread is main thread return its ref
-         */
-        static Thread& Current();
-        static Thread& Main();
-
-        /**
-         * thread state
-         */
-        enum eThreadState {
-            kThreadInitializing,    ///< before run()
-            kThreadRunning,         ///< after run() and before join()&detach()
-            kThreadTerminated,      ///< after join() or detach()
-        };
-        eThreadState state() const;
+        Thread(const Thread& rhs) : mNative(rhs.mNative) { }
 
         /**
          * set thread name before run
@@ -119,14 +115,14 @@ class ABE_EXPORT Thread : public SharedObject {
 
         /**
          * start thread execution
-         * put thread state from initial into running
+         * @note unavailable for main thread
          */
         Thread& run();
 
         /**
          * wait for this thread to terminate
          * @note only join once for a thread.
-         * @note join() or detach() is neccessary even without run()
+         * @note unavailable for main thread.
          */
         void join();
 
@@ -137,15 +133,17 @@ class ABE_EXPORT Thread : public SharedObject {
          * @return return native thread handle
          */
         pthread_t native_thread_handle() const;
+    
+    public:
+        bool operator==(const Thread& rhs) const { return mNative == rhs.mNative; }
+        bool operator!=(const Thread& rhs) const { return mNative != rhs.mNative; }
 
     private:
         struct NativeContext;
         Object<NativeContext>   mNative;
-        Object<Job>             mJob;
 
     private:
-        Thread();
-        DISALLOW_EVILS(Thread);
+        Thread() : mNative(NULL) { }
 };
 
 // two methods to use Job
@@ -202,7 +200,6 @@ class ABE_EXPORT Looper : public SharedObject {
         /**
          * create a looper
          */
-        Looper();
         Looper(const String& name, const eThreadType& type = kThreadNormal);
 
     public:
@@ -262,10 +259,10 @@ class ABE_EXPORT Looper : public SharedObject {
         virtual void onLastRetain();
 
         friend struct JobDispatcher;
-        friend class DispatchQueue;
-        Object<Looper>          mLooper;
-        Object<JobDispatcher>   mJobDisp;
+        Object<JobDispatcher> mJobDisp;
 
+    private:
+        Looper() : mJobDisp(NULL) { }
         DISALLOW_EVILS(Looper);
 };
 

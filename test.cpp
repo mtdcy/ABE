@@ -317,15 +317,10 @@ void testThread() {
     thread.setName("Thread 3").setType(kThreadNormal);
     ASSERT_STREQ("Thread 3", thread.name().c_str());
     ASSERT_EQ(kThreadNormal, thread.type());
-    ASSERT_EQ(Thread::kThreadInitializing, thread.state());
-    thread.run();
-    ASSERT_EQ(Thread::kThreadRunning, thread.state());
-    thread.join();
-    ASSERT_EQ(Thread::kThreadTerminated, thread.state());
     
     // static members
-    Thread& current = Thread::Current(); 
-    ASSERT_TRUE(current.name() == "main");
+    Thread& current = Thread::Current();
+    ASSERT_TRUE(current == Thread::Main());
 }
 
 struct MainLooperAssist : public Job {
@@ -362,7 +357,7 @@ void testLooper() {
     
     main->loop();
     
-    Object<Looper> lp = new Looper;
+    Object<Looper> lp = new Looper("looper0");
     Object<ThreadJob> job0 = new ThreadJob("job0");
     Object<ThreadJob> job1 = new ThreadJob("job1");
     for (size_t i = 0; i < 100; i++) {

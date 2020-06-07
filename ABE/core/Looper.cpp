@@ -168,8 +168,6 @@ struct JobDispatcher : public Job {
 
     JobDispatcher(const String& name) :
         Job(), mName(name) { }
-
-    virtual void init() = 0;
     
     virtual bool queue(const Object<Job>& job, Condition* wait) {
         Task task(job, 0);
@@ -303,52 +301,42 @@ struct JobDispatcher : public Job {
 static __thread Looper * lpCurrent = NULL;
 static Looper * lpMain = NULL;
 struct LooperDispatcher : public JobDispatcher {
-    
     Stat                            mStat;  // only used inside dispacher
     // internal context
+    Thread                          mThread;
     Looper *                        mLooper;
     
     Mutex                           mLock;
     mutable Condition               mWait;
-    Object<Thread>                  mThread;
-    bool                            mIsMain;
-    eThreadType                     mType;
     
     bool                            mTerminated;
     bool                            mRequestExit;
 
-    LooperDispatcher(Looper *lp, const String& name, eThreadType type) :
-        JobDispatcher(name),
-        mLooper(lp), mIsMain(false), mType(type),
-        mTerminated(false), mRequestExit(false) {
-
+    LooperDispatcher(Looper *lp, const String& name, eThreadType type = kThreadDefault) :
+        JobDispatcher(name), mThread(this, type),
+        mLooper(lp), mTerminated(false), mRequestExit(false) {
+            mThread.setName(mName).run();
         }
+    
+    // for main looper
+    LooperDispatcher(Looper *lp) : JobDispatcher("main"), mThread(Thread::Main()),
+    mLooper(lp), mTerminated(false), mRequestExit(false) {
+        CHECK_TRUE(pthread_main(), "main Looper must init in main thread");
+        // install signal handlers
+        // XXX: make sure main looper can terminate by ctrl-c
+        struct sigaction act;
+        sigemptyset(&act.sa_mask);
+        sigaddset(&act.sa_mask, SIGINT);
+        act.sa_flags = SA_RESTART | SA_SIGINFO;
+        act.sa_sigaction = sigaction_exit;
+
+        CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
+    }
 
     static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
         INFO("sig %s @ [%d, %d]", signame(info->si_signo), info->si_pid, info->si_uid);
         lpMain->terminate();
         INFO("main: exit...");
-    }
-
-    virtual void init() {
-        if (mThread.isNIL()) {
-            if (mIsMain) {
-                CHECK_TRUE(pthread_main(), "main Looper must init in main thread");
-                pthread_setname("main");
-                // install signal handlers
-                // XXX: make sure main looper can terminate by ctrl-c
-                struct sigaction act;
-                sigemptyset(&act.sa_mask);
-                sigaddset(&act.sa_mask, SIGINT);
-                act.sa_flags = SA_RESTART | SA_SIGINFO;
-                act.sa_sigaction = sigaction_exit;
-
-                CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
-            } else {
-                mThread = new Thread(this, mType);
-                mThread->setName(mName).run();
-            }
-        }
     }
     
     virtual bool queue(const Object<Job>& job, int64_t us = 0) {
@@ -397,8 +385,9 @@ struct LooperDispatcher : public JobDispatcher {
         // wait until job dispatcher terminated
         while (!mTerminated) mWait.wait(mLock);
         
-        if (mThread.isNIL()) return;
-        mThread->join();
+        if (mThread != Thread::Main()) {
+            mThread.join();
+        }
     }
     
     virtual void onJob() {
@@ -445,12 +434,13 @@ struct LooperDispatcher : public JobDispatcher {
 
     // for main looper only
     virtual void loop() {
+        CHECK_TRUE(mThread == Thread::Main(), "loop() is available for main looper only");
         execution();
     }
 
     virtual void terminate() {
         AutoLock _l(mLock);
-        CHECK_TRUE(mIsMain, "terminate() is available for main looper only");
+        CHECK_TRUE(mThread == Thread::Main(), "terminate() is available for main looper only");
 
         // wait for looper finish
         if (pthread_main()) {
@@ -477,8 +467,7 @@ Object<Looper> Looper::Main() {
     if (lpMain == NULL) {
         INFO("init main looper");
         lpMain = new Looper;
-        Object<LooperDispatcher> disp = lpMain->mJobDisp;
-        disp->mIsMain = true;
+        lpMain->mJobDisp = new LooperDispatcher(lpMain);
     }
     return lpMain;
 }
@@ -488,23 +477,11 @@ Object<Looper> Looper::Current() {
     return lpCurrent ? lpCurrent : Main();
 }
 
-static Atomic<uint32_t> lpID = 0u;
-static String MakeLooperName() {
-    return String::format("looper-%" PRIu32, lpID.load());
-}
-
-Looper::Looper() : SharedObject(OBJECT_ID_LOOPER), 
-    mJobDisp(new LooperDispatcher(this, MakeLooperName(), kThreadDefault)) {
-        ++lpID;
-    }
-
 Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER), 
     mJobDisp(new LooperDispatcher(this, name, type)) {
-        ++lpID;
     }
 
 void Looper::onFirstRetain() {
-    mJobDisp->init();
 }
 
 void Looper::onLastRetain() {
@@ -526,7 +503,7 @@ void Looper::terminate() {
 
 Thread& Looper::thread() {
     Object<LooperDispatcher> disp = mJobDisp;
-    return disp->mThread.isNIL() ? *disp->mThread : Thread::Main();
+    return disp->mThread;
 }
 
 void Looper::profile(int64_t interval) {
@@ -562,10 +539,6 @@ struct QueueDispatcher : public JobDispatcher {
     bool        mDispatching;
     
     QueueDispatcher() : JobDispatcher(MakeQueueName()), mDispatching(false) {
-        
-    }
-    
-    virtual void init() {
         
     }
     

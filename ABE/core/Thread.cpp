@@ -54,13 +54,13 @@ __BEGIN_NAMESPACE_ABE
 static __thread Thread * thCurrent = NULL;
 static Thread * thMain = NULL;
 
-enum eThreadIntState {
-    kThreadIntNew,
-    kThreadIntReady,
-    kThreadIntReadyToRun,   // set by client when ready to run
-    kThreadIntRunning,
-    kThreadIntTerminating,  // set by client during terminating
-    kThreadIntTerminated,
+enum eThreadState {
+    kThreadNew,
+    kThreadReady,
+    kThreadReadyToRun,   // set by client when ready to run
+    kThreadRunning,
+    kThreadTerminating,  // set by client during terminating
+    kThreadTerminated,
 };
 
 static const char * NAMES[] = {
@@ -77,7 +77,7 @@ static const char * NAMES[] = {
 
 static Atomic<int> g_thread_id = 0;
 static String MakeThreadName() {
-    return String::format("thread%zu", ++g_thread_id);
+    return String::format("thread-%zu", ++g_thread_id);
 }
 
 // interpret thread type to nice & priority
@@ -145,26 +145,24 @@ struct Thread::NativeContext : public SharedObject {
     // mutable context, access with lock
     mutable Mutex           mLock;
     Condition               mWait;
-    Thread &                mThread;
-    eThreadIntState         mState;
+    Thread *                mThread;
+    Object<Job>             mJob;
+    eThreadState            mState;
 
-    NativeContext(const String& name, const eThreadType type, Thread &thread) :
-        SharedObject(), mType(type), mName(name), mThread(thread), mState(kThreadIntNew) { }
+    NativeContext(const String& name, const eThreadType type, Thread* p, const Object<Job>& job) :
+        SharedObject(), mType(type), mName(name), mNativeHandler(0),
+        mThread(p), mJob(job), mState(kThreadNew) { }
 
     virtual ~NativeContext() {
-        CHECK_EQ(mState, kThreadIntTerminated);
+        CHECK_EQ(mState, kThreadTerminated);
     }
 
     ABE_INLINE bool wouldBlock() {
         return pthread_equal(mNativeHandler, pthread_self());
     }
 
-    ABE_INLINE bool isMain() const {
-        return &mThread == thMain;
-    }
-
-    ABE_INLINE void setState_l(eThreadIntState state) {
-        mState  = state;
+    ABE_INLINE void setState_l(eThreadState state) {
+        mState = state;
         mWait.signal();
     }
 
@@ -173,12 +171,7 @@ struct Thread::NativeContext : public SharedObject {
         CHECK_FALSE(wouldBlock());
 
         AutoLock _l(mLock);
-        CHECK_EQ(mState, kThreadIntNew);
-
-        if (isMain()) {
-            setState_l(kThreadIntReady);
-            return;
-        }
+        CHECK_EQ(mState, kThreadNew);
 
         // create new thread
         pthread_attr_t attr;
@@ -201,7 +194,7 @@ struct Thread::NativeContext : public SharedObject {
         }
 
         // wait until thread is ready
-        while (mState < kThreadIntReady) {
+        while (mState < kThreadReady) {
             mWait.wait(mLock);
         }
         pthread_attr_destroy(&attr);
@@ -209,16 +202,11 @@ struct Thread::NativeContext : public SharedObject {
 
     virtual void run() {
         AutoLock _l(mLock);
-        CHECK_LE(mState, kThreadIntReady);
-        setState_l(kThreadIntReadyToRun);
-
-        if (isMain()) {
-            setState_l(kThreadIntRunning);
-            return;
-        }
+        CHECK_LE(mState, kThreadReady);
+        setState_l(kThreadReadyToRun);
 
         // wait until thread leaving ready state
-        while (mState < kThreadIntRunning) {
+        while (mState < kThreadRunning) {
             mWait.wait(mLock);
         }
     }
@@ -226,16 +214,10 @@ struct Thread::NativeContext : public SharedObject {
     // wait this thread's job done and join it
     virtual void join() {
         AutoLock _l(mLock);
-        CHECK_TRUE(mState >= kThreadIntReady && mState < kThreadIntTerminating);
-        setState_l(kThreadIntTerminating);
-
-        if (isMain()) {
-            setState_l(kThreadIntTerminated);
-            return;
-        }
+        CHECK_TRUE(mState >= kThreadReady && mState < kThreadTerminating);
+        setState_l(kThreadTerminating);
 
         mLock.unlock();
-
         // pthread_join without lock
         if (wouldBlock()) {
             INFO("%s: join inside thread", mName.c_str());
@@ -260,13 +242,12 @@ struct Thread::NativeContext : public SharedObject {
         }
 
         mLock.lock();
-        while (mState != kThreadIntTerminated) mWait.wait(mLock);
+        while (mState != kThreadTerminated) mWait.wait(mLock);
     }
 
     virtual void detach() {
         mLock.lock();
-        setState_l(kThreadIntTerminating);
-
+        setState_l(kThreadTerminating);
         mLock.unlock();
 
         // detach without lock
@@ -289,7 +270,7 @@ struct Thread::NativeContext : public SharedObject {
         NativeContext * thiz = static_cast<NativeContext*>(user);
         // retain object
         thiz->RetainObject();
-        thCurrent = &thiz->mThread;
+        thCurrent = thiz->mThread;
 
         // execution
         thiz->execution();
@@ -306,110 +287,93 @@ struct Thread::NativeContext : public SharedObject {
         AutoLock _l(mLock);
 
         // simulate pthread_create_suspended_np()
-        CHECK_EQ(mState, kThreadIntNew);
-        setState_l(kThreadIntReady);
-        while (mState == kThreadIntReady) mWait.wait(mLock);    // wait until client is ready
+        CHECK_EQ(mState, kThreadNew);
+        setState_l(kThreadReady);
+        while (mState == kThreadReady) mWait.wait(mLock);    // wait until client is ready
 
-        if (mState == kThreadIntReadyToRun) {                   // in case join() or detach() without run
+        if (mState == kThreadReadyToRun) {                   // in case join() or detach() without run
             // set thread properties
             pthread_setname(mName.c_str());
             SetThreadType(mName, mType);
 
-            setState_l(kThreadIntRunning);
+            setState_l(kThreadRunning);
 
             mLock.unlock();
             pthread_yield();            // give client chance to hold lock
 
-            mThread.mJob->execution();
+            mJob->execution();
             mLock.lock();
         }
 
         // local cleanup
-        while (mState != kThreadIntTerminating) {
+        while (mState != kThreadTerminating) {
             mWait.wait(mLock);
         }
-        setState_l(kThreadIntTerminated);
+        setState_l(kThreadTerminated);
         DEBUG("%s: end...", mName.c_str());
     }
 };
 
 Thread::Thread(const Object<Job>& job, const eThreadType type) {
-    mJob = job;
-    mNative = new NativeContext(MakeThreadName(), type, *this);
+    mNative = new NativeContext(MakeThreadName(), type, this, job);
     mNative->start();
     // execute when run()
 }
 
 Thread& Thread::setName(const String& name) {
+    CHECK_NE(this, thMain);
     AutoLock _l(mNative->mLock);
-    CHECK_TRUE(mNative->mState <= kThreadIntReady, "setName() can only be called before run()");
+    CHECK_TRUE(mNative->mState <= kThreadReady, "setName() can only be called before run()");
     mNative->mName = name;
     return *this;
 }
 
 const String& Thread::name() const {
+    CHECK_NE(this, thMain);
     AutoLock _l(mNative->mLock);
     return mNative->mName;
 }
 
 Thread& Thread::setType(const eThreadType type) {
+    CHECK_NE(this, thMain);
     AutoLock _l(mNative->mLock);
-    CHECK_TRUE(mNative->mState <= kThreadIntReady, "setType() can only be called before run()");
+    CHECK_TRUE(mNative->mState <= kThreadReady, "setType() can only be called before run()");
     mNative->mType = type;
     return *this;
 }
 
 eThreadType Thread::type() const {
+    CHECK_NE(this, thMain);
     AutoLock _l(mNative->mLock);
     return mNative->mType;
 }
 
 Thread& Thread::run() {
+    CHECK_NE(this, thMain);
     mNative->run();
     return *this;
 }
 
 void Thread::join() {
+    CHECK_NE(this, thMain);
     mNative->join();
 }
 
 pthread_t Thread::native_thread_handle() const {
-    AutoLock _l(mNative->mLock);
+    if (mNative.isNIL()) return pthread_self();
     return mNative->mNativeHandler;
 }
-
-Thread::eThreadState Thread::state() const {
-    AutoLock _l(mNative->mLock);
-    switch (mNative->mState) {
-        case kThreadIntNew:
-        case kThreadIntReady:
-            return kThreadInitializing;
-        case kThreadIntReadyToRun:
-        case kThreadIntRunning:
-            return kThreadRunning;
-        case kThreadIntTerminating:
-        case kThreadIntTerminated:
-            return kThreadTerminated;
-        default:
-            FATAL("FIXME");
-    }
-    return kThreadTerminated; // just fix build warnings
-}
-
-struct EmptyJob : public Job {
-    virtual void onJob() { }
-};
 
 Thread& Thread::Current() {
     return thCurrent ? *thCurrent : Main();
 }
 
 Thread& Thread::Main() {
-    if (thCurrent == NULL) {
+    if (thMain == NULL) {
         CHECK_TRUE(pthread_main(), "init main thread outside...");
-        static Thread thread(new EmptyJob);
-        thread.setName("main");
-        thMain = &thread;
+        static Thread thread;
+        pthread_setname("main");
+        thCurrent = thMain = &thread;
     }
     return *thMain;
 }
