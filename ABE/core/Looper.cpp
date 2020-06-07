@@ -41,7 +41,7 @@
 #include "stl/List.h"
 #include "stl/Queue.h"
 
-#include "Time.h"
+#include "System.h"
 #include "Mutex.h"
 #include "Looper.h"
 
@@ -73,12 +73,12 @@ static ABE_INLINE const char * signame(int signo) {
 
 struct Task {
     Condition *     mWait;
-    Object<Job>     mJob;
+    sp<Job>         mJob;
     int64_t         mWhen;
 
     Task() : mWait(NULL), mJob(NULL), mWhen(0) { }
     
-    Task(const Object<Job>& job, int64_t delay) : mWait(NULL), mJob(job),
+    Task(const sp<Job>& job, int64_t delay) : mWait(NULL), mJob(job),
     mWhen(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 
     bool operator<(const Task& rhs) const {
@@ -169,7 +169,7 @@ struct JobDispatcher : public Job {
     JobDispatcher(const String& name) :
         Job(), mName(name) { }
     
-    virtual bool queue(const Object<Job>& job, Condition* wait) {
+    virtual bool queue(const sp<Job>& job, Condition* wait) {
         Task task(job, 0);
         task.mWait = wait;
         mTasks.push(task);
@@ -177,7 +177,7 @@ struct JobDispatcher : public Job {
     }
 
     // queue a job, return true if it is the first one
-    virtual bool queue(const Object<Job>& job, int64_t delay = 0) {
+    virtual bool queue(const sp<Job>& job, int64_t delay = 0) {
         Task task(job, delay);
         
         // using lockfree queue to speed up queue()
@@ -260,7 +260,7 @@ struct JobDispatcher : public Job {
     }
 
     // remove a job, return true if it is at head
-    virtual bool remove(const Object<Job>& job) {
+    virtual bool remove(const sp<Job>& job) {
         AutoLock _l(mTaskLock);
         merge_l();
         
@@ -278,7 +278,7 @@ struct JobDispatcher : public Job {
         return head;
     }
 
-    bool exists(const Object<Job>& job) const {
+    bool exists(const sp<Job>& job) const {
         AutoLock _l(mTaskLock);
         merge_l();
 
@@ -339,7 +339,7 @@ struct LooperDispatcher : public JobDispatcher {
         INFO("main: exit...");
     }
     
-    virtual bool queue(const Object<Job>& job, int64_t us = 0) {
+    virtual bool queue(const sp<Job>& job, int64_t us = 0) {
 #if 0
         // requestExit will wait for current jobs to complete
         // but no more new jobs
@@ -358,7 +358,7 @@ struct LooperDispatcher : public JobDispatcher {
         return false;
     }
     
-    virtual bool remove(const Object<Job>& job) {
+    virtual bool remove(const sp<Job>& job) {
         if (JobDispatcher::remove(job)) {
             AutoLock _l (mLock);
             mWait.signal();
@@ -463,7 +463,7 @@ struct LooperDispatcher : public JobDispatcher {
 //////////////////////////////////////////////////////////////////////////////////
 // main looper without backend thread
 // auto clear __main on last ref release
-Object<Looper> Looper::Main() {
+sp<Looper> Looper::Main() {
     if (lpMain == NULL) {
         INFO("init main looper");
         lpMain = new Looper;
@@ -472,7 +472,7 @@ Object<Looper> Looper::Main() {
     return lpMain;
 }
 
-Object<Looper> Looper::Current() {
+sp<Looper> Looper::Current() {
     // no lock need, lpCurrent is a thread context
     return lpCurrent ? lpCurrent : Main();
 }
@@ -485,41 +485,41 @@ void Looper::onFirstRetain() {
 }
 
 void Looper::onLastRetain() {
-    Object<LooperDispatcher> disp = mJobDisp;
+    sp<LooperDispatcher> disp = mJobDisp;
     disp->requestExit();    // request exit without flush
     mJobDisp.clear();
 }
 
 void Looper::loop() {
     CHECK_TRUE(pthread_main(), "loop() can only be called in main thread");
-    Object<LooperDispatcher> disp = mJobDisp;
+    sp<LooperDispatcher> disp = mJobDisp;
     disp->loop();
 }
 
 void Looper::terminate() {
-    Object<LooperDispatcher> disp = mJobDisp;
+    sp<LooperDispatcher> disp = mJobDisp;
     disp->terminate();
 }
 
 Thread& Looper::thread() {
-    Object<LooperDispatcher> disp = mJobDisp;
+    sp<LooperDispatcher> disp = mJobDisp;
     return disp->mThread;
 }
 
 void Looper::profile(int64_t interval) {
-    Object<LooperDispatcher> disp = mJobDisp;
+    sp<LooperDispatcher> disp = mJobDisp;
     disp->profile(interval);
 }
 
-void Looper::post(const Object<Job>& job, int64_t delayUs) {
+void Looper::post(const sp<Job>& job, int64_t delayUs) {
     mJobDisp->queue(job, delayUs);
 }
 
-void Looper::remove(const Object<Job>& job) {
+void Looper::remove(const sp<Job>& job) {
     mJobDisp->remove(job);
 }
 
-bool Looper::exists(const Object<Job>& job) const {
+bool Looper::exists(const sp<Job>& job) const {
     return mJobDisp->exists(job);
 }
 
@@ -587,7 +587,7 @@ struct QueueDispatcher : public JobDispatcher {
     }
 };
 
-DispatchQueue::DispatchQueue(const Object<Looper>& lp) :
+DispatchQueue::DispatchQueue(const sp<Looper>& lp) :
 mLooper(lp), mDispatcher(new QueueDispatcher()) {
 }
 
@@ -600,12 +600,12 @@ void DispatchQueue::onFirstRetain() {
 }
 
 void DispatchQueue::onLastRetain() {
-    Object<QueueDispatcher> disp = mDispatcher;
+    sp<QueueDispatcher> disp = mDispatcher;
     disp->requestExit();
 }
 
-void DispatchQueue::sync(const Object<Job>& job) {
-    Object<QueueDispatcher> disp = mDispatcher;
+void DispatchQueue::sync(const sp<Job>& job) {
+    sp<QueueDispatcher> disp = mDispatcher;
     AutoLock _(disp->mLock);
     Condition wait;
     if (disp->queue(job, &wait)) {
@@ -614,22 +614,22 @@ void DispatchQueue::sync(const Object<Job>& job) {
     wait.wait(disp->mLock);
 }
 
-void DispatchQueue::dispatch(const Object<Job>& job, int64_t us) {
-    Object<QueueDispatcher> disp = mDispatcher;
+void DispatchQueue::dispatch(const sp<Job>& job, int64_t us) {
+    sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     if (mDispatcher->queue(job, us)) {
         mLooper->post(mDispatcher);
     }
 }
 
-bool DispatchQueue::exists(const Object<Job>& job) const {
-    Object<QueueDispatcher> disp = mDispatcher;
+bool DispatchQueue::exists(const sp<Job>& job) const {
+    sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     return mDispatcher->exists(job);
 }
 
-void DispatchQueue::remove(const Object<Job>& job) {
-    Object<QueueDispatcher> disp = mDispatcher;
+void DispatchQueue::remove(const sp<Job>& job) {
+    sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     if (mDispatcher->remove(job)) {
         // re-schedule
@@ -639,7 +639,7 @@ void DispatchQueue::remove(const Object<Job>& job) {
 }
 
 void DispatchQueue::flush() {
-    Object<QueueDispatcher> disp = mDispatcher;
+    sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     mDispatcher->flush();
     // don't remove dispatcher here, let it terminate automatically

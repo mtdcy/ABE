@@ -106,7 +106,7 @@ void SharedBufferDeallocate(SharedBufferRef ref) {
 }
 
 BufferObjectRef BufferObjectCreate(size_t cap) {
-    Object<Buffer> buffer = new Buffer(cap);
+    sp<Buffer> buffer = new Buffer(cap);
     return buffer->RetainObject();
 }
 
@@ -135,17 +135,17 @@ size_t BufferObjectPutData(BufferObjectRef ref, const char * data, size_t n) {
 }
 
 MessageObjectRef MessageObjectCreate() {
-    Object<Message> message = new Message;
+    sp<Message> message = new Message;
     return (MessageObjectRef)message->RetainObject();
 }
 
 MessageObjectRef MessageObjectCreateWithId(uint32_t id) {
-    Object<Message> message = new Message(id);
+    sp<Message> message = new Message(id);
     return (MessageObjectRef)message->RetainObject();
 }
 
 MessageObjectRef MessageObjectCopy(const MessageObjectRef ref) {
-    Object<Message> copy = static_cast<const Message *>(ref)->dup();
+    sp<Message> copy = static_cast<const Message *>(ref)->dup();
     return (MessageObjectRef)copy->RetainObject();
 }
 
@@ -182,7 +182,7 @@ MessageObjectPut(Pointer,   void *);
 MessageObjectPut(String,    const char *);
 
 void MessageObjectPutObject(MessageObjectRef ref, const char * name, SharedObjectRef obj) {
-    Object<Message> message = ref;
+    sp<Message> message = ref;
     message->setObject(name, static_cast<SharedObject *>(obj));
 }
 
@@ -203,7 +203,7 @@ SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, const char * 
 }
 
 ContentObjectRef ContentObjectCreate(const char * url) {
-    Object<Content> content = Content::Create(String(url));
+    sp<Content> content = Content::Create(String(url));
     if (content == NULL) return NULL;
     return (ContentObjectRef)content->RetainObject();
 }
@@ -213,13 +213,13 @@ size_t ContentObjectLength(const ContentObjectRef ref) {
 }
 
 BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
-    Object<Buffer> buffer = static_cast<Content *>(ref)->read(size);
+    sp<Buffer> buffer = static_cast<Content *>(ref)->read(size);
     return (BufferObjectRef)buffer->RetainObject();
 }
 
 BufferObjectRef ContentObjectReadPosition(ContentObjectRef ref, size_t size, int64_t offset) {
     static_cast<Content *>(ref)->seek(offset);
-    Object<Buffer> buffer = static_cast<Content *>(ref)->read(size);
+    sp<Buffer> buffer = static_cast<Content *>(ref)->read(size);
     return (BufferObjectRef)buffer->RetainObject();
 }
 
@@ -229,19 +229,19 @@ struct UserJob : public Job {
     void *          mUserContext;
     UserJob(UserCallback callback, void * user) : Job(),
     mCallback(callback), mUserContext(user) { }
-    UserJob(const Object<Looper>& lp, UserCallback callback, void * user) :Job(lp),
+    UserJob(const sp<Looper>& lp, UserCallback callback, void * user) :Job(lp),
     mCallback(callback), mUserContext(user) { }
     
     virtual void onJob() { mCallback(mUserContext); }
 };
 
 JobObjectRef  JobObjectCreate(UserCallback callback, void * user) {
-    Object<Job> runnable = new UserJob(callback, user);
+    sp<Job> runnable = new UserJob(callback, user);
     return (Job *)runnable->RetainObject();
 }
 
 JobObjectRef  JobObjectCreateWithLooper(LooperObjectRef lp, UserCallback callback, void * user) {
-    Object<Job> runnable = new UserJob(callback, user);
+    sp<Job> runnable = new UserJob(callback, user);
     return (Job *)runnable->RetainObject();
 }
 
@@ -254,7 +254,7 @@ void JobObjectCancel(JobObjectRef ref) {
 }
 
 LooperObjectRef LooperObjectCreate(const char * name) {
-    Object<Looper> looper = new Looper(name);
+    sp<Looper> looper = new Looper(name);
     return (LooperObjectRef)looper->RetainObject();
 }
 

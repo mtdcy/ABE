@@ -88,7 +88,7 @@ class ABE_EXPORT Thread : public NonSharedObject {
          * @param runnable  reference to runnable object
          * @note thread is joinable until join() or detach()
          */
-        Thread(const Object<Job>& runnable, const eThreadType type = kThreadDefault);
+        Thread(const sp<Job>& runnable, const eThreadType type = kThreadDefault);
         Thread(const Thread& rhs) : mNative(rhs.mNative) { }
 
         /**
@@ -140,7 +140,7 @@ class ABE_EXPORT Thread : public NonSharedObject {
 
     private:
         struct NativeContext;
-        Object<NativeContext>   mNative;
+        sp<NativeContext> mNative;
 
     private:
         Thread() : mNative(NULL) { }
@@ -154,8 +154,8 @@ class DispatchQueue;
 class ABE_EXPORT Job : public SharedObject {
     public:
         Job();
-        Job(const Object<Looper>&);
-        Job(const Object<DispatchQueue>&);
+        Job(const sp<Looper>&);
+        Job(const sp<DispatchQueue>&);
         virtual ~Job();
 
         // make job execution
@@ -175,10 +175,10 @@ class ABE_EXPORT Job : public SharedObject {
         void execution();   // -> onJob()
     
     protected:
-        Object<Looper> mLooper;
-        Object<DispatchQueue> mQueue;
+        sp<Looper>          mLooper;
+        sp<DispatchQueue>   mQueue;
         // current ticks, inc after execution complete
-        Atomic<size_t> mTicks;
+        Atomic<size_t>      mTicks;
         DISALLOW_EVILS(Job);
 };
 
@@ -189,13 +189,13 @@ class ABE_EXPORT Looper : public SharedObject {
          * get 'main looper', prepare one if not exists.
          * @return return reference to 'main looper'
          */
-        static Object<Looper>   Main();
+        static sp<Looper> Main();
     
         /**
          * get current looper
          * @return return reference to current looper
          */
-        static Object<Looper>   Current();
+        static sp<Looper> Current();
 
         /**
          * create a looper
@@ -216,19 +216,19 @@ class ABE_EXPORT Looper : public SharedObject {
          * @param what      - runnable object
          * @param delayUs   - delay time in us
          */
-        void        post(const Object<Job>& what, int64_t delayUs = 0);
+        void        post(const sp<Job>& what, int64_t delayUs = 0);
 
         /**
          * remove a Job object from this looper
          * @param what      - runnable object
          */
-        void        remove(const Object<Job>& what);
+        void        remove(const sp<Job>& what);
 
         /**
          * test if a Job object is already in this looper
          * @param what      - runnable object
          */
-        bool        exists(const Object<Job>& what) const;
+        bool        exists(const sp<Job>& what) const;
 
         /**
          * flush Job objects from this looper
@@ -259,7 +259,7 @@ class ABE_EXPORT Looper : public SharedObject {
         virtual void onLastRetain();
 
         friend struct JobDispatcher;
-        Object<JobDispatcher> mJobDisp;
+        sp<JobDispatcher> mJobDisp;
 
     private:
         Looper() : mJobDisp(NULL) { }
@@ -269,20 +269,20 @@ class ABE_EXPORT Looper : public SharedObject {
 // for multi session share the same looper
 class ABE_EXPORT DispatchQueue : public SharedObject {
     public:
-        DispatchQueue(const Object<Looper>&);
+        DispatchQueue(const sp<Looper>&);
         
         virtual ~DispatchQueue();
     
-        const Object<Looper>& looper() const { return mLooper; }
+        const sp<Looper>& looper() const { return mLooper; }
         
     public:
-        void    sync(const Object<Job>&);
+        void    sync(const sp<Job>&);
     
-        void    dispatch(const Object<Job>&, int64_t us = 0);
+        void    dispatch(const sp<Job>&, int64_t us = 0);
     
-        bool    exists(const Object<Job>&) const;
+        bool    exists(const sp<Job>&) const;
         
-        void    remove(const Object<Job>&);
+        void    remove(const sp<Job>&);
         
         void    flush();
         
@@ -291,8 +291,8 @@ class ABE_EXPORT DispatchQueue : public SharedObject {
         virtual void onLastRetain();
     
         friend struct JobDispatcher;
-        Object<Looper>          mLooper;
-        Object<JobDispatcher>   mDispatcher;
+        sp<Looper>          mLooper;
+        sp<JobDispatcher>   mDispatcher;
         
         DISALLOW_EVILS(DispatchQueue);
 };

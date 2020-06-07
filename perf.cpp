@@ -120,7 +120,7 @@ void QueuePerf() {
 #if MULTI_THREAD
     // single producer & single consumer test
     INFO("Queue single producer & single consumer");
-    Object<QueueSingleConsumer> consumer = new QueueSingleConsumer;
+    sp<QueueSingleConsumer> consumer = new QueueSingleConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -134,7 +134,7 @@ void QueuePerf() {
 
     // multi producer & single consumer test
     INFO("Queue multi producer & single consumer");
-    Object<QueueProducer> producer = new QueueProducer;
+    sp<QueueProducer> producer = new QueueProducer;
     Vector<Thread> threads;
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
@@ -237,7 +237,7 @@ void ListPerf() {
 #if MULTI_THREAD
     // compare to LockFree::Queue
     INFO("List single producer & single consumer");
-    Object<ListConsumer> consumer = new ListConsumer;
+    sp<ListConsumer> consumer = new ListConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -251,7 +251,7 @@ void ListPerf() {
     INFO("---");
 
     INFO("List multi producer & single consumer");
-    Object<ListProducer> producer = new ListProducer;
+    sp<ListProducer> producer = new ListProducer;
     Vector<Thread> threads;
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
@@ -509,8 +509,8 @@ void LooperPerf() {
     INFO("Job::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
 #endif
     
-    Object<Looper> looper = new Looper("LooperPerf");
-    Object<EmptyJob> routine = new EmptyJob;
+    sp<Looper> looper = new Looper("LooperPerf");
+    sp<EmptyJob> routine = new EmptyJob;
     routine->count = 0;
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {

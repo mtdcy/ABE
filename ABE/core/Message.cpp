@@ -57,8 +57,8 @@ Message::Message(uint32_t what)
 {
 }
 
-Object<Message> Message::dup() const {
-    Object<Message> message = new Message;
+sp<Message> Message::dup() const {
+    sp<Message> message = new Message;
     HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
         const String& name  = it.key();

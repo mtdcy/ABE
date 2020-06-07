@@ -62,8 +62,7 @@ set(ABE_SOURCES
     ABE/core/debug/malloc.cpp
     ABE/core/CallStack.cpp
     ABE/core/Log.cpp
-    ABE/core/Time.cpp
-    ABE/core/Hardware.cpp
+    ABE/core/System.cpp
     ABE/core/SharedObject.cpp
     ABE/core/Allocator.cpp
     ABE/core/private/ConvertUTF.c
@@ -84,7 +83,7 @@ set(ABE_SOURCES
     ABE/stl/HashTable.cpp
     ABE/stl/Queue.cpp
 
-    ABE/c.cpp
+    ABE/ABE.cpp
     )
 
 # includes

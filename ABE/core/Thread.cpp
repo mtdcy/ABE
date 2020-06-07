@@ -39,7 +39,7 @@
 #include "stl/List.h"
 #include "stl/Vector.h"
 
-#include "Time.h"
+#include "System.h"
 #include "Mutex.h"
 #include "Looper.h"
 
@@ -146,10 +146,10 @@ struct Thread::NativeContext : public SharedObject {
     mutable Mutex           mLock;
     Condition               mWait;
     Thread *                mThread;
-    Object<Job>             mJob;
+    sp<Job>                 mJob;
     eThreadState            mState;
 
-    NativeContext(const String& name, const eThreadType type, Thread* p, const Object<Job>& job) :
+    NativeContext(const String& name, const eThreadType type, Thread* p, const sp<Job>& job) :
         SharedObject(), mType(type), mName(name), mNativeHandler(0),
         mThread(p), mJob(job), mState(kThreadNew) { }
 
@@ -314,7 +314,7 @@ struct Thread::NativeContext : public SharedObject {
     }
 };
 
-Thread::Thread(const Object<Job>& job, const eThreadType type) {
+Thread::Thread(const sp<Job>& job, const eThreadType type) {
     mNative = new NativeContext(MakeThreadName(), type, this, job);
     mNative->start();
     // execute when run()

@@ -179,7 +179,7 @@
     void    operator delete(void *)
 
 //=============================================================
-// Object Type
+// sp Type
 __BEGIN_NAMESPACE_ABE
 
 enum {      //-- XXX remove this XXX --//
@@ -305,18 +305,18 @@ struct ABE_EXPORT SharedObject {
 };
 
 #define COMPARE(_op_)                                                   \
-    ABE_INLINE bool operator _op_ (const Object<T>& o) const {        \
+    ABE_INLINE bool operator _op_ (const sp<T>& o) const {              \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
-    ABE_INLINE bool operator _op_ (const T* o) const {                \
+    ABE_INLINE bool operator _op_ (const T* o) const {                  \
         return mShared _op_ o;                                          \
     }                                                                   \
     template<typename U>                                                \
-    ABE_INLINE bool operator _op_ (const Object<U>& o) const {        \
+    ABE_INLINE bool operator _op_ (const sp<U>& o) const {              \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
     template<typename U>                                                \
-    ABE_INLINE bool operator _op_ (const U* o) const {                \
+    ABE_INLINE bool operator _op_ (const U* o) const {                  \
         return mShared _op_ o;                                          \
     }                                                                   \
 
@@ -324,23 +324,23 @@ struct ABE_EXPORT SharedObject {
  * SharedObject accessory
  * help retain & release SharedObject
  */
-template <class T> class ABE_EXPORT Object : public NonSharedObject {
+template <class T> class ABE_EXPORT sp : public NonSharedObject {
     public:
         // constructors
-        ABE_INLINE Object() : mShared(NULL) { }
-        ABE_INLINE Object(SharedObject * rhs)                         { set(rhs);             }
-        ABE_INLINE Object(const Object<T>& rhs)                       { set(rhs.mShared);     }
-        template<typename U> ABE_INLINE Object(U * rhs)               { set(rhs);             }
-        template<typename U> ABE_INLINE Object(const Object<U>& rhs)  { set(rhs.mShared);     }
+        ABE_INLINE sp() : mShared(NULL) { }
+        ABE_INLINE sp(SharedObject * rhs)                       { set(rhs);             }
+        ABE_INLINE sp(const sp<T>& rhs)                         { set(rhs.mShared);     }
+        template<typename U> ABE_INLINE sp(U * rhs)             { set(rhs);             }
+        template<typename U> ABE_INLINE sp(const sp<U>& rhs)    { set(rhs.mShared);     }
 
         // destructors
-        ABE_INLINE ~Object() { clear(); }
+        ABE_INLINE ~sp() { clear(); }
 
         // copy assignments
-        ABE_INLINE Object& operator=(SharedObject * rhs)                          { clear(); set(rhs); return *this;          }
-        ABE_INLINE Object& operator=(const Object<T>& rhs)                        { clear(); set(rhs.mShared); return *this;  }
-        template<typename U> ABE_INLINE Object& operator=(U * rhs)                { clear(); set(rhs); return *this;          }
-        template<typename U> ABE_INLINE Object& operator=(const Object<U>& rhs)   { clear(); set(rhs.mShared); return *this;  }
+        ABE_INLINE sp& operator=(SharedObject * rhs)                    { clear(); set(rhs); return *this;          }
+        ABE_INLINE sp& operator=(const sp<T>& rhs)                      { clear(); set(rhs.mShared); return *this;  }
+        template<typename U> ABE_INLINE sp& operator=(U * rhs)          { clear(); set(rhs); return *this;          }
+        template<typename U> ABE_INLINE sp& operator=(const sp<U>& rhs) { clear(); set(rhs.mShared); return *this;  }
 
         // clear
         ABE_INLINE void clear();
@@ -367,7 +367,8 @@ template <class T> class ABE_EXPORT Object : public NonSharedObject {
     public:
         ABE_INLINE size_t      refsCount() const  { return mShared->GetRetainCount();         }
 
-        template<typename U> friend class Object;
+    public:
+        template<typename U> friend class sp;
         ABE_INLINE void                       set(SharedObject *);
         template<typename U> ABE_INLINE void  set(U * );
         SharedObject *  mShared;
@@ -375,17 +376,17 @@ template <class T> class ABE_EXPORT Object : public NonSharedObject {
 #undef COMPARE
 
 ///////////////////////////////////////////////////////////////////////////
-template <typename T> void Object<T>::set(SharedObject * shared) {
+template <typename T> void sp<T>::set(SharedObject * shared) {
     mShared = shared;
     if (mShared) { mShared->RetainObject(); }
 }
 
-template<typename T> template<typename U> void Object<T>::set(U * shared) {
+template<typename T> template<typename U> void sp<T>::set(U * shared) {
     mShared = static_cast<SharedObject *>(shared);
     if (mShared) { mShared->RetainObject(); }
 }
 
-template<typename T> void Object<T>::clear() {
+template<typename T> void sp<T>::clear() {
     if (mShared) {
         // we should clear mShared before ReleaseObject() to avoid loop
         // in object destruction. but it will also make this object

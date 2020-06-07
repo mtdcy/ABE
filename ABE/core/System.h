@@ -25,18 +25,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-// File:    Time.h
+// File:    System.h
 // Author:  mtdcy.chen
 // Changes: 
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_TIME_H
-#define ABE_HEADERS_TIME_H
+#ifndef ABE_HEADERS_SYSTEM_H
+#define ABE_HEADERS_SYSTEM_H
 
 #include <ABE/core/Types.h>
 
 __BEGIN_DECLS
+
+ABE_EXPORT size_t GetCpuCount();
+
+// always return a nul-terminated string
+// if env does NOT exists, return a empty string
+ABE_EXPORT const char * GetEnvironmentValue(const char *);
 
 // get system time in nsecs since Epoch. @see CLOCK_REALTIME
 // @note it can jump forwards and backwards as the system time-of-day clock is changed, including by NTP.
@@ -68,4 +74,4 @@ ABE_EXPORT void SleepForIntervalWithoutInterrupt(int64_t ns);
 
 __END_DECLS
 
-#endif // ABE_HEADERS_TIME_H
+#endif // ABE_HEADERS_SYSTEM_H

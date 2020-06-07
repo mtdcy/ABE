@@ -51,7 +51,7 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
         /**
          * create a cow buffer with given size and backend allocator
          */
-        static SharedBuffer *       Create(const Object<Allocator>&, size_t);
+        static SharedBuffer *       Create(const sp<Allocator>&, size_t);
         /**
          * manually release backend memory
          */
@@ -102,9 +102,9 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
         SharedBuffer *              edit(size_t);
 
     private:
-        Object<Allocator>   mAllocator;
-        char *              mData;
-        size_t              mSize;
+        sp<Allocator>   mAllocator;
+        char *          mData;
+        size_t          mSize;
     
     DISALLOW_EVILS(SharedBuffer);
 };

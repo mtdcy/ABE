@@ -85,7 +85,7 @@ struct AllocatorDefault : public Allocator {
         free(ptr);
     }
 };
-Object<Allocator> kAllocatorDefault = new AllocatorDefault;
+sp<Allocator> kAllocatorDefault = new AllocatorDefault;
 
 struct AllocatorDefaultAligned : public Allocator {
     const size_t mAlignment;
@@ -121,7 +121,7 @@ struct AllocatorDefaultAligned : public Allocator {
     }
 };
 
-Object<Allocator> GetAlignedAllocator(size_t alignment) {
+sp<Allocator> GetAlignedAllocator(size_t alignment) {
     return new AllocatorDefaultAligned(alignment);
 }
 

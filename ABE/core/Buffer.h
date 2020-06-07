@@ -67,8 +67,8 @@ class ABE_EXPORT Buffer : public SharedObject {
          * @param capacity  initial capacity of this buffer
          * @param type      type of this buffer, @see eBufferType
          */
-        Buffer(size_t capacity, const Object<Allocator>& allocator = kAllocatorDefault);
-        Buffer(size_t capacity, eBufferType type, const Object<Allocator>& allocator = kAllocatorDefault);
+        Buffer(size_t capacity, const sp<Allocator>& allocator = kAllocatorDefault);
+        Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator = kAllocatorDefault);
 
         /**
          * alloc a buffer by duplicate a null-terminated string
@@ -77,7 +77,7 @@ class ABE_EXPORT Buffer : public SharedObject {
          * @param type  type of this buffer, @see eBufferType
          */
         Buffer(const char *, size_t n = 0, eBufferType type = Default,
-                const Object<Allocator>& allocator = kAllocatorDefault);
+                const sp<Allocator>& allocator = kAllocatorDefault);
 
         ~Buffer();
 
@@ -134,7 +134,7 @@ class ABE_EXPORT Buffer : public SharedObject {
         ABE_INLINE size_t   size() const { return ready(); } ///<  alias for ready()
     
         size_t              read(char *buf, size_t n);
-        Object<Buffer>      read(size_t n);
+        sp<Buffer>          read(size_t n);
 
         // move read pointer forward
         void                skip(size_t n);
@@ -157,7 +157,7 @@ class ABE_EXPORT Buffer : public SharedObject {
         ABE_INLINE void     replace(const Buffer& s, size_t n = 0) { replace(0, s, n); }
 
     public:
-        Object<Buffer>      split(size_t pos, size_t size) const;
+        sp<Buffer>          split(size_t pos, size_t size) const;
 
     public:
         int                 compare(size_t offset, const char *s, size_t n = 0) const;
@@ -185,7 +185,7 @@ class ABE_EXPORT Buffer : public SharedObject {
 
     private:
         // backend memory provider
-        Object<Allocator>   mAllocator;
+        sp<Allocator>       mAllocator;
         char *              mData;
         size_t              mCapacity;
         const eBufferType   mType;

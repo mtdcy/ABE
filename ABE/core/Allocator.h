@@ -60,8 +60,8 @@ struct ABE_EXPORT Allocator : public SharedObject {
     virtual void    deallocate(void * ptr) = 0;
 };
 
-ABE_EXPORT extern Object<Allocator> kAllocatorDefault;
-ABE_EXPORT Object<Allocator> GetAlignedAllocator(size_t alignment);
+ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
+ABE_EXPORT sp<Allocator> GetAlignedAllocator(size_t alignment);
 
 __END_NAMESPACE_ABE
 

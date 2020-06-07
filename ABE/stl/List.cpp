@@ -84,7 +84,7 @@ ListNodeImpl * ListNodeImpl::append(ListNodeImpl * prev) {
     return this;
 }
 
-ListImpl::ListImpl(const Object<Allocator>& allocator, const TypeHelper& helper) :
+ListImpl::ListImpl(const sp<Allocator>& allocator, const TypeHelper& helper) :
     mTypeHelper(helper),
     mAllocator(allocator), mStorage(NULL),
     mListLength(0)
@@ -135,7 +135,7 @@ void ListImpl::freeNode(ListNodeImpl* node) {
     mAllocator->deallocate(node);
 }
 
-void ListImpl::_prepare(const Object<Allocator>& allocator) {
+void ListImpl::_prepare(const sp<Allocator>& allocator) {
     mStorage = SharedBuffer::Create(allocator, sizeof(ListNodeImpl));
     ListNodeImpl * head = (ListNodeImpl *)mStorage->data();
     new (head) ListNodeImpl;

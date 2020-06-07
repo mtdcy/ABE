@@ -109,17 +109,17 @@ class ABE_EXPORT Content : public SharedObject {
          * @param mode mode of the content object
          * @return return a new content object
          */
-        static Object<Content> Create(const String& url, eMode mode = Default);
+        static sp<Content> Create(const String& url, eMode mode = Default);
 
         /**
          * create a content object with custom protocol
          * @param proto the custom protocol
          * @return return a new content object 
          */
-        static Object<Content> Create(const Object<Protocol>& proto);
+        static sp<Content> Create(const sp<Protocol>& proto);
 
     protected:
-        Content(const Object<Protocol>& proto, size_t blockLength);
+        Content(const sp<Protocol>& proto, size_t blockLength);
 
         ~Content();
     
@@ -160,7 +160,7 @@ class ABE_EXPORT Content : public SharedObject {
         /**
          * read bytes from content
          */
-        Object<Buffer>  read(size_t size);
+        sp<Buffer>  read(size_t size);
 
         /**
          * write bytes to content
@@ -168,7 +168,7 @@ class ABE_EXPORT Content : public SharedObject {
          */
         size_t          write(const char *, size_t);
     
-        ABE_INLINE size_t write(const Object<Buffer>& buffer) {
+        ABE_INLINE size_t write(const sp<Buffer>& buffer) {
             return write(buffer->data(), buffer->size());
         }
 
@@ -177,9 +177,9 @@ class ABE_EXPORT Content : public SharedObject {
         bool            writeBlockBack();
 
     private:
-        Object<Protocol>    mProto;
+        sp<Protocol>        mProto;
         int64_t             mPosition;
-        Object<Buffer>      mBlock;         // cache block
+        sp<Buffer>          mBlock;         // cache block
         size_t              mBlockOffset;   // offset shared by read and write
         size_t              mBlockLength;   // how may bytes of cache in mBlock
         bool                mBlockPopulated;    // need write back ?

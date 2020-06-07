@@ -96,11 +96,11 @@ void testSharedObject() {
     SharedObject * shared = new MySharedObject;
     ASSERT_EQ(shared->GetRetainCount(), 0);
 
-    Object<SharedObject> sp_shared1 = shared;
+    sp<SharedObject> sp_shared1 = shared;
     ASSERT_EQ(shared->GetRetainCount(), 1);
     ASSERT_EQ(sp_shared1.refsCount(), 1);
 
-    Object<SharedObject> sp_shared2 = sp_shared1;
+    sp<SharedObject> sp_shared2 = sp_shared1;
     ASSERT_EQ(shared->GetRetainCount(), 2);
     ASSERT_EQ(sp_shared2.refsCount(), 2);
 
@@ -110,7 +110,7 @@ void testSharedObject() {
 }
 
 void testAllocator() {
-    Object<Allocator> allocator = kAllocatorDefault;
+    sp<Allocator> allocator = kAllocatorDefault;
     void * p = allocator->allocate(1024);
     ASSERT_TRUE(p != NULL);
 
@@ -215,7 +215,7 @@ void testString() {
 }
 
 void testBuffer() {
-    Object<Buffer> buffer = new Buffer(128);
+    sp<Buffer> buffer = new Buffer(128);
     ASSERT_EQ(buffer->type(), Buffer::Linear);
     ASSERT_EQ(buffer->capacity(), 128);
     ASSERT_EQ(buffer->empty(), 128);
@@ -327,7 +327,7 @@ struct MainLooperAssist : public Job {
     virtual void onJob() {
         INFO("post prepare");
         SleepTimeMs(1000); // 1s
-        Object<Looper> main = Looper::Main();
+        sp<Looper> main = Looper::Main();
         
         INFO("post assist 0");
         main->post(new ThreadJob("assist 0"));
@@ -343,23 +343,23 @@ struct MainLooperAssist : public Job {
 };
 
 void testLooper() {
-    Object<Looper> looper1 = new Looper("Looper 1");
+    sp<Looper> looper1 = new Looper("Looper 1");
     looper1->post(new ThreadJob("Looper run 1"));
     looper1.clear();
 
-    Object<Looper> current = Looper::Current();
+    sp<Looper> current = Looper::Current();
     ASSERT_TRUE(current != NULL);
 
-    Object<Looper> main = Looper::Main();
-    Object<Looper> assist = new Looper("assist");
+    sp<Looper> main = Looper::Main();
+    sp<Looper> assist = new Looper("assist");
     assist->post(new MainLooperAssist);
     ASSERT_TRUE(main != NULL);
     
     main->loop();
     
-    Object<Looper> lp = new Looper("looper0");
-    Object<ThreadJob> job0 = new ThreadJob("job0");
-    Object<ThreadJob> job1 = new ThreadJob("job1");
+    sp<Looper> lp = new Looper("looper0");
+    sp<ThreadJob> job0 = new ThreadJob("job0");
+    sp<ThreadJob> job1 = new ThreadJob("job1");
     for (size_t i = 0; i < 100; i++) {
         switch (i % 10) {
             case 0:
@@ -395,12 +395,12 @@ struct QueueJob : public Job {
 };
 
 void testDispatchQueue() {
-    Object<Looper> looper = new Looper("DispatchQueue");
+    sp<Looper> looper = new Looper("DispatchQueue");
     
-    Object<DispatchQueue> disp0 = new DispatchQueue(looper);
-    Object<DispatchQueue> disp1 = new DispatchQueue(looper);
+    sp<DispatchQueue> disp0 = new DispatchQueue(looper);
+    sp<DispatchQueue> disp1 = new DispatchQueue(looper);
     
-    Object<Job> job = new QueueJob;
+    sp<Job> job = new QueueJob;
     disp0->dispatch(job);
     disp1->dispatch(job);
     
@@ -422,7 +422,7 @@ void testDispatchQueue() {
     ASSERT_TRUE(disp0->exists(job));
     ASSERT_FALSE(disp1->exists(job));
     
-    Object<QueueJob> job0 = new QueueJob;
+    sp<QueueJob> job0 = new QueueJob;
     for (size_t i = 0; i < 100; ++i) {
         disp0->dispatch(job0);
     }
@@ -433,8 +433,8 @@ void testDispatchQueue() {
     disp1.clear();
     
     // test clear
-    Object<QueueJob> job1 = new QueueJob;
-    Object<DispatchQueue> disp2 = new DispatchQueue(looper);
+    sp<QueueJob> job1 = new QueueJob;
+    sp<DispatchQueue> disp2 = new DispatchQueue(looper);
     
     // dispatch a job & clear immediately
     disp2->dispatch(job1);
@@ -442,7 +442,7 @@ void testDispatchQueue() {
     ASSERT_EQ(job1->count, 1);
     
     // test sync
-    Object<DispatchQueue> disp3 = new DispatchQueue(looper);
+    sp<DispatchQueue> disp3 = new DispatchQueue(looper);
     disp3->sync(job1);
 }
 
@@ -490,7 +490,7 @@ template <class TYPE> void testQueue() {
     ASSERT_EQ(queue.size(), 0);
 
     // single producer & single consumer test
-    Object<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>();
+    sp<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>();
     Thread thread(consumer);
     thread.run();
     

@@ -108,7 +108,7 @@ class ABE_EXPORT BitReader : public NonSharedObject {
          * @param nbytes    number bytes to read
          * @return return a buffer reference contains the data
          */
-        Object<Buffer>  readB(size_t nbytes) const;
+        sp<Buffer>  readB(size_t nbytes) const;
 
         /**
          * skip n bits at most of the data

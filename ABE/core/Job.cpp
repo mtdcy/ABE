@@ -41,10 +41,10 @@ __BEGIN_NAMESPACE_ABE
 
 Job::Job() : SharedObject(), mLooper(), mTicks(0) { }
 
-Job::Job(const Object<Looper>& lp) : SharedObject(),
+Job::Job(const sp<Looper>& lp) : SharedObject(),
 mLooper(lp), mTicks(0) { }
 
-Job::Job(const Object<DispatchQueue>& disp) : SharedObject(),
+Job::Job(const sp<DispatchQueue>& disp) : SharedObject(),
 mQueue(disp), mTicks(0) { }
 
 Job::~Job() {

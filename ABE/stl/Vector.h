@@ -43,7 +43,7 @@
 __BEGIN_NAMESPACE_ABE_PRIVATE
 class ABE_EXPORT VectorImpl {
     public:
-        VectorImpl(const Object<Allocator>& allocator,
+        VectorImpl(const sp<Allocator>& allocator,
                 size_t capacity, const TypeHelper& helper);
 
         VectorImpl(const VectorImpl& rhs);
@@ -78,7 +78,7 @@ class ABE_EXPORT VectorImpl {
 
     private:
         TypeHelper          mTypeHelper;
-        Object<Allocator>   mAllocator;
+        sp<Allocator>   mAllocator;
         SharedBuffer *      mStorage;
         size_t              mCapacity;
         size_t              mItemCount;
@@ -91,7 +91,7 @@ __BEGIN_NAMESPACE_ABE
 // 2. No auto memory shrink
 template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl, public NonSharedObject {
     public:
-        ABE_INLINE Vector(size_t capacity = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
+        ABE_INLINE Vector(size_t capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
             VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, false, true, true>()) { }
 
         ABE_INLINE ~Vector() { }

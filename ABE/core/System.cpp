@@ -25,8 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-
-// File:    Hardware.cpp
+// File:    System.cpp
 // Author:  mtdcy.chen
 // Changes:
 //          1. 20160701     initial version
@@ -35,10 +34,9 @@
 #define _DARWIN_C_SOURCE
 #endif
 
-#define LOG_TAG   "Hardware"
+#define LOG_TAG "System"
 #include "Log.h"
-
-#include "Hardware.h"
+#include "System.h"
 
 #if defined(__ANDROID__)
 // this is a code we copy from android
@@ -55,10 +53,16 @@
 
 #include <stdlib.h>
 
+#include <time.h>
+
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
 __BEGIN_DECLS
 
 // https://stackoverflow.com/questions/150355/programmatically-find-the-number-of-cores-on-a-machine
-uint32_t GetCpuCount() {
+size_t GetCpuCount() {
 #if defined(__ANDROID__)
     return android_getCpuCount();
 #elif defined(__APPLE__)
@@ -90,5 +94,87 @@ const char * GetEnvironmentValue(const char *name) {
     return value ? value : empty;
 }
 
-__END_DECLS
+int64_t SystemTimeEpoch() {
+#if defined(_WIN32)
+    // borrow from ffmpeg, 100ns resolution
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    int64_t t = (int64_t)ft.dwHighDateTime << 32 | ft.dwLowDateTime;
+    t -= 116444736000000000LL;    //1jan1601 to 1jan1970
+    return t * 100LL;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
 
+int64_t SystemTimeMonotonic() {
+#if defined(_WIN32)
+    static LARGE_INTEGER performanceFrequency = { 0 };
+    if (ABE_UNLIKELY(performanceFrequency.QuadPart == 0)) {
+        QueryPerformanceFrequency(&performanceFrequency);
+    }
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    return (t.QuadPart * 1000000000LL) / performanceFrequency.QuadPart;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
+
+ABE_INLINE bool _Sleep(int64_t ns, int64_t *unslept) {
+#if defined(_WIN32)
+    // https://gist.github.com/Youka/4153f12cf2e17a77314c
+    // FIXME: return the unslept time properly
+    /* Windows sleep in 100ns units */
+    /* Declarations */
+    HANDLE timer;     /* Timer handle */
+    LARGE_INTEGER li; /* Time defintion */
+    if (unslept) *unslept = 0;
+    /* Create timer */
+    if (!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+        return false;
+    
+    /* Set timer properties */
+    li.QuadPart = -ns;
+    if (!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)) {
+        CloseHandle(timer);
+        return false;
+    }
+    /* Start & wait for timer */
+    if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0) {
+        // failed ?
+    }
+    /* Clean resources */
+    CloseHandle(timer);
+    /* Slept without problems */
+    return true;
+#else
+    struct timespec rqtp;
+    struct timespec rmtp;
+    rqtp.tv_sec     = ns / 1000000000LL;
+    rqtp.tv_nsec    = ns % 1000000000LL;
+    int rt = nanosleep(&rqtp, &rmtp);
+    CHECK_TRUE(rt == 0 || errno == EINTR);
+    if (rt == 0) return true;
+    // return false and unslept time
+    if (unslept) *unslept = rmtp.tv_sec * 1000000000LL + rmtp.tv_nsec;
+    return false;
+    // man(3) usleep:
+    // "The usleep() function is obsolescent. Use nanosleep(2) instead."
+    //return usleep(usecs);
+#endif
+}
+
+bool SleepForInterval(int64_t ns) {
+    return _Sleep(ns, NULL);
+}
+
+void SleepForIntervalWithoutInterrupt(int64_t ns) {
+    while (_Sleep(ns, &ns) == false) { }
+}
+
+__END_DECLS

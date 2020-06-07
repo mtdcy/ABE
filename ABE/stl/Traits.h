@@ -73,11 +73,11 @@ template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
 #ifdef ABE_HEADERS_SHARED_BUFFER_H
-template <typename T> struct is_trivial_move<Object<T> >    { enum { value = true }; };
+template <typename T> struct is_trivial_move<sp<T> >    { enum { value = true }; };
 #endif
 
 #ifdef ABE_HEADERS_STRING_H    // String.h
-template <> struct is_trivial_move<String>          { enum { value = true }; };
+template <> struct is_trivial_move<String>              { enum { value = true }; };
 #endif
 
 __END_NAMESPACE_ABE

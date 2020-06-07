@@ -40,7 +40,7 @@
 #include "Log.h"
 #include "debug/backtrace.h"
 
-#include "Time.h"
+#include "System.h"
 #include "compat/pthread.h"
 
 #if defined(_WIN32) || defined(__MINGW32__)

@@ -37,11 +37,9 @@
 #include <ABE/core/Log.h>
 #endif
 
-#include <ABE/core/Hardware.h>
-#include <ABE/core/Time.h>
+#include <ABE/core/System.h>
 
 #ifdef __cplusplus  // only available for c++
-#define sp  Object  // for api compatible, keep for sometime
 #include <ABE/core/Allocator.h>
 #include <ABE/core/SharedBuffer.h>
 #include <ABE/core/String.h>

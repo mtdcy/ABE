@@ -46,7 +46,7 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-HashTableImpl::HashTableImpl(const Object<Allocator>& allocator,
+HashTableImpl::HashTableImpl(const sp<Allocator>& allocator,
         size_t tableLength,
         const TypeHelper& keyHelper,
         const TypeHelper& valueHelper,

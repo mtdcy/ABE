@@ -110,12 +110,12 @@ bool Content::writeBlockBack() {
 
 ///////////////////////////////////////////////////////////////////////////
 // static
-Object<Content::Protocol> CreateFile(const String& url, Content::eMode mode);
+sp<Content::Protocol> CreateFile(const String& url, Content::eMode mode);
 
-Object<Content> Content::Create(const String& url, eMode mode) {
+sp<Content> Content::Create(const String& url, eMode mode) {
     INFO("Open content %s", url.c_str());
 
-    Object<Protocol> proto;
+    sp<Protocol> proto;
     if (url.startsWithIgnoreCase("file://") || 
             url.startsWithIgnoreCase("android://") ||
             url.startsWithIgnoreCase("pipe://")) {
@@ -133,14 +133,14 @@ Object<Content> Content::Create(const String& url, eMode mode) {
     return Content::Create(proto);
 }
 
-Object<Content> Content::Create(const Object<Protocol>& proto) {
+sp<Content> Content::Create(const sp<Protocol>& proto) {
     return new Content(proto, proto->blockLength());
 }
 
 // read mode: read - read - read
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
-Content::Content(const Object<Protocol>& proto, size_t blockLength) :
+Content::Content(const sp<Protocol>& proto, size_t blockLength) :
     mProto(proto),
     mPosition(0),
     mBlock(new Buffer(blockLength)), mBlockOffset(0), 
@@ -152,10 +152,10 @@ Content::~Content() {
     writeBlockBack();
 }
 
-Object<Buffer> Content::read(size_t size) {
+sp<Buffer> Content::read(size_t size) {
     CHECK_TRUE(mode() & Read);
 
-    Object<Buffer> data = new Buffer(size);
+    sp<Buffer> data = new Buffer(size);
 
     //bool eof = false;
     size_t n = size;
