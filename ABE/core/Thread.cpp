@@ -320,7 +320,7 @@ struct Thread::NativeContext : public SharedObject {
             mLock.unlock();
             pthread_yield();            // give client chance to hold lock
 
-            mThread.onAction();
+            mThread.mJob->execution();
             mLock.lock();
         }
 

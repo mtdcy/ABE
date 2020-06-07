@@ -229,6 +229,9 @@ struct UserJob : public Job {
     void *          mUserContext;
     UserJob(UserCallback callback, void * user) : Job(),
     mCallback(callback), mUserContext(user) { }
+    UserJob(const Object<Looper>& lp, UserCallback callback, void * user) :Job(lp),
+    mCallback(callback), mUserContext(user) { }
+    
     virtual void onJob() { mCallback(mUserContext); }
 };
 
@@ -237,8 +240,9 @@ JobObjectRef  JobObjectCreate(UserCallback callback, void * user) {
     return (Job *)runnable->RetainObject();
 }
 
-void JobObjectBind(JobObjectRef ref, LooperObjectRef lp) {
-    static_cast<Job *>(ref)->bind(lp);
+JobObjectRef  JobObjectCreateWithLooper(LooperObjectRef lp, UserCallback callback, void * user) {
+    Object<Job> runnable = new UserJob(callback, user);
+    return (Job *)runnable->RetainObject();
 }
 
 size_t JobObjectRun(JobObjectRef ref) {

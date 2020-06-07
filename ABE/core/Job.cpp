@@ -39,30 +39,36 @@
 
 __BEGIN_NAMESPACE_ABE
 
-Job::Job() : SharedObject(), mLooper(), mTicks(0) {
+Job::Job() : SharedObject(), mLooper(), mTicks(0) { }
 
-}
+Job::Job(const Object<Looper>& lp) : SharedObject(),
+mLooper(lp), mTicks(0) { }
+
+Job::Job(const Object<DispatchQueue>& disp) : SharedObject(),
+mQueue(disp), mTicks(0) { }
 
 Job::~Job() {
-
-}
-
-void Job::bind(const Object<Looper> &looper) {
-    mLooper = looper;
 }
 
 size_t Job::run(int64_t us) {
-    if (mLooper.isNIL()) onJobInt();
-    else mLooper->post(this, us);
+    if (!mLooper.isNIL())
+        mLooper->post(this, us);
+    else if (!mQueue.isNIL())
+        mQueue->dispatch(this, us);
+    else
+        execution();
     return mTicks.load();
 }
 
 size_t Job::cancel() {
-    if (!mLooper.isNIL()) mLooper->remove(this);
+    if (!mLooper.isNIL())
+        mLooper->remove(this);
+    else if (!mQueue.isNIL())
+        mQueue->remove(this);
     return mTicks.load();
 }
 
-void Job::onJobInt() {
+void Job::execution() {
     onJob();
     mTicks++;
 }

@@ -71,6 +71,11 @@ SharedObject *  SharedObject::RetainObject() {
 
 size_t SharedObject::ReleaseObject(bool keep) {
     DEBUG("release %" PRIu32, mID);
+    if (mRefs.load() == 0) {
+        ERROR("release object %p after destruction", this);
+        return 0;
+    }
+    
     size_t refs = --mRefs;
     if (refs == 0) {
         onLastRetain();

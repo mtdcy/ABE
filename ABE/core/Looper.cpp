@@ -39,7 +39,6 @@
 #include "Log.h"
 
 #include "stl/List.h"
-#include "stl/Vector.h"
 #include "stl/Queue.h"
 
 #include "Time.h"
@@ -72,15 +71,14 @@ static ABE_INLINE const char * signame(int signo) {
 #endif
 }
 
-static __thread Looper * lpCurrent = NULL;
-static Looper * lpMain = NULL;
-
 struct Task {
+    Condition *     mWait;
     Object<Job>     mJob;
     int64_t         mWhen;
 
-    Task() : mJob(NULL), mWhen(0) { }
-    Task(const Object<Job>& job, int64_t delay) : mJob(job),
+    Task() : mWait(NULL), mJob(NULL), mWhen(0) { }
+    
+    Task(const Object<Job>& job, int64_t delay) : mWait(NULL), mJob(job),
     mWhen(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 
     bool operator<(const Task& rhs) const {
@@ -161,31 +159,178 @@ struct Stat {
     }
 };
 
-
-struct Looper::JobDispatcher : public Job {
-    // internal context
-    Stat                            mStat;  // only used inside looper
-
+struct JobDispatcher : public Job {
+    String                          mName;
     // mutable context, access with lock
-    mutable Mutex                   mLock;
-    mutable Condition               mWait;
+    mutable Mutex                   mTaskLock;
     mutable LockFree::Queue<Task>   mTasks;
     mutable List<Task>              mTimedTasks;
-    Vector<void *>                  mUserContext;
 
+    JobDispatcher(const String& name) :
+        Job(), mName(name) { }
+
+    virtual void init() = 0;
+    
+    virtual bool queue(const Object<Job>& job, Condition* wait) {
+        Task task(job, 0);
+        task.mWait = wait;
+        mTasks.push(task);
+        return mTasks.size() == 1;
+    }
+
+    // queue a job, return true if it is the first one
+    virtual bool queue(const Object<Job>& job, int64_t delay = 0) {
+        Task task(job, delay);
+        
+        // using lockfree queue to speed up queue()
+        // but this will cause remove() and exists() more complex
+        if (delay == 0) {
+            mTasks.push(task);
+            return mTasks.size() == 1;
+        }
+
+        // else push job into mTimedTasks
+        AutoLock _l(mTaskLock);
+
+        // go through list should be better than sort()
+        List<Task>::iterator it = mTimedTasks.begin();
+        while (it != mTimedTasks.end() && (*it).mWhen < task.mWhen) {
+            ++it;
+        }
+
+        // insert() will change begin()
+        bool first = it == mTimedTasks.begin();
+        mTimedTasks.insert(it, task);
+        return mTasks.empty() && first;
+    }
+
+    // return true when pop success with a job, otherwise set
+    // next: set to -1 if no job exists, or next job time in us
+    bool pop(Task& job, int64_t * next) {
+        AutoLock _l(mTaskLock);
+
+        *next = -1;     // job not exists
+
+        if (mTimedTasks.size()) {
+            Task& head = mTimedTasks.front();
+            const int64_t now = SystemTimeUs();
+            // with 1ms jitter:
+            // our SleepForInterval and waitRelative based on ns,
+            // but os backend implementation can not guarentee it
+            // miniseconds precise is the least.
+            if (head.mWhen <= now + 1000LL) {
+                job = head;
+                mTimedTasks.pop();
+                next = 0;
+                return true;
+            }
+
+            *next = head.mWhen - now;
+        }
+
+        if (mTasks.pop(job)) {
+            next = 0;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    // return positive when next exists, otherwise return -1
+    int64_t next() const {
+        AutoLock _l(mTaskLock);
+        if (mTimedTasks.size()) {
+            Task& head = mTimedTasks.front();
+            const int64_t now = SystemTimeUs();
+            if (head.mWhen <= now + 1000LL) {
+                return 0;
+            }
+            return head.mWhen - now;
+        }
+        return mTasks.empty() ? -1 : 0;
+    }
+    
+    ABE_INLINE void merge_l() const {
+        // move mTasks -> mTimedTasks
+        if (mTasks.size()) {
+            Task tmp;
+            while (mTasks.pop(tmp)) {
+                mTimedTasks.push_front(tmp);
+            }
+            mTimedTasks.sort();
+        }
+    }
+
+    // remove a job, return true if it is at head
+    virtual bool remove(const Object<Job>& job) {
+        AutoLock _l(mTaskLock);
+        merge_l();
+        
+        bool head = false;
+        List<Task>::iterator it = mTimedTasks.begin();
+        while (it != mTimedTasks.end()) {
+            if ((*it).mJob == job) {
+                it = mTimedTasks.erase(it);
+                if (it == mTimedTasks.begin()) head = true;
+            } else {
+                ++it;
+            }
+        }
+
+        return head;
+    }
+
+    bool exists(const Object<Job>& job) const {
+        AutoLock _l(mTaskLock);
+        merge_l();
+
+        List<Task>::const_iterator it = mTimedTasks.cbegin();
+        for (; it != mTimedTasks.cend(); ++it) {
+            if ((*it).mJob == job) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void flush() {
+        AutoLock _l(mTaskLock);
+        mTimedTasks.clear();
+        mTasks.clear();
+    }
+};
+
+static __thread Looper * lpCurrent = NULL;
+static Looper * lpMain = NULL;
+struct LooperDispatcher : public JobDispatcher {
+    
+    Stat                            mStat;  // only used inside dispacher
+    // internal context
     Looper *                        mLooper;
+    
+    Mutex                           mLock;
+    mutable Condition               mWait;
     Object<Thread>                  mThread;
+    bool                            mIsMain;
+    eThreadType                     mType;
+    
     bool                            mTerminated;
     bool                            mRequestExit;
-    bool                            mIsMain;
-    String                          mName;
-    eThreadType                     mType;
 
-    JobDispatcher(Looper *lp, const String& name, eThreadType type) : 
-        Job(), mLooper(lp), mTerminated(false), mRequestExit(false), 
-        mIsMain(false), mName(name), mType(type) { }
+    LooperDispatcher(Looper *lp, const String& name, eThreadType type) :
+        JobDispatcher(name),
+        mLooper(lp), mIsMain(false), mType(type),
+        mTerminated(false), mRequestExit(false) {
 
-    void init(bool main = false) {
+        }
+
+    static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
+        INFO("sig %s @ [%d, %d]", signame(info->si_signo), info->si_pid, info->si_uid);
+        lpMain->terminate();
+        INFO("main: exit...");
+    }
+
+    virtual void init() {
         if (mThread.isNIL()) {
             if (mIsMain) {
                 CHECK_TRUE(pthread_main(), "main Looper must init in main thread");
@@ -200,176 +345,80 @@ struct Looper::JobDispatcher : public Job {
 
                 CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
             } else {
-                mThread = new Thread(this);
-                mThread->setName(mName).setType(mType).run();
+                mThread = new Thread(this, mType);
+                mThread->setName(mName).run();
             }
         }
     }
-
-    void profile(int64_t interval = 5 * 1000000LL) {
-        mStat.profile(interval);
-    }
-
-    void post(const Object<Job>& job, int64_t delay = 0) {
-        Task task(job, delay);
-        
+    
+    virtual bool queue(const Object<Job>& job, int64_t us = 0) {
+#if 0
         // requestExit will wait for current jobs to complete
         // but no more new jobs
+        AutoLock _l(mLock);
         if (mTerminated || mRequestExit) {
             INFO("post after terminated");
-            return;
-        }
-
-        // using lockfree queue to speed up post()
-        // but this will cause remove() and exists() more complex
-        if (delay == 0) {
-            mTasks.push(task);
-            mWait.signal();
-            return;
-        }
-
-        // else push job into mTimedTasks
-        AutoLock _l(mLock);
-
-        // go through list should be better than sort()
-        List<Task>::iterator it = mTimedTasks.begin();
-        while (it != mTimedTasks.end() && (*it).mWhen < task.mWhen) {
-            ++it;
-        }
-
-        if (it == mTimedTasks.begin()) {
-            // have signal before insert(), as insert() will change begin()
-            mWait.signal();
-        }
-        mTimedTasks.insert(it, task);
-    }
-
-    // return reference to job if job is ready, or return NULL
-    // next: set to -1 if not job exists, or next job time in us
-    bool pop(Task& job, int64_t * next) {
-        AutoLock _l(mLock);
-
-        *next = -1;     // job not exists
-
-        if (mTimedTasks.size()) {
-            Task& head = mTimedTasks.front();
-            const int64_t now = SystemTimeUs();
-            // with 1ms jitter:
-            // our SleepForInterval and waitRelative based on ns,
-            // but os backend implementation can not guarentee it
-            // miniseconds precise is the least.
-            if (head.mWhen <= now + 1000LL) {
-                job = head;
-                mTimedTasks.pop();
-                return true;
-            }
-
-            *next = head.mWhen - now;
-        }
-
-        if (mTasks.pop(job)) {
-            return true;
-        } else {
             return false;
         }
-    }
-
-    void remove(const Object<Job>& job) {
-        AutoLock _l(mLock);
-
-        // move mTasks -> mTimedTasks
-        if (mTasks.size()) {
-            Task tmp;
-            while (mTasks.pop(tmp)) {
-                mTimedTasks.push(tmp);
-            }
-            mTimedTasks.sort();
-        }
-
-        bool head = false;
-        List<Task>::iterator it = mTimedTasks.begin();
-        while (it != mTimedTasks.end()) {
-            if ((*it).mJob == job) {
-                it = mTimedTasks.erase(it);
-                if (it == mTimedTasks.begin()) head = true;
-            } else {
-                ++it;
-            }
-        }
-
-        if (head) mWait.signal();
-    }
-
-    bool exists(const Object<Job>& job) const {
-        AutoLock _l(mLock);
-
-        // move mTasks -> mTimedTasks
-        if (mTasks.size()) {
-            Task tmp;
-            while (mTasks.pop(tmp)) {
-                mTimedTasks.push(tmp);
-            }
-            mTimedTasks.sort();
-        }
-
-        List<Task>::const_iterator it = mTimedTasks.cbegin();
-        for (; it != mTimedTasks.cend(); ++it) {
-            if ((*it).mJob == job) {
-                return true;
-            }
+#endif
+        
+        if (JobDispatcher::queue(job, us)) {
+            AutoLock _l(mLock);
+            mWait.signal();
+            return true;
         }
         return false;
     }
-
-    void flush() {
-        AutoLock _l(mLock);
-        flush_l();
+    
+    virtual bool remove(const Object<Job>& job) {
+        if (JobDispatcher::remove(job)) {
+            AutoLock _l (mLock);
+            mWait.signal();
+            return true;
+        }
+        return false;
     }
-
-    void flush_l() {
-        mTimedTasks.clear();
-        mTasks.clear();
+    
+    void requestExit_l(bool wait = true) {
+        mRequestExit    = true;
+        if (!wait) flush();
         mWait.signal();
     }
 
-    void requestExit_l(bool wait = true) {
-        mRequestExit    = true;
-        if (wait) mWait.signal();
-        else flush_l();
-    }
-
+    // request exist and wait
     virtual void requestExit() {
         AutoLock _l(mLock);
         if (mTerminated) return;
 
         requestExit_l();
+
+        mWait.broadcast();
+        
+        // wait until job dispatcher terminated
+        while (!mTerminated) mWait.wait(mLock);
         
         if (mThread.isNIL()) return;
-        
-        mWait.broadcast();
-        while (!mTerminated) mWait.wait(mLock);
-
-        mLock.unlock();
         mThread->join();
-        mLock.lock();
     }
-
+    
     virtual void onJob() {
         lpCurrent = this->mLooper;
 
         mStat.start();
 
         for (;;) {
+            AutoLock _l(mLock);
             int64_t next = 0;
             Task job;
             if (pop(job, &next)) {
                 mStat.start_profile(job);
-                job.mJob->onJobInt();
+                mLock.unlock();
+                job.mJob->execution();
+                mLock.lock();
                 mStat.end_profile(job);
                 continue;
             }
 
-            AutoLock _l(mLock);
             if (next > 0) {
                 mStat.sleep();
                 mWait.waitRelative(mLock, next * 1000);
@@ -394,21 +443,15 @@ struct Looper::JobDispatcher : public Job {
         lpCurrent = NULL;
     }
 
-    static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
-        INFO("sig %s @ [%d, %d]", signame(info->si_signo), info->si_pid, info->si_uid);
-        lpMain->mJobDisp->terminate();
-        INFO("main: exit...");
-    }
-
     // for main looper only
     virtual void loop() {
-        onJobInt();
+        execution();
     }
 
     virtual void terminate() {
         AutoLock _l(mLock);
         CHECK_TRUE(mIsMain, "terminate() is available for main looper only");
-        
+
         // wait for looper finish
         if (pthread_main()) {
             // terminate in main thread
@@ -421,70 +464,78 @@ struct Looper::JobDispatcher : public Job {
             while (!mTerminated) mWait.wait(mLock);
         }
     }
+
+    void profile(int64_t interval = 5 * 1000000LL) {
+        mStat.profile(interval);
+    }
 };
 
 //////////////////////////////////////////////////////////////////////////////////
+// main looper without backend thread
+// auto clear __main on last ref release
+Object<Looper> Looper::Main() {
+    if (lpMain == NULL) {
+        INFO("init main looper");
+        lpMain = new Looper;
+        Object<LooperDispatcher> disp = lpMain->mJobDisp;
+        disp->mIsMain = true;
+    }
+    return lpMain;
+}
+
 Object<Looper> Looper::Current() {
     // no lock need, lpCurrent is a thread context
     return lpCurrent ? lpCurrent : Main();
 }
 
-// main looper without backend thread
-// auto clear __main on last ref release
-Object<Looper> Looper::Main() {
-    if (lpMain == NULL) {   // it is ok without lock
-        DEBUG("init main looper");
-        lpMain = new Looper;
-        lpMain->mJobDisp->mIsMain = true;
-    }
-    return lpMain;
-}
-
-// always keep a ref to global looper
-// client have to clear it by set global looper to NULL
-static Object<Looper> __global = NULL;
-Object<Looper> Looper::Global() { return __global; }
-void Looper::SetGlobal(const Object<Looper>& lp) { __global = lp; }
-
 static Atomic<uint32_t> lpID = 0u;
 static String MakeLooperName() {
-    return String::format("looper-%" PRIu32, lpID++);
+    return String::format("looper-%" PRIu32, lpID.load());
 }
 
 Looper::Looper() : SharedObject(OBJECT_ID_LOOPER), 
-    mJobDisp(new JobDispatcher(this, MakeLooperName(), kThreadDefault)) { }
+    mJobDisp(new LooperDispatcher(this, MakeLooperName(), kThreadDefault)) {
+        ++lpID;
+    }
 
 Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER), 
-    mJobDisp(new JobDispatcher(this, name, type)) { }
+    mJobDisp(new LooperDispatcher(this, name, type)) {
+        ++lpID;
+    }
 
 void Looper::onFirstRetain() {
     mJobDisp->init();
 }
 
 void Looper::onLastRetain() {
-    mJobDisp->requestExit();    // request exit without flush
+    Object<LooperDispatcher> disp = mJobDisp;
+    disp->requestExit();    // request exit without flush
     mJobDisp.clear();
 }
 
 void Looper::loop() {
     CHECK_TRUE(pthread_main(), "loop() can only be called in main thread");
-    mJobDisp->loop();
+    Object<LooperDispatcher> disp = mJobDisp;
+    disp->loop();
 }
 
 void Looper::terminate() {
-    mJobDisp->terminate();
+    Object<LooperDispatcher> disp = mJobDisp;
+    disp->terminate();
 }
 
 Thread& Looper::thread() {
-    return mJobDisp->mThread.isNIL() ? *mJobDisp->mThread : Thread::Main();
+    Object<LooperDispatcher> disp = mJobDisp;
+    return disp->mThread.isNIL() ? *disp->mThread : Thread::Main();
 }
 
 void Looper::profile(int64_t interval) {
-    mJobDisp->profile(interval);
+    Object<LooperDispatcher> disp = mJobDisp;
+    disp->profile(interval);
 }
 
 void Looper::post(const Object<Job>& job, int64_t delayUs) {
-    mJobDisp->post(job, delayUs);
+    mJobDisp->queue(job, delayUs);
 }
 
 void Looper::remove(const Object<Job>& job) {
@@ -499,45 +550,126 @@ void Looper::flush() {
     mJobDisp->flush();
 }
 
-String Looper::string() const {
-    String info;
-#if 0
-    String info = String::format("looper %s: jobs %zu",
-            looper->mDispatcher->mName.c_str(),
-            looper->mDispatcher->mTasks.size());
+//////////////////////////////////////////////////////////////////////////////////
+static Atomic<int64_t> QueueID = 0;
+static String MakeQueueName() {
+    return String::format("queue-%" PRId64, QueueID++);
+}
 
-    size_t index = 0;
-    List<Task>::const_iterator it = shared->mTasks.cbegin();
-    for (; it != shared->mTasks.cend(); ++it) {
-        const Task& job = *it;
-        info.append("\n");
-        info.append(String::format("Task [%zu]: ***", index++));
+struct QueueDispatcher : public JobDispatcher {
+    Mutex       mLock;
+    Condition   mWait;
+    bool        mDispatching;
+    
+    QueueDispatcher() : JobDispatcher(MakeQueueName()), mDispatching(false) {
+        
     }
-#endif
-    return info;
+    
+    virtual void init() {
+        
+    }
+    
+    // no wait() or sleep or loop in onJob,
+    // or it will block underlying looper
+    virtual void onJob() {
+        AutoLock _l(mLock);
+        mDispatching = true;
+        Task job;
+        int64_t next = 0;
+        // execute current job
+        if (pop(job, &next)) {
+            mLock.unlock();
+            job.mJob->execution();
+            mLock.lock();
+            if (job.mWait) {
+                job.mWait->signal();    // for sync job
+            }
+            next = JobDispatcher::next();
+        }
+        
+        // no more jobs
+        if (next < 0) {
+            // exit on jobs finished
+            DEBUG("%s: no more jobs", mName.c_str());
+            mDispatching = false;
+            mWait.signal();
+            return;
+        }
+        
+        Looper::Current()->post(this, next);
+    }
+    
+    // request exit and wait.
+    void requestExit() {
+        AutoLock _l(mLock);
+        // no dispatching & no more jobs
+        if (mDispatching == false && JobDispatcher::next() < 0) {
+            DEBUG("%s: not dispatching...", mName.c_str());
+            return;
+        }
+        
+        DEBUG("%s: wait for dispatcher complete", mName.c_str());
+        mWait.wait(mLock);
+        CHECK_FALSE(mDispatching);
+    }
+};
+
+DispatchQueue::DispatchQueue(const Object<Looper>& lp) :
+mLooper(lp), mDispatcher(new QueueDispatcher()) {
 }
 
-size_t Looper::bind(void * user) {
-    AutoLock _l(mJobDisp->mLock);
-    mJobDisp->mUserContext.push(user);
-    return mJobDisp->mUserContext.size() - 1;
+DispatchQueue::~DispatchQueue() {
+    mLooper->remove(mDispatcher);
 }
 
-void Looper::bind(size_t id, void *user) {
-    AutoLock _l(mJobDisp->mLock);
-    CHECK_LE(id, mJobDisp->mUserContext.size());
-    if (id == mJobDisp->mUserContext.size()) {
-        mJobDisp->mUserContext.push(user);
-    } else {
-        mJobDisp->mUserContext[id] = user;
+void DispatchQueue::onFirstRetain() {
+    
+}
+
+void DispatchQueue::onLastRetain() {
+    Object<QueueDispatcher> disp = mDispatcher;
+    disp->requestExit();
+}
+
+void DispatchQueue::sync(const Object<Job>& job) {
+    Object<QueueDispatcher> disp = mDispatcher;
+    AutoLock _(disp->mLock);
+    Condition wait;
+    if (disp->queue(job, &wait)) {
+        mLooper->post(disp);
+    }
+    wait.wait(disp->mLock);
+}
+
+void DispatchQueue::dispatch(const Object<Job>& job, int64_t us) {
+    Object<QueueDispatcher> disp = mDispatcher;
+    //AutoLock _l(disp->mLock);
+    if (mDispatcher->queue(job, us)) {
+        mLooper->post(mDispatcher);
     }
 }
 
-void * Looper::user(size_t id) const {
-    AutoLock _l(mJobDisp->mLock);
-    if (id >= mJobDisp->mUserContext.size())
-        return NULL;
-    return mJobDisp->mUserContext[id];
+bool DispatchQueue::exists(const Object<Job>& job) const {
+    Object<QueueDispatcher> disp = mDispatcher;
+    //AutoLock _l(disp->mLock);
+    return mDispatcher->exists(job);
+}
+
+void DispatchQueue::remove(const Object<Job>& job) {
+    Object<QueueDispatcher> disp = mDispatcher;
+    //AutoLock _l(disp->mLock);
+    if (mDispatcher->remove(job)) {
+        // re-schedule
+        mLooper->remove(mDispatcher);
+        mLooper->post(mDispatcher);
+    }
+}
+
+void DispatchQueue::flush() {
+    Object<QueueDispatcher> disp = mDispatcher;
+    //AutoLock _l(disp->mLock);
+    mDispatcher->flush();
+    // don't remove dispatcher here, let it terminate automatically
 }
 
 __END_NAMESPACE_ABE

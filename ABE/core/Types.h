@@ -387,10 +387,11 @@ template<typename T> template<typename U> void Object<T>::set(U * shared) {
 
 template<typename T> void Object<T>::clear() {
     if (mShared) {
-        SharedObject * tmp = mShared;
-        // clear mShared before release(), avoid loop in object destruction
+        // we should clear mShared before ReleaseObject() to avoid loop
+        // in object destruction. but it will also make this object
+        // inaccessable in onLastRetain()
+        mShared->ReleaseObject();
         mShared = NULL;
-        tmp->ReleaseObject();
     }
 }
 

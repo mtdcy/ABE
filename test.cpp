@@ -288,9 +288,11 @@ void testMessage() {
 
 struct ThreadJob : public Job {
     const String name;
-    ThreadJob(const String& _name) : name(_name) { }
+    Atomic<size_t> count;
+    ThreadJob(const String& _name) : name(_name), count(0) { }
     virtual void onJob() {
         INFO("ThreadJob %s", name.c_str());
+        ++count;
     }
 };
 
@@ -359,6 +361,94 @@ void testLooper() {
     ASSERT_TRUE(main != NULL);
     
     main->loop();
+    
+    Object<Looper> lp = new Looper;
+    Object<ThreadJob> job0 = new ThreadJob("job0");
+    Object<ThreadJob> job1 = new ThreadJob("job1");
+    for (size_t i = 0; i < 100; i++) {
+        switch (i % 10) {
+            case 0:
+                lp->post(job1);
+                break;
+            case 1:
+                lp->post(job1, 5000LL);     // 5ms
+                break;
+            case 2:
+                lp->post(job0, 10000LL);
+                break;
+            case 9:
+                lp->remove(job1);
+                break;
+            case 3:
+                ASSERT_TRUE(lp->exists(job0));
+                ASSERT_TRUE(lp->exists(job1));
+            default:
+                lp->post(job0);
+                break;
+        }
+    }
+    lp.clear();
+    ASSERT_EQ(job0->count.load(), 10 * 7);
+}
+
+struct QueueJob : public Job {
+    size_t count;
+    QueueJob() : count(0) { }
+    virtual void onJob() {
+        INFO("on dispatch queue job %zu", count++);
+    }
+};
+
+void testDispatchQueue() {
+    Object<Looper> looper = new Looper("DispatchQueue");
+    
+    Object<DispatchQueue> disp0 = new DispatchQueue(looper);
+    Object<DispatchQueue> disp1 = new DispatchQueue(looper);
+    
+    Object<Job> job = new QueueJob;
+    disp0->dispatch(job);
+    disp1->dispatch(job);
+    
+    SleepTimeMs(200);   // 200ms
+    
+    disp0->dispatch(job, 1000000LL);
+    ASSERT_TRUE(disp0->exists(job));
+    ASSERT_FALSE(disp1->exists(job));
+    ASSERT_FALSE(looper->exists(job));
+    
+    disp0->remove(job);
+    disp1->dispatch(job, 1000000LL);
+    ASSERT_TRUE(disp1->exists(job));
+    ASSERT_FALSE(disp0->exists(job));
+    ASSERT_FALSE(looper->exists(job));
+    
+    disp0->dispatch(job, 1000000LL);
+    disp1->flush();
+    ASSERT_TRUE(disp0->exists(job));
+    ASSERT_FALSE(disp1->exists(job));
+    
+    Object<QueueJob> job0 = new QueueJob;
+    for (size_t i = 0; i < 100; ++i) {
+        disp0->dispatch(job0);
+    }
+    // disptch queue will wait for jobs complete
+    disp0.clear();
+    ASSERT_EQ(job0->count, 100);
+    
+    disp1.clear();
+    
+    // test clear
+    Object<QueueJob> job1 = new QueueJob;
+    Object<DispatchQueue> disp2 = new DispatchQueue(looper);
+    
+    // dispatch a job & clear immediately
+    disp2->dispatch(job1);
+    disp2.clear();
+    ASSERT_EQ(job1->count, 1);
+    
+    // test sync
+    Object<DispatchQueue> disp3 = new DispatchQueue(looper);
+    disp3->sync(job1);
 }
 
 template <class TYPE> struct QueueConsumer : public Job {
@@ -572,6 +662,10 @@ void testHashTable1() { testHashTable<int>();       }
 void testHashTable2() { testHashTable<Integer>();   }
 
 void testContent() {
+    if (gCurrentDir == NULL) {
+        ERROR("skip testContent");
+        return;
+    }
     String url = String::format("%s/file2", gCurrentDir);
     sp<Content> pipe = Content::Create(url);
     
@@ -629,14 +723,14 @@ TEST_ENTRY(testBuffer);
 TEST_ENTRY(testMessage);
 TEST_ENTRY(testThread);
 TEST_ENTRY(testLooper);
+TEST_ENTRY(testDispatchQueue);
 TEST_ENTRY(testContent);
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
-    
-    assert(argc == 2);
-    
-    gCurrentDir = argv[1];
+
+    if (argc > 1)
+        gCurrentDir = argv[1];
 
     int result = RUN_ALL_TESTS();
 

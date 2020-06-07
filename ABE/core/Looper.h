@@ -63,48 +63,12 @@ enum eThreadType {
 
 __BEGIN_NAMESPACE_ABE
 
-// two methods to use Job
-// 1. post a Job to Looper directly
-// 2. attach a Looper to Job and run
-class Looper;
-class ABE_EXPORT Job : public SharedObject {
-    public:
-        Job();
-        virtual ~Job();
-
-        // attach to a Looper
-        // if post a Job to Looper, internal Looper ref will clear
-        virtual void bind(const Object<Looper>&);
-
-        // tell this object taking action
-        // if no Looper bind, delay will be ignored
-        // @param us    time to delay
-        // @return return current ticks
-        virtual size_t run(int64_t us = 0);
-
-        // cancel action
-        virtual size_t cancel();
-
-        // abstract interface
-        virtual void onJob() = 0;
-
-    protected:
-        Object<Looper> mLooper;
-        // current ticks, inc after action complete
-        Atomic<size_t> mTicks;
-
-        friend class Thread;
-        friend class Looper;
-        virtual void onJobInt();
-
-        DISALLOW_EVILS(Job);
-};
-
 /**
  * Java style thread, easy use of thread, no need to worry about thread control
  * Thread(new MyJob()).run();
  * @note we prefer looper instead of thread, so keep thread simple
  */
+class Job;
 class ABE_EXPORT Thread : public SharedObject {
     public:
         /**
@@ -175,18 +139,49 @@ class ABE_EXPORT Thread : public SharedObject {
         pthread_t native_thread_handle() const;
 
     private:
-
-
         struct NativeContext;
         Object<NativeContext>   mNative;
         Object<Job>             mJob;
 
-    protected:
-        void onAction() { mJob->onJobInt(); }
-
     private:
         Thread();
         DISALLOW_EVILS(Thread);
+};
+
+// two methods to use Job
+// 1. post a Job to Looper directly
+// 2. attach a Looper to Job and run
+class Looper;
+class DispatchQueue;
+class ABE_EXPORT Job : public SharedObject {
+    public:
+        Job();
+        Job(const Object<Looper>&);
+        Job(const Object<DispatchQueue>&);
+        virtual ~Job();
+
+        // make job execution
+        // if no Looper bind, delay will be ignored
+        // @param us    time to delay
+        // @return return current ticks
+        virtual size_t run(int64_t us = 0);
+
+        // cancel execution
+        virtual size_t cancel();
+
+        // abstract interface
+        virtual void onJob() = 0;
+
+    public:
+        // run Job directly, for job dispatcher
+        void execution();   // -> onJob()
+    
+    protected:
+        Object<Looper> mLooper;
+        Object<DispatchQueue> mQueue;
+        // current ticks, inc after execution complete
+        Atomic<size_t> mTicks;
+        DISALLOW_EVILS(Job);
 };
 
 struct JobDispatcher;
@@ -197,18 +192,12 @@ class ABE_EXPORT Looper : public SharedObject {
          * @return return reference to 'main looper'
          */
         static Object<Looper>   Main();
-
+    
         /**
          * get current looper
          * @return return reference to current looper
          */
         static Object<Looper>   Current();
-
-        /**
-         * set and get a global looper
-         */
-        static Object<Looper>   Global();
-        static void             SetGlobal(const Object<Looper>&);
 
         /**
          * create a looper
@@ -222,11 +211,6 @@ class ABE_EXPORT Looper : public SharedObject {
          * @note no backend thread for main looper, return Thread::Null for main looper
          */
         Thread&     thread();
-
-        /**
-         * get infomation about this looper
-         */
-        String      string() const;
 
     public:
         /**
@@ -257,29 +241,17 @@ class ABE_EXPORT Looper : public SharedObject {
     public:
         /**
          * for main looper only 
-         * can only used in main thread and it always block
+         * can only be used in main thread and it will always block
          */
         void        loop();
 
         /**
          * for main looper only
-         * can only used in threads other than main thread
+         * can only be used in non-main threads
          */
         void        terminate();
 
     public:
-        /**
-         * bind a user context pointer to looper
-         * so it is easy to retrieve from looper
-         * @param id        id of user context
-         * @param opaque    user context
-         * @return return context id
-         * @note bind NULL to unbind
-         */
-        size_t      bind(void *user);
-        void        bind(size_t id, void *user);
-        void *      user(size_t id) const;
-
         /**
          * profile looper, for debugging purpose
          */
@@ -289,12 +261,44 @@ class ABE_EXPORT Looper : public SharedObject {
         virtual void onFirstRetain();
         virtual void onLastRetain();
 
-        Object<SharedObject>    mShared;
-
-        struct JobDispatcher;
+        friend struct JobDispatcher;
+        friend class DispatchQueue;
+        Object<Looper>          mLooper;
         Object<JobDispatcher>   mJobDisp;
 
         DISALLOW_EVILS(Looper);
 };
+
+// for multi session share the same looper
+class ABE_EXPORT DispatchQueue : public SharedObject {
+    public:
+        DispatchQueue(const Object<Looper>&);
+        
+        virtual ~DispatchQueue();
+    
+        const Object<Looper>& looper() const { return mLooper; }
+        
+    public:
+        void    sync(const Object<Job>&);
+    
+        void    dispatch(const Object<Job>&, int64_t us = 0);
+    
+        bool    exists(const Object<Job>&) const;
+        
+        void    remove(const Object<Job>&);
+        
+        void    flush();
+        
+    private:
+        virtual void onFirstRetain();
+        virtual void onLastRetain();
+    
+        friend struct JobDispatcher;
+        Object<Looper>          mLooper;
+        Object<JobDispatcher>   mDispatcher;
+        
+        DISALLOW_EVILS(DispatchQueue);
+};
+
 __END_NAMESPACE_ABE
 #endif // ABE_HEADERS_LOOPER_H

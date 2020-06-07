@@ -150,7 +150,7 @@ typedef SharedObjectRef         JobObjectRef;
 typedef SharedObjectRef         LooperObjectRef;
 
 ABE_EXPORT JobObjectRef         JobObjectCreate(UserCallback, void *);
-ABE_EXPORT void                 JobObjectBind(JobObjectRef, LooperObjectRef);
+ABE_EXPORT JobObjectRef         JobObjectCreateWithLooper(LooperObjectRef, UserCallback, void *);
 ABE_EXPORT size_t               JobObjectRun(JobObjectRef);
 ABE_EXPORT void                 JobObjectCancel(JobObjectRef);
 
