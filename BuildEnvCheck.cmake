@@ -10,6 +10,7 @@ check_include_files (pthread.h  HAVE_PTHREAD_H)
 check_function_exists (gettid   HAVE_GETTID)
 
 check_library_exists (pthread pthread_cond_timedwait_relative_np pthread.h HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP)
+check_library_exists (pthread pthread_getname_np pthread.h HAVE_PTHREAD_GETNAME_NP)
 check_library_exists (pthread pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
 check_library_exists (pthread pthread_condattr_setclock pthread.h HAVE_PTHREAD_CONDATTR_SETCLOCK)
 check_library_exists (pthread pthread_main_np pthread.h HAVE_PTHREAD_MAIN_NP)

@@ -36,7 +36,7 @@
 
 #define LOG_TAG "Vector"
 //#define LOG_NDEBUG 0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 
 #include "Vector.h"
 
@@ -49,7 +49,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 static const size_t kDefaultCapacity = 4;
 
-VectorImpl::VectorImpl(const Object<Allocator>& allocator,
+VectorImpl::VectorImpl(const sp<Allocator>& allocator,
         size_t capacity,
         const TypeHelper& helper) :
     mTypeHelper(helper),

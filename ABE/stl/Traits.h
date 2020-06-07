@@ -35,7 +35,7 @@
 #ifndef ABE_STL_TRAITS_H
 #define ABE_STL_TRAITS_H
 
-#include <ABE/basic/Types.h>
+#include <ABE/core/Types.h>
 
 __BEGIN_NAMESPACE_ABE
 
@@ -60,10 +60,10 @@ template <> struct is_builtin< int64_t  >           { enum { value = true  }; };
 template <> struct is_builtin< uint64_t >           { enum { value = true  }; };
 template <> struct is_builtin< float    >           { enum { value = true  }; };
 template <> struct is_builtin< double   >           { enum { value = true  }; };
-#ifndef size_t
+#if defined(__clang__)
 template <> struct is_builtin< size_t   >           { enum { value = true  }; };
 #endif
-#ifndef ssize_t
+#if defined(__clang__)
 template <> struct is_builtin< ssize_t  >           { enum { value = true  }; };
 #endif
 
@@ -73,11 +73,11 @@ template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
 #ifdef ABE_HEADERS_SHARED_BUFFER_H
-template <typename T> struct is_trivial_move<Object<T> >    { enum { value = true }; };
+template <typename T> struct is_trivial_move<sp<T> >    { enum { value = true }; };
 #endif
 
 #ifdef ABE_HEADERS_STRING_H    // String.h
-template <> struct is_trivial_move<String>          { enum { value = true }; };
+template <> struct is_trivial_move<String>              { enum { value = true }; };
 #endif
 
 __END_NAMESPACE_ABE

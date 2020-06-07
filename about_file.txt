@@ -1,0 +1,5 @@
+file: ascii code 0-255, 256bytes
+    for i in {0..255}; do a=$(printf '%x' $i); echo -n "\x$a" >> file; done
+
+file2: repeat the first file
+    for i in {1..4096}; do cat file >> file2; done

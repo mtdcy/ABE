@@ -58,25 +58,23 @@ include (BuildEnvCheck.cmake)
 
 # source files
 set(ABE_SOURCES
-    ABE/basic/debug/backtrace.c
-    ABE/basic/debug/malloc.cpp
-    ABE/basic/CallStack.cpp
-    ABE/basic/Log.cpp
-    ABE/basic/Time.cpp
-    ABE/basic/Hardware.cpp
-    ABE/basic/SharedObject.cpp
-    ABE/basic/Allocator.cpp
-    ABE/basic/private/ConvertUTF.c
-    ABE/basic/String.cpp
-    ABE/basic/Mutex.cpp
-    ABE/basic/Thread.cpp
-
-    ABE/object/Message.cpp
-    ABE/object/Buffer.cpp
-    ABE/object/protocol/File.cpp
-    ABE/object/Content.cpp
-    ABE/object/Looper.cpp
-    ABE/object/Event.cpp
+    ABE/core/debug/backtrace.c
+    ABE/core/debug/malloc.cpp
+    ABE/core/CallStack.cpp
+    ABE/core/Log.cpp
+    ABE/core/System.cpp
+    ABE/core/SharedObject.cpp
+    ABE/core/Allocator.cpp
+    ABE/core/private/ConvertUTF.c
+    ABE/core/String.cpp
+    ABE/core/Mutex.cpp
+    ABE/core/Message.cpp
+    ABE/core/Buffer.cpp
+    ABE/core/protocol/File.cpp
+    ABE/core/Content.cpp
+    ABE/core/Job.cpp
+    ABE/core/Thread.cpp
+    ABE/core/Looper.cpp
 
     ABE/tools/Bits.cpp
 
@@ -85,7 +83,7 @@ set(ABE_SOURCES
     ABE/stl/HashTable.cpp
     ABE/stl/Queue.cpp
 
-    ABE/c.cpp
+    ABE/ABE.cpp
     )
 
 # includes
@@ -117,7 +115,7 @@ endif()
 
 #------------------------------------------------------------------------------#
 # install 
-set (ABE_HEADERS basic object tools stl math)
+set (ABE_HEADERS core tools stl math)
 if (XCODE)
     # public headers, xcode need these
     target_sources (${LIBNAME}_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ABE/ABE.h)
@@ -179,7 +177,7 @@ add_custom_target(${LIBNAME}_test ALL
     DEPENDS test test_c 
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND echo test
-    COMMAND ${BASH} test
+    COMMAND ${BASH} test ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND echo test_c
     COMMAND ${BASH} test_c
     )

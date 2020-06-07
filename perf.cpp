@@ -60,11 +60,11 @@ struct Integer {
     bool operator==(int rhs) const { return value == rhs; }
 };
 
-struct QueueSingleConsumer : public Runnable {
+struct QueueSingleConsumer : public Job {
     LockFree::Queue<Integer>    mQueue;
     int                         mNext;
     QueueSingleConsumer() : mNext(0) { }
-    virtual void run() {
+    virtual void onJob() {
         int64_t now = SystemTimeUs();
         for (;;) {
             Integer i;
@@ -82,11 +82,11 @@ struct QueueSingleConsumer : public Runnable {
     }
 };
 
-struct QueueProducer : public Runnable {
+struct QueueProducer : public Job {
     LockFree::Queue<Integer>    mQueue;
     volatile int                mNext;
     QueueProducer() : mNext(0) { }
-    virtual void run() {
+    virtual void onJob() {
         int64_t now = SystemTimeUs();
         for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
             mQueue.push(__atomic_fetch_add(&mNext, 1, __ATOMIC_SEQ_CST));
@@ -120,7 +120,7 @@ void QueuePerf() {
 #if MULTI_THREAD
     // single producer & single consumer test
     INFO("Queue single producer & single consumer");
-    Object<QueueSingleConsumer> consumer = new QueueSingleConsumer;
+    sp<QueueSingleConsumer> consumer = new QueueSingleConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -134,7 +134,7 @@ void QueuePerf() {
 
     // multi producer & single consumer test
     INFO("Queue multi producer & single consumer");
-    Object<QueueProducer> producer = new QueueProducer;
+    sp<QueueProducer> producer = new QueueProducer;
     Vector<Thread> threads;
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
@@ -159,12 +159,12 @@ void QueuePerf() {
 }
 
 // compare to LockFree::Queue
-struct ListConsumer : public Runnable {
+struct ListConsumer : public Job {
     Mutex           mLock;
     List<Integer>   mList;
     int             mNext;
     ListConsumer() : mNext(0) { }
-    virtual void run() {
+    virtual void onJob() {
         int64_t now = SystemTimeUs();
         for (;;) {
             AutoLock _l(mLock);
@@ -184,12 +184,12 @@ struct ListConsumer : public Runnable {
     }
 };
 
-struct ListProducer : public Runnable {
+struct ListProducer : public Job {
     Mutex           mLock;
     List<Integer>   mList;
     int             mNext;
     ListProducer() : mNext(0) { }
-    virtual void run() {
+    virtual void onJob() {
         int64_t now = SystemTimeUs();
         for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
             AutoLock _l(mLock);
@@ -237,7 +237,7 @@ void ListPerf() {
 #if MULTI_THREAD
     // compare to LockFree::Queue
     INFO("List single producer & single consumer");
-    Object<ListConsumer> consumer = new ListConsumer;
+    sp<ListConsumer> consumer = new ListConsumer;
     Thread thread(consumer);
     thread.run();
     now = SystemTimeUs();
@@ -251,7 +251,7 @@ void ListPerf() {
     INFO("---");
 
     INFO("List multi producer & single consumer");
-    Object<ListProducer> producer = new ListProducer;
+    sp<ListProducer> producer = new ListProducer;
     Vector<Thread> threads;
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
     for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
@@ -466,9 +466,9 @@ void STDHashTablePerf() {
 }
 #endif
 
-struct EmptyRunnable : public Runnable {
+struct EmptyJob : public Job {
     volatile int count;
-    virtual void run() {
+    virtual void onJob() {
         SleepTimeUs(LOOPER_TEST_SLEEP);
         ++count;
     }
@@ -501,23 +501,22 @@ void LooperPerf() {
 #if 0
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
-        sp<Runnable> r = new EmptyRunnable;
+        sp<Job> r = new EmptyJob;
         r->run();
     }
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;
-    INFO("Runnable::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
+    INFO("Job::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
 #endif
     
-    Object<Looper> looper = Looper::Create("LooperPerf");
-    looper->loop();
-    Object<EmptyRunnable> routine = new EmptyRunnable;
+    sp<Looper> looper = new Looper("LooperPerf");
+    sp<EmptyJob> routine = new EmptyJob;
     routine->count = 0;
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
         looper->post(routine);
     }
-    looper->terminate(true);
+    looper.clear();     // wait jobs complete
     CHECK_EQ(routine->count, LOOPER_TEST_COUNT);
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;
@@ -525,7 +524,7 @@ void LooperPerf() {
     
     now = SystemTimeUs();
     for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
-        Thread(new EmptyRunnable).run().join();
+        Thread(new EmptyJob).run().join();
     }
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;

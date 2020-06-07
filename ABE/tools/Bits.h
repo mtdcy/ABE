@@ -35,7 +35,7 @@
 #ifndef ABE_HEADERS_BITS_H
 #define ABE_HEADERS_BITS_H
 
-#include <ABE/object/Buffer.h>
+#include <ABE/core/Buffer.h>
 __BEGIN_NAMESPACE_ABE
 
 /**
@@ -108,7 +108,7 @@ class ABE_EXPORT BitReader : public NonSharedObject {
          * @param nbytes    number bytes to read
          * @return return a buffer reference contains the data
          */
-        Object<Buffer>  readB(size_t nbytes) const;
+        sp<Buffer>  readB(size_t nbytes) const;
 
         /**
          * skip n bits at most of the data

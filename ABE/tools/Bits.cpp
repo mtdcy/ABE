@@ -34,7 +34,7 @@
 
 #define LOG_TAG "Bits"
 //#define LOG_NDEBUG    0
-#include "ABE/basic/Log.h"
+#include "ABE/core/Log.h"
 #include "Bits.h"
 
 #define _bitmask(n)     ((1u << (n)) - 1)
@@ -146,16 +146,16 @@ String BitReader::readS(size_t n) const {
     return s;
 }
 
-Object<Buffer> BitReader::readB(size_t n) const {
+sp<Buffer> BitReader::readB(size_t n) const {
     CHECK_LE(n * 8, remains());
 
     if (__builtin_expect(mBitsLeft == 0, true)) {
-        Object<Buffer> b = new Buffer(n);
+        sp<Buffer> b = new Buffer(n);
         b->write(mData + mHead, n);
         mHead += n;
         return b;
     } else {
-        Object<Buffer> buffer = new Buffer(n);
+        sp<Buffer> buffer = new Buffer(n);
         char * data = buffer->data();
         for (size_t i = 0; i < n; i++) *(data + i) = r8();
         buffer->step(n);

@@ -42,7 +42,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 class ABE_EXPORT HashTableImpl {
     public:
-        HashTableImpl(const Object<Allocator>& allocator,
+        HashTableImpl(const sp<Allocator>& allocator,
                 size_t tableLength,
                 const TypeHelper& keyHelper,
                 const TypeHelper& valueHelper,
@@ -98,7 +98,7 @@ class ABE_EXPORT HashTableImpl {
         TypeHelper          mKeyHelper;
         TypeHelper          mValueHelper;
         type_compare_t      mKeyCompare;  // make sure element is unique
-        Object<Allocator>   mAllocator;
+        sp<Allocator>       mAllocator;
         SharedBuffer *      mStorage;
         size_t              mTableLength;
         size_t              mNumElements;
@@ -108,7 +108,7 @@ __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 //////////////////////////////////////////////////////////////////////////////
-// implementation of hash of basic types
+// implementation of hash of core types
 template <typename TYPE> static ABE_INLINE size_t hash(const TYPE& value) {
     return value.hash();
 };
@@ -148,7 +148,7 @@ template <typename TYPE> ABE_INLINE size_t hash(TYPE * const& p) {
     return hash<uintptr_t>(uintptr_t(p));
 };
 
-template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_ABE_PRIVATE::HashTableImpl {
+template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_ABE_PRIVATE::HashTableImpl, public NonSharedObject {
     private:
         // increment only iterator
         template <class TABLE_TYPE, class VALUE_TYPE, class ELEM_TYPE> class Iterator {
@@ -185,7 +185,7 @@ template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_AB
         typedef Iterator<const HashTable<KEY, VALUE> *, const VALUE, const Element *> const_iterator;
 
     public:
-        ABE_INLINE HashTable(size_t tableLength = 4, const Object<Allocator>& allocator = kAllocatorDefault) :
+        ABE_INLINE HashTable(size_t tableLength = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
             HashTableImpl(allocator, tableLength,
                     TypeHelperBuilder<KEY, false, true, false>(),
                     TypeHelperBuilder<VALUE, false, true, false>(),

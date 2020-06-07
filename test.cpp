@@ -45,6 +45,8 @@
 
 USING_NAMESPACE_ABE
 
+static const char * gCurrentDir = NULL;
+
 struct MyTest : public ::testing::Test {
     MyTest () {
     }
@@ -78,15 +80,27 @@ struct MySharedObject : public SharedObject {
     MySharedObject() { }
 };
 
+void testAtomic() {
+    Atomic<int> a;
+    ASSERT_EQ(a.load(), 0);
+
+    a.store(1);
+    ASSERT_EQ(a.load(), 1);
+    ASSERT_EQ(a++, 1);  // a == 2
+    ASSERT_EQ(++a, 3);  // a == 3
+    ASSERT_EQ(a--, 3);  // a == 2
+    ASSERT_EQ(--a, 1);  // a == 1
+}
+
 void testSharedObject() {
     SharedObject * shared = new MySharedObject;
     ASSERT_EQ(shared->GetRetainCount(), 0);
 
-    Object<SharedObject> sp_shared1 = shared;
+    sp<SharedObject> sp_shared1 = shared;
     ASSERT_EQ(shared->GetRetainCount(), 1);
     ASSERT_EQ(sp_shared1.refsCount(), 1);
 
-    Object<SharedObject> sp_shared2 = sp_shared1;
+    sp<SharedObject> sp_shared2 = sp_shared1;
     ASSERT_EQ(shared->GetRetainCount(), 2);
     ASSERT_EQ(sp_shared2.refsCount(), 2);
 
@@ -96,7 +110,7 @@ void testSharedObject() {
 }
 
 void testAllocator() {
-    Object<Allocator> allocator = kAllocatorDefault;
+    sp<Allocator> allocator = kAllocatorDefault;
     void * p = allocator->allocate(1024);
     ASSERT_TRUE(p != NULL);
 
@@ -201,8 +215,8 @@ void testString() {
 }
 
 void testBuffer() {
-    Object<Buffer> buffer = new Buffer(128);
-    ASSERT_EQ(buffer->type(), kBufferTypeDefault);
+    sp<Buffer> buffer = new Buffer(128);
+    ASSERT_EQ(buffer->type(), Buffer::Linear);
     ASSERT_EQ(buffer->capacity(), 128);
     ASSERT_EQ(buffer->empty(), 128);
     ASSERT_EQ(buffer->ready(), 0);
@@ -272,110 +286,172 @@ void testMessage() {
     ASSERT_EQ(message.find<Integer>("Integer"), Int);
 }
 
-struct ThreadRunnable : public Runnable {
+struct ThreadJob : public Job {
     const String name;
-    ThreadRunnable(const String& _name) : name(_name) { }
-    virtual void run() {
-        INFO("ThreadRunnable %s", name.c_str());
-    }
-};
-
-struct ThreadSyncRunnable : public SyncRunnable {
-    virtual void sync() {
-        INFO("ThreadSyncRunnable");
+    Atomic<size_t> count;
+    ThreadJob(const String& _name) : name(_name), count(0) { }
+    virtual void onJob() {
+        INFO("ThreadJob %s", name.c_str());
+        ++count;
     }
 };
 
 void testThread() {
     // easy way
-    Thread(new ThreadRunnable("Thread 0")).detach();    // detach without run
-    Thread(new ThreadRunnable("Thread 0")).join();      // join without run
-    Thread(new ThreadRunnable("Thread 1")).run().detach();
-    Thread(new ThreadRunnable("Thread 2")).run().join();
+    Thread(new ThreadJob("Thread 0")).join();      // join without run
+    Thread(new ThreadJob("Thread 2")).run().join();
     
     // thread type
-    Thread(new ThreadRunnable("Lowest Thread"), kThreadLowest).run().join();
-    Thread(new ThreadRunnable("Backgroud Thread"), kThreadBackgroud).run().join();
-    Thread(new ThreadRunnable("Normal Thread"), kThreadNormal).run().join();
-    Thread(new ThreadRunnable("Foregroud Thread"), kThreadForegroud).run().join();
-    Thread(new ThreadRunnable("System Thread"), kThreadSystem).run().join();
-    Thread(new ThreadRunnable("Kernel Thread"), kThreadKernel).run().join();
-    Thread(new ThreadRunnable("Realtime Thread"), kThreadRealtime).run().join();
-    Thread(new ThreadRunnable("Highest Thread"), kThreadHighest).run().join();
+    Thread(new ThreadJob("Lowest Thread"), kThreadLowest).run().join();
+    Thread(new ThreadJob("Backgroud Thread"), kThreadBackgroud).run().join();
+    Thread(new ThreadJob("Normal Thread"), kThreadNormal).run().join();
+    Thread(new ThreadJob("Foregroud Thread"), kThreadForegroud).run().join();
+    Thread(new ThreadJob("System Thread"), kThreadSystem).run().join();
+    Thread(new ThreadJob("Kernel Thread"), kThreadKernel).run().join();
+    Thread(new ThreadJob("Realtime Thread"), kThreadRealtime).run().join();
+    Thread(new ThreadJob("Highest Thread"), kThreadHighest).run().join();
 
     
     // hard way
-    Thread thread(new ThreadRunnable("Thread 3"));
-    ASSERT_TRUE(thread.joinable());
+    Thread thread(new ThreadJob("Thread 3"));
     thread.setName("Thread 3").setType(kThreadNormal);
     ASSERT_STREQ("Thread 3", thread.name().c_str());
     ASSERT_EQ(kThreadNormal, thread.type());
-    ASSERT_EQ(Thread::kThreadInitializing, thread.state());
-    thread.run();
-    ASSERT_EQ(Thread::kThreadRunning, thread.state());
-    ASSERT_TRUE(thread.joinable());
-    thread.join();
-    ASSERT_FALSE(thread.joinable());
-    ASSERT_EQ(Thread::kThreadTerminated, thread.state());
-    
-    // sync
-    Object<SyncRunnable> sync = new ThreadSyncRunnable;
-    Thread(sync).run().detach();
-    SleepTimeMs(100);
-    sync->wait();
     
     // static members
-    
+    Thread& current = Thread::Current();
+    ASSERT_TRUE(current == Thread::Main());
 }
 
-struct MainLooperAssist : public Runnable {
-    virtual void run() {
+struct MainLooperAssist : public Job {
+    virtual void onJob() {
         INFO("post prepare");
         SleepTimeMs(1000); // 1s
-        Object<Looper> main = Looper::Main();
+        sp<Looper> main = Looper::Main();
         
         INFO("post assist 0");
-        main->post(new ThreadRunnable("assist 0"));
+        main->post(new ThreadJob("assist 0"));
         
         INFO("post assist 1");
-        main->post(new ThreadRunnable("assist 1"), 500000LL);   // 500ms
+        main->post(new ThreadJob("assist 1"), 500000LL);   // 500ms
         SleepTimeMs(10);
         INFO("post assist 2");
-        main->post(new ThreadRunnable("assist 2"));
-        
-        SleepTimeMs(500);
-        main->flush();
+        main->post(new ThreadJob("assist 2"));
         
         main->terminate();
     }
 };
 
 void testLooper() {
-    Object<Looper> looper1 = Looper::Create("Looper 1");
-    looper1->loop();
-    looper1->post(new ThreadRunnable("Looper run 1"));
-    looper1->terminate(true);
+    sp<Looper> looper1 = new Looper("Looper 1");
+    looper1->post(new ThreadJob("Looper run 1"));
     looper1.clear();
 
-    Object<Looper> current = Looper::Current();
-    ASSERT_TRUE(current == NULL);
+    sp<Looper> current = Looper::Current();
+    ASSERT_TRUE(current != NULL);
 
-    Object<Looper> main = Looper::Main();
-    Object<Looper> assist = Looper::Create("assist");
+    sp<Looper> main = Looper::Main();
+    sp<Looper> assist = new Looper("assist");
     assist->post(new MainLooperAssist);
-    assist->loop();
     ASSERT_TRUE(main != NULL);
+    
     main->loop();
-    main->terminate();
-    assist->terminate();
+    
+    sp<Looper> lp = new Looper("looper0");
+    sp<ThreadJob> job0 = new ThreadJob("job0");
+    sp<ThreadJob> job1 = new ThreadJob("job1");
+    for (size_t i = 0; i < 100; i++) {
+        switch (i % 10) {
+            case 0:
+                lp->post(job1);
+                break;
+            case 1:
+                lp->post(job1, 5000LL);     // 5ms
+                break;
+            case 2:
+                lp->post(job0, 10000LL);
+                break;
+            case 9:
+                lp->remove(job1);
+                break;
+            case 3:
+                ASSERT_TRUE(lp->exists(job0));
+                ASSERT_TRUE(lp->exists(job1));
+            default:
+                lp->post(job0);
+                break;
+        }
+    }
+    lp.clear();
+    ASSERT_EQ(job0->count.load(), 10 * 7);
 }
 
-template <class TYPE> struct QueueConsumer : public Runnable {
+struct QueueJob : public Job {
+    size_t count;
+    QueueJob() : count(0) { }
+    virtual void onJob() {
+        INFO("on dispatch queue job %zu", count++);
+    }
+};
+
+void testDispatchQueue() {
+    sp<Looper> looper = new Looper("DispatchQueue");
+    
+    sp<DispatchQueue> disp0 = new DispatchQueue(looper);
+    sp<DispatchQueue> disp1 = new DispatchQueue(looper);
+    
+    sp<Job> job = new QueueJob;
+    disp0->dispatch(job);
+    disp1->dispatch(job);
+    
+    SleepTimeMs(200);   // 200ms
+    
+    disp0->dispatch(job, 1000000LL);
+    ASSERT_TRUE(disp0->exists(job));
+    ASSERT_FALSE(disp1->exists(job));
+    ASSERT_FALSE(looper->exists(job));
+    
+    disp0->remove(job);
+    disp1->dispatch(job, 1000000LL);
+    ASSERT_TRUE(disp1->exists(job));
+    ASSERT_FALSE(disp0->exists(job));
+    ASSERT_FALSE(looper->exists(job));
+    
+    disp0->dispatch(job, 1000000LL);
+    disp1->flush();
+    ASSERT_TRUE(disp0->exists(job));
+    ASSERT_FALSE(disp1->exists(job));
+    
+    sp<QueueJob> job0 = new QueueJob;
+    for (size_t i = 0; i < 100; ++i) {
+        disp0->dispatch(job0);
+    }
+    // disptch queue will wait for jobs complete
+    disp0.clear();
+    ASSERT_EQ(job0->count, 100);
+    
+    disp1.clear();
+    
+    // test clear
+    sp<QueueJob> job1 = new QueueJob;
+    sp<DispatchQueue> disp2 = new DispatchQueue(looper);
+    
+    // dispatch a job & clear immediately
+    disp2->dispatch(job1);
+    disp2.clear();
+    ASSERT_EQ(job1->count, 1);
+    
+    // test sync
+    sp<DispatchQueue> disp3 = new DispatchQueue(looper);
+    disp3->sync(job1);
+}
+
+template <class TYPE> struct QueueConsumer : public Job {
     LockFree::Queue<TYPE> mQueue;
     const int kCount;
-    QueueConsumer() : Runnable(), kCount(10000) { }
+    QueueConsumer() : Job(), kCount(10000) { }
     
-    virtual void run() {
+    virtual void onJob() {
         int next = 0;
         for (;;) {
             TYPE value;
@@ -414,7 +490,7 @@ template <class TYPE> void testQueue() {
     ASSERT_EQ(queue.size(), 0);
 
     // single producer & single consumer test
-    Object<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>();
+    sp<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>();
     Thread thread(consumer);
     thread.run();
     
@@ -580,6 +656,40 @@ template <class TYPE> void testHashTable() {
 void testHashTable1() { testHashTable<int>();       }
 void testHashTable2() { testHashTable<Integer>();   }
 
+void testContent() {
+    if (gCurrentDir == NULL) {
+        ERROR("skip testContent");
+        return;
+    }
+    String url = String::format("%s/file2", gCurrentDir);
+    sp<Content> pipe = Content::Create(url);
+    
+    ASSERT_EQ(pipe->mode(), Content::Read);
+    ASSERT_EQ(pipe->tell(), 0);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    sp<Buffer> data = pipe->read(256);
+    for (size_t i = 0; i < 256; ++i) {
+        ASSERT_EQ((uint8_t)data->at(i), (uint8_t)i);
+    }
+    ASSERT_EQ(pipe->tell(), 256);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    // seek test
+    pipe->seek(0);  // seek in cache
+    ASSERT_EQ(pipe->tell(), 0);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    pipe->read(256);
+    pipe->seek(1024);   // seek in cache @ 1k
+    ASSERT_EQ(pipe->tell(), 1024);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    
+    pipe->seek(512*1024);   // seek @ 5k
+    ASSERT_EQ(pipe->tell(), 512*1024);
+    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+}
+
 extern "C" void malloc_prepare();
 extern "C" void malloc_bypass();
 extern "C" void malloc_finalize();
@@ -592,6 +702,7 @@ extern "C" void malloc_finalize();
         INFO("End Test MyTest."#FUNC);      \
     }
 
+TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
 TEST_ENTRY(testAllocator);
 TEST_ENTRY(testQueue1);
@@ -607,9 +718,14 @@ TEST_ENTRY(testBuffer);
 TEST_ENTRY(testMessage);
 TEST_ENTRY(testThread);
 TEST_ENTRY(testLooper);
+TEST_ENTRY(testDispatchQueue);
+TEST_ENTRY(testContent);
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
+
+    if (argc > 1)
+        gCurrentDir = argv[1];
 
     int result = RUN_ALL_TESTS();
 

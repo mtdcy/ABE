@@ -34,9 +34,7 @@
 
 #define LOG_TAG "Queue"
 //#define LOG_NDEBUG 0
-#include "basic/Log.h"
-
-#include "basic/Atomic.h"
+#include "core/Log.h"
 
 #include "Queue.h"
 #include <stdlib.h>

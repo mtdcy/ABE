@@ -37,8 +37,7 @@
 #ifndef _ABE_MATH_MATRIX_H
 #define _ABE_MATH_MATRIX_H
 
-#include <ABE/basic/Types.h>
-#include <ABE/basic/SharedObject.h>
+#include <ABE/core/Types.h>
 
 __BEGIN_NAMESPACE_ABE
 
