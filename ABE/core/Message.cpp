@@ -223,12 +223,7 @@ String Message::string() const {
 
     String tmp;
     if (isFourcc(mWhat)) {
-        tmp = String::format(
-                "'%c%c%c%c'",
-                (char)(mWhat >> 24),
-                (char)((mWhat >> 16) & 0xff),
-                (char)((mWhat >> 8) & 0xff),
-                (char)(mWhat & 0xff));
+        tmp = String::format("%4s", (const char *)&mWhat);
     } else {
         tmp = String::format("0x%08x", mWhat);
     }
@@ -244,12 +239,8 @@ String Message::string() const {
         switch (e.mType) {
             case kTypeInt32:
                 if (isFourcc(e.u.i32))
-                    tmp = String::format("int32_t %s = '%c%c%c%c'",
-                            name.c_str(),
-                            (char)(e.u.i32 >> 24),
-                            (char)((e.u.i32 >> 16) & 0xff),
-                            (char)((e.u.i32 >> 8) & 0xff),
-                            (char)(e.u.i32 & 0xff));
+                    tmp = String::format("int32_t %s = '%4s'",
+                                         name.c_str(), (const char*)&e.u.i32);
                 else
                     tmp = String::format(
                             "int32_t %s = %d", name.c_str(), e.u.i32);
