@@ -101,17 +101,17 @@ void LockFreeQueueImpl::freeNode(NodeImpl * node) {
 // do_copy();
 // mTail->mNext = node;
 // mTail = node;
-void LockFreeQueueImpl::push1(const void * what) {
+size_t LockFreeQueueImpl::push1(const void * what) {
     NodeImpl *node = allocateNode();
     mTypeHelper.do_copy(node->mData, what, 1);
 
     atomic_fence();
     ABE_ATOMIC_STORE(&mTail->mNext, node);
     ABE_ATOMIC_STORE(&mTail, node);
-    ABE_ATOMIC_ADD(&mLength, 1);
+    return ABE_ATOMIC_ADD(&mLength, 1);
 }
 
-void LockFreeQueueImpl::pushN(const void * what) {
+size_t LockFreeQueueImpl::pushN(const void * what) {
     DEBUG("%p: push %p", this, mTail->mData);
     NodeImpl *node = allocateNode();
     mTypeHelper.do_copy(node->mData, what, 1);
@@ -123,10 +123,10 @@ void LockFreeQueueImpl::pushN(const void * what) {
         if (ABE_ATOMIC_CAS(&mTail, &tail, node)) {
             // fix next: tail->mNext = node
             ABE_ATOMIC_STORE(&tail->mNext, node);
-            ABE_ATOMIC_ADD(&mLength, 1);
-            break;
+            return ABE_ATOMIC_ADD(&mLength, 1);
         }
     } while (1);
+    return ABE_ATOMIC_LOAD(&mLength);
 }
 
 // node = mHead;

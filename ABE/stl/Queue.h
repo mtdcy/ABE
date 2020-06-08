@@ -44,8 +44,8 @@ class ABE_EXPORT LockFreeQueueImpl {
         ~LockFreeQueueImpl();
 
     protected:
-        void            push1(const void * what);   // for single producer
-        void            pushN(const void * what);   // for multi producer
+        size_t          push1(const void * what);   // for single producer
+        size_t          pushN(const void * what);   // for multi producer
         bool            pop1(void * what);          // for single consumer
         bool            popN(void * what);          // for multi consumer
         size_t          size() const;
@@ -76,7 +76,7 @@ namespace LockFree {
             ABE_INLINE size_t      size() const        { return LockFreeQueueImpl::size();     }
             ABE_INLINE bool        empty() const       { return size() == 0;                   }
             ABE_INLINE void        clear()             { LockFreeQueueImpl::clear();           }
-            ABE_INLINE void        push(const TYPE& v) { LockFreeQueueImpl::pushN(&v);         }
+            ABE_INLINE size_t      push(const TYPE& v) { return LockFreeQueueImpl::pushN(&v);  }
             ABE_INLINE bool        pop(TYPE& v)        { return LockFreeQueueImpl::popN(&v);   }
     };
 };

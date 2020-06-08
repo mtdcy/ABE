@@ -616,7 +616,7 @@ void DispatchQueue::sync(const sp<Job>& job) {
 
 void DispatchQueue::dispatch(const sp<Job>& job, int64_t us) {
     sp<QueueDispatcher> disp = mDispatcher;
-    //AutoLock _l(disp->mLock);
+    AutoLock _l(disp->mLock);
     if (mDispatcher->queue(job, us)) {
         mLooper->post(mDispatcher);
     }
