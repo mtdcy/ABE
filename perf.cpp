@@ -529,6 +529,16 @@ void LooperPerf() {
     delta = SystemTimeUs() - now;
     each = (double)delta / LOOPER_TEST_COUNT;
     INFO("Thread() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
+    
+    sp<DispatchQueue> queue = new DispatchQueue(new Looper("disp"));
+    now = SystemTimeUs();
+    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+        queue->sync(new EmptyJob);
+    }
+    delta = SystemTimeUs() - now;
+    each = (double)delta / LOOPER_TEST_COUNT;
+    INFO("DispatchQueue() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
+    
 }
 
 int main(int argc, char ** argv) {
