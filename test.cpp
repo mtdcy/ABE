@@ -260,11 +260,13 @@ void testMessage() {
     Message message;
     SharedObject * shared = new EmptySharedObject;
     
-#define TEST_MESSAGE(NAME, VALUE)                       \
-    ASSERT_FALSE(message.contains(#NAME));              \
-    message.set##NAME(#NAME, VALUE);                    \
-    ASSERT_EQ(message.find##NAME(#NAME), VALUE);        \
-    ASSERT_TRUE(message.contains(#NAME));               \
+#define TEST_MESSAGE(NAME, VALUE) {                     \
+    Message msg;                                        \
+    ASSERT_FALSE(msg.contains('test'));                 \
+    msg.set##NAME('test', VALUE);                       \
+    ASSERT_EQ(msg.find##NAME('test'), VALUE);           \
+    ASSERT_TRUE(msg.contains('test'));                  \
+}
 
     TEST_MESSAGE(Int32, 32)
     TEST_MESSAGE(Int64, 64)
@@ -276,14 +278,9 @@ void testMessage() {
 #undef TEST_MESSAGE
     
     const char * string = "abcdefg";
-    message.setString("String", string);
-    ASSERT_TRUE(message.contains("String"));
-    ASSERT_STREQ(message.findString("String"), string);
-    
-    Integer Int(1);
-    message.set<Integer>("Integer", Int);
-    ASSERT_TRUE(message.contains("Integer"));
-    ASSERT_EQ(message.find<Integer>("Integer"), Int);
+    message.setString('str ', string);
+    ASSERT_TRUE(message.contains('str '));
+    ASSERT_STREQ(message.findString('str '), string);
 }
 
 struct ThreadJob : public Job {

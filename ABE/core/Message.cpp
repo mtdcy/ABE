@@ -59,16 +59,15 @@ Message::Message(uint32_t what)
 
 sp<Message> Message::dup() const {
     sp<Message> message = new Message;
-    HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
+    HashTable<uint32_t, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
-        const String& name  = it.key();
+        const uint32_t name = it.key();
         Entry copy          = it.value(); // copy value
         switch (copy.mType) {
             case kTypeString:
                 copy.u.ptr = strdup((const char *)copy.u.ptr);
                 break;
             case kTypeObject:
-            case kTypeValue:
                 copy.u.obj->RetainObject();
                 break;
             default:
@@ -84,7 +83,7 @@ Message::~Message() {
 }
 
 void Message::clear() {
-    HashTable<String, Entry>::iterator it = mEntries.begin();
+    HashTable<uint32_t, Entry>::iterator it = mEntries.begin();
     for (; it != mEntries.end(); ++it) {
         Entry &e = it.value();
         switch (e.mType) {
@@ -92,7 +91,6 @@ void Message::clear() {
                 free(e.u.ptr);
                 break;
             case kTypeObject:
-            case kTypeValue:
                 e.u.obj->RetainObject();
                 break;
             case kTypePointer:
@@ -103,11 +101,11 @@ void Message::clear() {
     mEntries.clear();
 }
 
-bool Message::contains(const String& name) const {
+bool Message::contains(uint32_t name) const {
     return mEntries.find(name) != NULL;
 }
 
-bool Message::contains(const String &name, Type type) const {
+bool Message::contains(uint32_t name, Type type) const {
     const Entry *e = mEntries.find(name);
     if (e != NULL && e->mType == type) {
         return true;
@@ -116,7 +114,7 @@ bool Message::contains(const String &name, Type type) const {
 }
 
 #define BASIC_TYPE(NAME,FIELDNAME,TYPENAME)                                 \
-    void Message::set##NAME(const String& name, TYPENAME value) {           \
+    void Message::set##NAME(uint32_t name, TYPENAME value) {                \
         Entry e;                                                            \
         e.mType         = kType##NAME;                                      \
         e.u.FIELDNAME   = value;                                            \
@@ -125,7 +123,7 @@ bool Message::contains(const String &name, Type type) const {
         }                                                                   \
         mEntries.insert(name, e);                                           \
     }                                                                       \
-    TYPENAME Message::find##NAME(const String& name, TYPENAME def) const {  \
+    TYPENAME Message::find##NAME(uint32_t name, TYPENAME def) const {       \
         const Entry *e  = mEntries.find(name);                              \
         if (e && e->mType == kType##NAME) {                                 \
             return e->u.FIELDNAME;                                          \
@@ -150,7 +148,7 @@ static ABE_INLINE char * strndup(const char *s, size_t len) {
 }
 #endif
 
-void Message::setString( const String& name, const char *s, size_t len) {
+void Message::setString(uint32_t name, const char *s, size_t len) {
     if (!len) len = strlen(s);
     Entry e;
     e.mType         = kTypeString;
@@ -161,7 +159,7 @@ void Message::setString( const String& name, const char *s, size_t len) {
     mEntries.insert(name, e);
 }
 
-const char * Message::findString(const String& name, const char *def) const {
+const char * Message::findString(uint32_t name, const char *def) const {
     const Entry *e = mEntries.find(name);
     if (e && e->mType == kTypeString) {
         return (const char *)e->u.ptr;
@@ -169,7 +167,7 @@ const char * Message::findString(const String& name, const char *def) const {
     return def;
 }
 
-void Message::setObject(const String &name, SharedObject *object) {
+void Message::setObject(uint32_t name, SharedObject *object) {
     Entry e;
     e.mType         = kTypeObject;
     e.u.obj         = object->RetainObject();
@@ -177,7 +175,7 @@ void Message::setObject(const String &name, SharedObject *object) {
     mEntries.insert(name, e);
 }
 
-SharedObject * Message::findObject(const String &name, SharedObject * def) const {
+SharedObject * Message::findObject(uint32_t name, SharedObject * def) const {
     const Entry * e = mEntries.find(name);
     if (e && e->mType == kTypeObject) {
         return e->u.obj;
@@ -185,22 +183,7 @@ SharedObject * Message::findObject(const String &name, SharedObject * def) const
     return def;
 }
 
-void Message::_setValue(const String &name, SharedObject *object) {
-    Entry e;
-    e.mType         = kTypeValue;
-    e.u.obj         = object->RetainObject();
-    if (mEntries.find(name))    remove(name);
-    mEntries.insert(name, e);
-}
-
-SharedObject * Message::_findValue(const String &name) const {
-    const Entry * e = mEntries.find(name);
-    CHECK_NULL(e);
-    CHECK_TRUE(e->mType == kTypeValue);
-    return e->u.obj;
-}
-
-bool Message::remove(const String& name) {
+bool Message::remove(uint32_t name) {
     Entry *e = mEntries.find(name);
     if (!e) return false;
 
@@ -209,7 +192,6 @@ bool Message::remove(const String& name) {
             free(e->u.ptr);
             break;
         case kTypeObject:
-        case kTypeValue:
             e->u.obj->ReleaseObject();
             break;
         default:
@@ -223,7 +205,7 @@ String Message::string() const {
 
     String tmp;
     if (isFourcc(mWhat)) {
-        tmp = String::format("%4s", (const char *)&mWhat);
+        tmp = String::format("'%.4s'", (const char *)&mWhat);
     } else {
         tmp = String::format("0x%08x", mWhat);
     }
@@ -231,53 +213,45 @@ String Message::string() const {
 
     s.append(" = {\n");
 
-    HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
+    HashTable<uint32_t, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
-        const String& name = it.key();
-        const Entry& e = it.value();
-
+        const uint32_t name = it.key();
+        const Entry& e      = it.value();
+        
         switch (e.mType) {
             case kTypeInt32:
                 if (isFourcc(e.u.i32))
-                    tmp = String::format("int32_t %s = '%4s'",
-                                         name.c_str(), (const char*)&e.u.i32);
+                    tmp = String::format("int32_t '%.4s' = '%.4s'",
+                                         (const char *)&name, (const char*)&e.u.i32);
                 else
-                    tmp = String::format(
-                            "int32_t %s = %d", name.c_str(), e.u.i32);
+                    tmp = String::format("int32_t '%.4s' = %d",
+                                         (const char *)&name, e.u.i32);
                 break;
             case kTypeInt64:
-                tmp = String::format(
-                        "int64_t %s = %lld", name.c_str(), e.u.i64);
+                tmp = String::format("int64_t '%.4s' = %lld",
+                                     (const char *)&name, e.u.i64);
                 break;
             case kTypeFloat:
-                tmp = String::format(
-                        "float %s = %f", name.c_str(), e.u.flt);
+                tmp = String::format("float '%.4s' = %f",
+                                     (const char *)&name, e.u.flt);
                 break;
             case kTypeDouble:
-                tmp = String::format(
-                        "double %s = %f", name.c_str(), e.u.dbl);
+                tmp = String::format("double '%.4s' = %f",
+                                     (const char *)&name, e.u.dbl);
                 break;
             case kTypePointer:
-                tmp = String::format(
-                        "void *%s = %p", name.c_str(), e.u.ptr);
+                tmp = String::format("void * '%.4s' = %p",
+                                     (const char *)&name, e.u.ptr);
                 break;
             case kTypeString:
-                tmp = String::format(
-                        "string %s = \"%s\"",
-                        name.c_str(),
-                        (static_cast<const char*>(e.u.ptr)));
+                tmp = String::format("string '%.4s' = \"%s\"",
+                                     (const char *)&name,
+                                     (static_cast<const char*>(e.u.ptr)));
                 break;
             case kTypeObject:
-                tmp = String::format(
-                        "object %s = %p[%" PRIx32 "]", name.c_str(),
-                        e.u.obj,
-                        e.u.obj->GetObjectID());
-                break;
-            case kTypeValue:
-                tmp = String::format(
-                         "value %s = %p[%" PRIx32 "]", name.c_str(),
-                         e.u.obj,
-                         e.u.obj->GetObjectID());
+                tmp = String::format("object '%.4s' = %p",
+                                     (const char *)&name,
+                                     e.u.obj);
                 break;
             default:
                 FATAL("should not be here.");
@@ -294,14 +268,13 @@ String Message::string() const {
     return s;
 }
 
-String Message::getEntryNameAt(size_t index, Type *type) const {
+uint32_t Message::getEntryNameAt(size_t index, Type *type) const {
     CHECK_LT(index, countEntries());
-    HashTable<String, Entry>::const_iterator it = mEntries.cbegin();
+    HashTable<uint32_t, Entry>::const_iterator it = mEntries.cbegin();
     for (size_t i = 0; i < index; ++it, ++i) { }
-    const String& name = it.key();
     const Entry& e = it.value();
     *type = e.mType;
-    return name;
+    return it.key();
 }
 
 __END_NAMESPACE_ABE

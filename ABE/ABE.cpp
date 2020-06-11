@@ -157,11 +157,11 @@ size_t MessageObjectGetCount(const MessageObjectRef ref) {
     return static_cast<const Message *>(ref)->countEntries();
 }
 
-bool MessageObjectContains(const MessageObjectRef ref, const char * name) {
+bool MessageObjectContains(const MessageObjectRef ref, uint32_t name) {
     return static_cast<const Message *>(ref)->contains(name);
 }
 
-bool MessageObjectRemove(MessageObjectRef ref, const char * name) {
+bool MessageObjectRemove(MessageObjectRef ref, uint32_t name) {
     return static_cast<Message *>(ref)->remove(name);
 }
 
@@ -170,7 +170,7 @@ void MessageObjectClear(MessageObjectRef ref) {
 }
 
 #define MessageObjectPut(SUFFIX, DATA_TYPE)                                                     \
-    void MessageObjectPut##SUFFIX(MessageObjectRef ref, const char * name, DATA_TYPE data) {    \
+    void MessageObjectPut##SUFFIX(MessageObjectRef ref, uint32_t name, DATA_TYPE data) {    \
         static_cast<Message *>(ref)->set##SUFFIX(name, data);                                   \
     }
 
@@ -181,13 +181,13 @@ MessageObjectPut(Double,    double);
 MessageObjectPut(Pointer,   void *);
 MessageObjectPut(String,    const char *);
 
-void MessageObjectPutObject(MessageObjectRef ref, const char * name, SharedObjectRef obj) {
+void MessageObjectPutObject(MessageObjectRef ref, uint32_t name, SharedObjectRef obj) {
     sp<Message> message = ref;
     message->setObject(name, static_cast<SharedObject *>(obj));
 }
 
 #define MessageObjectGet(SUFFIX, DATA_TYPE)                                                             \
-    DATA_TYPE MessageObjectGet##SUFFIX(const MessageObjectRef ref, const char * name, DATA_TYPE def) {  \
+    DATA_TYPE MessageObjectGet##SUFFIX(const MessageObjectRef ref, uint32_t name, DATA_TYPE def) {  \
         return static_cast<const Message *>(ref)->find##SUFFIX(name, def);                              \
     }
 
@@ -198,7 +198,7 @@ MessageObjectGet(Double,    double);
 MessageObjectGet(Pointer,   void *);
 MessageObjectGet(String,    const char *);
 
-SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, const char * name, SharedObjectRef def) {
+SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, uint32_t name, SharedObjectRef def) {
     return (SharedObjectRef)static_cast<const Message *>(ref)->findObject(name, static_cast<SharedObject *>(def));
 }
 
