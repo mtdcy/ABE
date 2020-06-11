@@ -184,7 +184,7 @@ void Buffer::replace(size_t pos, const char *s, size_t n) {
     memcpy(mData + mReadPos + pos, s, n);
 }
 
-size_t Buffer::read(char *buf, size_t n) {
+size_t Buffer::read(char *buf, size_t n) const {
     CHECK_GT(n, 0);
     if (ready() == 0) return 0;
 
@@ -197,7 +197,7 @@ size_t Buffer::read(char *buf, size_t n) {
     return n;
 }
 
-sp<Buffer> Buffer::read(size_t n) {
+sp<Buffer> Buffer::read(size_t n) const {
     CHECK_GT(n, 0);
     if (ready() == 0) return NULL;
     n = MIN(n, ready());
@@ -207,7 +207,7 @@ sp<Buffer> Buffer::read(size_t n) {
     return buf;
 }
 
-void Buffer::skip(size_t n) {
+void Buffer::skip(size_t n) const {
     CHECK_GT(n, 0);
     CHECK_LE(n, ready());
 
@@ -254,11 +254,11 @@ ssize_t Buffer::indexOf(size_t offset, const char *s, size_t n) const {
 }
 
 // have to avoid too much rewind ops
-void Buffer::_rewind() {
+void Buffer::_rewind() const {
     if (mType == Ring) {
         if (ready() == 0) {
             // the easy rewind time 
-            reset();
+            mReadPos = mWritePos = 0;
         } else if (mReadPos >= capacity()) {
             // read pos >= threshold
             memmove(mData, data(), ready());

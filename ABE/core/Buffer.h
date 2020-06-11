@@ -133,11 +133,11 @@ class ABE_EXPORT Buffer : public SharedObject {
         ABE_INLINE size_t   ready() const { return mWritePos - mReadPos; }
         ABE_INLINE size_t   size() const { return ready(); } ///<  alias for ready()
     
-        size_t              read(char *buf, size_t n);
-        sp<Buffer>          read(size_t n);
+        size_t              read(char *buf, size_t n) const;
+        sp<Buffer>          read(size_t n) const;
 
         // move read pointer forward
-        void                skip(size_t n);
+        void                skip(size_t n) const;
 
     public:
         /**
@@ -180,17 +180,17 @@ class ABE_EXPORT Buffer : public SharedObject {
         ABE_INLINE ssize_t  indexOf(const Buffer& s, size_t n = 0) const { return indexOf(0, s, n); }
 
     private:
-        void                _rewind();
+        void                _rewind() const;
         void                _alloc();
 
     private:
         // backend memory provider
         sp<Allocator>       mAllocator;
-        char *              mData;
+        mutable char *      mData;
         size_t              mCapacity;
         const eBufferType   mType;
-        size_t              mReadPos;
-        size_t              mWritePos;
+        mutable size_t      mReadPos;
+        mutable size_t      mWritePos;
     
     DISALLOW_EVILS(Buffer);
 };
