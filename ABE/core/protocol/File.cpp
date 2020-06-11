@@ -217,6 +217,8 @@ struct File : public Content::Protocol {
 };
 
 sp<Content::Protocol> CreateFile(const String& url, Content::eMode mode) {
-    return new File(url, mode);
+    sp<File> file = new File(url, mode);
+    if (file->mFd < 0) return NULL;
+    return file;
 }
 __END_NAMESPACE_ABE
