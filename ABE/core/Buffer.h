@@ -112,9 +112,9 @@ class ABE_EXPORT Buffer : public SharedObject {
         /**
          * resize this buffer's backend memory
          * @param cap   new capacity of the backend memory
-         * @return return OK on success, return ERROR_UNKNOWN if failed
+         * @return return true on success
          */
-        int                     resize(size_t cap);
+        bool                    resize(size_t cap);
 
     public:
         // how many bytes avaible for write
