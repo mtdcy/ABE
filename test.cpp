@@ -214,6 +214,32 @@ void testString() {
     }
 }
 
+void testBits() {
+    Bits<uint8_t> bits;
+    ASSERT_EQ(bits.value(), 0);
+    
+    bits.set(1);
+    ASSERT_EQ(bits.value(), 0x02);
+    ASSERT_TRUE(bits.test(1));
+    ASSERT_FALSE(bits.empty());
+    
+    bits.clear(2);
+    ASSERT_EQ(bits.value(), 0x02);
+    bits.clear(1);
+    ASSERT_EQ(bits.value(), 0x00);
+    
+    bits = 0xF0;
+    ASSERT_EQ(bits.value(), 0xF0);
+    bits.flip(7);
+    ASSERT_EQ(bits.value(), 0x70);
+    bits.flip();
+    ASSERT_EQ(bits.value(), 0x8F);
+    
+    bits.clear();
+    ASSERT_EQ(bits.value(), 0x00);
+    ASSERT_TRUE(bits.empty());
+}
+
 void testBuffer() {
     sp<Buffer> buffer = new Buffer(128);
     ASSERT_EQ(buffer->type(), Buffer::Linear);
@@ -711,6 +737,7 @@ TEST_ENTRY(testVector2);
 TEST_ENTRY(testHashTable1);
 TEST_ENTRY(testHashTable2);
 TEST_ENTRY(testString);
+TEST_ENTRY(testBits);
 TEST_ENTRY(testBuffer);
 TEST_ENTRY(testMessage);
 TEST_ENTRY(testThread);

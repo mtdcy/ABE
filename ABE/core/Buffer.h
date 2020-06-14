@@ -178,6 +178,9 @@ class ABE_EXPORT Buffer : public SharedObject {
         ABE_INLINE ssize_t  indexOf(const char *s, size_t n = 0) const { return indexOf(0, s, n); }
         ABE_INLINE ssize_t  indexOf(size_t offset, const Buffer& s, size_t n = 0) const { return indexOf(offset, s.data(), n ? n : s.size());   }
         ABE_INLINE ssize_t  indexOf(const Buffer& s, size_t n = 0) const { return indexOf(0, s, n); }
+        
+    public:
+        ABE_INLINE void     operator+=(const Buffer& rhs) { write(rhs); }
 
     private:
         void                _rewind() const;

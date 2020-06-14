@@ -319,24 +319,26 @@ class ABE_EXPORT BitWriter : public NonSharedObject {
     DISALLOW_EVILS(BitWriter);
 };
 
-class ABE_EXPORT BitSet : public NonSharedObject {
+template <typename T>
+class ABE_EXPORT Bits : public NonSharedObject {
     public:
-        ABE_INLINE BitSet() : mValue(0) { }
-        ABE_INLINE BitSet(uint64_t v) : mValue(v) { }
-        ABE_INLINE BitSet(const BitSet& rhs) : mValue(rhs.mValue) { }
-        ABE_INLINE BitSet& operator=(const BitSet& rhs) { mValue = rhs.mValue; return *this; }
+        ABE_INLINE Bits() : V(0) { }
+        ABE_INLINE Bits(T v) : V(v) { }
+        ABE_INLINE Bits(const Bits& rhs) : V(rhs.V) { }
+        ABE_INLINE Bits& operator=(const Bits& rhs) { V = rhs.V; return *this;  }
     
     public:
-        ABE_INLINE uint64_t   set(size_t n)   { mValue |= (1LL << n); return mValue;  }
-        ABE_INLINE uint64_t   clear(size_t n) { mValue &= ~(1LL << n); return mValue; }
-        ABE_INLINE void       clear()         { mValue = 0;                           }
-        ABE_INLINE bool       test(size_t n)  { return mValue & (1LL << n);           }
-        ABE_INLINE uint64_t   flip(size_t n)  { mValue ^= (1LL << n); return mValue;  }
-        ABE_INLINE bool       empty() const   { return mValue == 0;                   }
-        ABE_INLINE uint64_t   value() const   { return mValue;                        }
+        ABE_INLINE T    set(size_t n)           { V |= ((T)1 << n); return V;   }
+        ABE_INLINE T    clear(size_t n)         { V &= ~((T)1 << n); return V;  }
+        ABE_INLINE T    flip(size_t n)          { V ^= ((T)1 << n); return V;   }
+        ABE_INLINE void clear()                 { V = 0;                        }
+        ABE_INLINE T    flip()                  { V = ~V; return V;             }
+        ABE_INLINE bool test(size_t n) const    { return V & ((T)1 << n);       }
+        ABE_INLINE bool empty() const           { return V == 0;                }
+        ABE_INLINE T    value() const           { return V;                     }
     
     private:
-        uint64_t    mValue;
+        T V;
 };
 __END_NAMESPACE_ABE
 #endif // ABE_HEADERS_BITS_H 
