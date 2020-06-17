@@ -93,7 +93,7 @@ String::String(const char *s, size_t n) : mData(NULL), mSize(0)
     CHECK_NULL(s);
     if (!n) mSize = strlen(s);
     else    mSize = strnlen(s, n);
-    mData = SharedBuffer::Create(kAllocatorDefault, mSize + 1);
+    mData = SharedBuffer::allocate(kAllocatorDefault, mSize + 1);
     char * buf = mData->data();
     if (mSize) memcpy(buf, s, mSize);
     buf[mSize] = '\0';
@@ -131,7 +131,7 @@ String String::UTF16(const char *s, size_t n) {
 
 #define STRING_FROM_NUMBER(TYPE, SIZE, PRI)                                 \
     String::String(const TYPE v) : mData(NULL), mSize(0) {                  \
-        mData = SharedBuffer::Create(kAllocatorDefault, SIZE + 1);          \
+        mData = SharedBuffer::allocate(kAllocatorDefault, SIZE + 1);        \
         char * buf = mData->data();                                         \
         int result = CStringPrintf(buf, SIZE, "%" PRI, v);                  \
         CHECK_GT(result, 0); CHECK_LE(result, SIZE);                        \
@@ -213,7 +213,7 @@ String& String::set(const char * s, size_t n) {
         // no need to release buffer
     } else {
         if (mData) mData->ReleaseBuffer();
-        mData = SharedBuffer::Create(kAllocatorDefault, n + 1);
+        mData = SharedBuffer::allocate(kAllocatorDefault, n + 1);
     }
     memcpy(mData->data(), s, n);
     mSize = n;

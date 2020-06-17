@@ -56,7 +56,7 @@ HashTableImpl::HashTableImpl(const sp<Allocator>& allocator,
     mTableLength(POW_2(tableLength)), mNumElements(0)
 {
     const size_t allocLength = sizeof(Element *) * mTableLength;
-    mStorage = SharedBuffer::Create(mAllocator, allocLength);
+    mStorage = SharedBuffer::allocate(mAllocator, allocLength);
     memset(mStorage->data(), 0, allocLength);
 }
 
@@ -129,7 +129,7 @@ HashTableImpl::Element ** HashTableImpl::_edit() {
         Element ** buck0    = (Element **)old->data();
 
         const size_t allocLength = sizeof(Element *) * mTableLength;
-        mStorage = SharedBuffer::Create(mAllocator, allocLength);
+        mStorage = SharedBuffer::allocate(mAllocator, allocLength);
         Element ** buck     = (Element **)mStorage->data();
         memset(buck, 0, allocLength);
 
@@ -205,7 +205,7 @@ void HashTableImpl::grow() {
 
         const size_t tableLength = mTableLength * 2;    // double table length
         const size_t allocLength = sizeof(Element *) * tableLength;
-        mStorage = SharedBuffer::Create(mAllocator, allocLength);
+        mStorage = SharedBuffer::allocate(mAllocator, allocLength);
         Element ** buck = (Element **)mStorage->data();
         memset(buck, 0, allocLength);
 

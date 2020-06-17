@@ -240,41 +240,168 @@ void testBits() {
     ASSERT_TRUE(bits.empty());
 }
 
+// at least 66 + 36 = 102 bytes
+void testABuffer(sp<ABuffer> base) {
+    for (size_t i = 0; i < 32; ++i) {
+        base->write(i, i + 1);
+    }
+    base->flushBytes();
+    // 66 bytes
+    ASSERT_EQ(base->size(), 66);
+    
+    for (size_t i = 0; i < 32; ++i) {
+        ASSERT_EQ(base->read(i + 1), i);
+    }
+    ASSERT_EQ(base->size(), 0);
+    
+    base->w8(0xF0);
+    ASSERT_EQ(base->r8(), 0xF0);
+    base->wl16(0xF0);
+    ASSERT_EQ(base->rl16(), 0xF0);
+    base->wl24(0xF0);
+    ASSERT_EQ(base->rl24(), 0xF0);
+    base->wl32(0xF0);
+    ASSERT_EQ(base->rl32(), 0xF0);
+    base->wl64(0xF0);
+    ASSERT_EQ(base->rl64(), 0xF0);
+    // + 36 bytes
+}
+
 void testBuffer() {
-    sp<Buffer> buffer = new Buffer(128);
+    testABuffer(new Buffer(102));
+    testABuffer(new Buffer(102, Buffer::Ring));
+    
+    // test linear buffer
+    sp<Buffer> buffer = new Buffer(16);
     ASSERT_EQ(buffer->type(), Buffer::Linear);
-    ASSERT_EQ(buffer->capacity(), 128);
-    ASSERT_EQ(buffer->empty(), 128);
-    ASSERT_EQ(buffer->ready(), 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 16);
     ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 0);
     
-    buffer->write("abcdefgh");  // write 8 bytes
-    ASSERT_EQ(buffer->capacity(), 128);
-    ASSERT_EQ(buffer->empty(), 120);
-    ASSERT_EQ(buffer->ready(), 8);
+    buffer->writeBytes("abcdefgh");  // write 8 bytes
+    ASSERT_TRUE(memcmp(buffer->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 8);
+    ASSERT_EQ(buffer->size(), 8);
+    ASSERT_EQ(buffer->offset(), 0);
     
-    buffer->reset();
-    ASSERT_EQ(buffer->capacity(), 128);
-    ASSERT_EQ(buffer->empty(), 128);
-    ASSERT_EQ(buffer->ready(), 0);
+    sp<Buffer> data = buffer->readBytes(8);
+    ASSERT_TRUE(memcmp(data->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 8);
+    ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 8);
+    data.clear();
     
-    buffer->step(8);    // move write pos by 8 bytes
-    ASSERT_EQ(buffer->capacity(), 128);
-    ASSERT_EQ(buffer->empty(), 120);
-    ASSERT_EQ(buffer->ready(), 8);
+    buffer->writeBytes("abcdefgh");
+    ASSERT_TRUE(memcmp(buffer->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 0);
+    ASSERT_EQ(buffer->size(), 8);
+    ASSERT_EQ(buffer->offset(), 8);
     
-    buffer->skip(8);    // move read pos by 8 bytes
-    ASSERT_EQ(buffer->capacity(), 128);
-    ASSERT_EQ(buffer->empty(), 120);
-    ASSERT_EQ(buffer->ready(), 0);
-}
-
-void testBitReader() {
+    buffer->skipBytes(8);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 0);
+    ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 16);
     
-}
-
-void testBitWritter() {
+    // cow test
+    buffer->resetBytes();   // put read pointer back to begin
+    buffer->skipBytes(8);
+    data = buffer->readBytes(8);    // read 8 bytes @ offset 8
+    buffer->clearBytes();
+    buffer->writeBytes("hgfedcbahgfedcba");
+    ASSERT_TRUE(memcmp(buffer->data(), "hgfedcbahgfedcba", 16) == 0);
+    ASSERT_EQ(buffer->type(), Buffer::Linear);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 0);
+    ASSERT_EQ(buffer->size(), 16);
+    ASSERT_EQ(buffer->offset(), 0);
+    // resize test
+    buffer->resize(buffer->capacity() * 2);
+    ASSERT_TRUE(memcmp(buffer->data(), "hgfedcbahgfedcba", 16) == 0);
+    ASSERT_EQ(buffer->type(), Buffer::Linear);
+    ASSERT_EQ(buffer->capacity(), 32);
+    ASSERT_EQ(buffer->empty(), 16);
+    ASSERT_EQ(buffer->size(), 16);
+    ASSERT_EQ(buffer->offset(), 0);
     
+    // cow test
+    ASSERT_TRUE(memcmp(data->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(data->type(), Buffer::Linear);
+    ASSERT_EQ(data->capacity(), 8);
+    ASSERT_EQ(data->empty(), 0);
+    ASSERT_EQ(data->size(), 8);
+    ASSERT_EQ(data->offset(), 0);
+    
+    
+    // Ring Buffer
+    buffer = new Buffer(16, Buffer::Ring);
+    ASSERT_EQ(buffer->type(), Buffer::Ring);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 16);
+    ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 0);
+    
+    buffer->writeBytes("abcdefgh");  // write 8 bytes
+    ASSERT_TRUE(memcmp(buffer->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 8);
+    ASSERT_EQ(buffer->size(), 8);
+    ASSERT_EQ(buffer->offset(), 0);
+    
+    data = buffer->readBytes(8);
+    ASSERT_TRUE(memcmp(data->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 16);
+    ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 8);
+    data.clear();
+    
+    buffer->writeBytes("abcdefgh");
+    ASSERT_TRUE(memcmp(buffer->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 8);
+    ASSERT_EQ(buffer->size(), 8);
+    ASSERT_EQ(buffer->offset(), 8);
+    
+    buffer->skipBytes(8);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 16);
+    ASSERT_EQ(buffer->size(), 0);
+    ASSERT_EQ(buffer->offset(), 16);
+    
+    // cow test on ring buffer
+    buffer->resetBytes();
+    buffer->skipBytes(8);
+    data = buffer->readBytes(8);
+    buffer->clearBytes();
+    buffer->writeBytes("hgfedcbahgfedcba");
+    ASSERT_TRUE(memcmp(buffer->data(), "hgfedcbahgfedcba", 16) == 0);
+    ASSERT_EQ(buffer->type(), Buffer::Ring);
+    ASSERT_EQ(buffer->capacity(), 16);
+    ASSERT_EQ(buffer->empty(), 0);
+    ASSERT_EQ(buffer->size(), 16);
+    ASSERT_EQ(buffer->offset(), 0);
+    
+    // resize test
+    buffer->resize(buffer->capacity() * 2);
+    ASSERT_TRUE(memcmp(buffer->data(), "hgfedcbahgfedcba", 16) == 0);
+    ASSERT_EQ(buffer->type(), Buffer::Ring);
+    ASSERT_EQ(buffer->capacity(), 32);
+    ASSERT_EQ(buffer->empty(), 16);
+    ASSERT_EQ(buffer->size(), 16);
+    ASSERT_EQ(buffer->offset(), 0);
+    
+    // cow test
+    ASSERT_TRUE(memcmp(data->data(), "abcdefgh", 8) == 0);
+    ASSERT_EQ(data->type(), Buffer::Linear);
+    ASSERT_EQ(data->capacity(), 8);
+    ASSERT_EQ(data->empty(), 0);
+    ASSERT_EQ(data->size(), 8);
+    ASSERT_EQ(data->offset(), 0);
 }
 
 struct EmptySharedObject : public SharedObject {
@@ -688,29 +815,31 @@ void testContent() {
     sp<Content> pipe = Content::Create(url);
     
     ASSERT_EQ(pipe->mode(), Content::Read);
-    ASSERT_EQ(pipe->tell(), 0);
-    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    ASSERT_EQ(pipe->offset(), 0);
+    ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     
-    sp<Buffer> data = pipe->read(256);
+    sp<Buffer> data = pipe->readBytes(256);
     for (size_t i = 0; i < 256; ++i) {
-        ASSERT_EQ((uint8_t)data->at(i), (uint8_t)i);
+        ASSERT_EQ((uint8_t)data->data()[i], (uint8_t)i);
     }
-    ASSERT_EQ(pipe->tell(), 256);
-    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    ASSERT_EQ(pipe->offset(), 256);
+    ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     
     // seek test
-    pipe->seek(0);  // seek in cache
-    ASSERT_EQ(pipe->tell(), 0);
-    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    pipe->resetBytes();  // seek in cache
+    ASSERT_EQ(pipe->offset(), 0);
+    ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     
-    pipe->read(256);
-    pipe->seek(1024);   // seek in cache @ 1k
-    ASSERT_EQ(pipe->tell(), 1024);
-    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    pipe->readBytes(256);
+    pipe->resetBytes();
+    pipe->skipBytes(1024);   // seek in cache @ 1k
+    ASSERT_EQ(pipe->offset(), 1024);
+    ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     
-    pipe->seek(512*1024);   // seek @ 5k
-    ASSERT_EQ(pipe->tell(), 512*1024);
-    ASSERT_EQ(pipe->length(), 1024*1024); // 1M
+    pipe->resetBytes();
+    pipe->skipBytes(512*1024);   // seek @ 5k
+    ASSERT_EQ(pipe->offset(), 512*1024);
+    ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
 }
 
 extern "C" void malloc_prepare();

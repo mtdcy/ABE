@@ -42,7 +42,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
-#include <errno.h> 
+#include <errno.h>
+#include <stdlib.h>
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE (0) // FIXME: find a better replacement
@@ -56,6 +57,8 @@
 #define lseek64 lseek
 #endif
 
+#define MIN(a, b) ((a) > (b)) ? (b) : (a)
+
 __BEGIN_NAMESPACE_ABE
 
 struct File : public Content::Protocol {
@@ -65,12 +68,15 @@ struct File : public Content::Protocol {
     int             mFd;
     int64_t         mOffset;
     int64_t         mLength;
-    int64_t         mPosition;
+    mutable int64_t mPosition;
+    const size_t    kBlockLength;
+    mutable char *  mBlock;
     
     File(const String& url, Content::eMode mode) : Content::Protocol(),
-    mUrl(url), mMode(mode), mFd(-1),
-    mOffset(0), mLength(0), mPosition(0)
+    mUrl(url), mMode(mode), mFd(-1), mOffset(0), mLength(0), mPosition(0),
+    kBlockLength(4096), mBlock((char *)malloc(kBlockLength))
     {
+        CHECK_NULL(mBlock);
         if (url.startsWithIgnoreCase("pipe://")) {
             int64_t offset, length;
             
@@ -145,34 +151,33 @@ struct File : public Content::Protocol {
         return mMode;
     }
     
-    virtual size_t readBytes(void * buffer, size_t bytes) {
-        int64_t remains = mLength - mPosition;
+    virtual size_t readBytes(sp<Buffer>& buffer) const {
+        CHECK_GE(buffer->empty(), kBlockLength);
         
-        if (remains == 0) {
-            return 0;
+        int64_t i = 0;
+        for (;;) {
+            size_t bytes = MIN(kBlockLength, (mLength - mPosition));
+            if (bytes > buffer->empty()) break;
+            
+            ssize_t bytesRead = ::read(mFd, mBlock, bytes);
+            if (bytesRead == 0) {
+                INFO("End Of File");
+                break;
+            } else if (bytesRead < 0) {
+                ERROR("read@%lld return error(%d|%s) %d/%d", mPosition,
+                      errno, strerror(errno), bytesRead, bytes);
+                break;
+            }
+            buffer->writeBytes(mBlock, (size_t)bytesRead);
+            i += (size_t)bytesRead;
+            mPosition += (int64_t)bytesRead;
         }
-        
-        if (bytes > (size_t)remains) {
-            DEBUG("read reamins %d bytes", remains);
-            bytes = remains;
-        }
-        
-        ssize_t bytesRead = ::read(mFd, buffer, bytes);
-        
-        if (bytesRead >= 0) {
-            mPosition += bytesRead;
-            return (size_t)bytesRead;
-        } else {
-            ERROR("read@%lld return error(%d|%s) %d/%d", mPosition,
-                  errno, strerror(errno),
-                  bytesRead, bytes);
-            return 0;
-        }
+        return (size_t)i;
     }
     
-    virtual size_t writeBytes(const void * buffer, size_t bytes) {
+    virtual size_t writeBytes(const sp<Buffer>& buffer) {
         
-        ssize_t bytesWritten = ::write(mFd, buffer, bytes);
+        ssize_t bytesWritten = ::write(mFd, buffer->data(), buffer->size());
         
         if (bytesWritten < 0) {
             ERROR("write return error %d. errno = %d %s", bytesWritten,
@@ -180,6 +185,7 @@ struct File : public Content::Protocol {
             return 0;
         }
         
+        buffer->skipBytes(bytesWritten);
         mPosition += (int64_t)bytesWritten;
         
         // we append more data.
@@ -191,7 +197,7 @@ struct File : public Content::Protocol {
         return (size_t)bytesWritten;
     }
     
-    virtual int64_t seekBytes(int64_t offset) {
+    virtual int64_t seekBytes(int64_t offset) const {
         offset += mOffset;
         
         if (offset > mLength) {

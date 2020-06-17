@@ -76,8 +76,6 @@ set(ABE_SOURCES
     ABE/core/Thread.cpp
     ABE/core/Looper.cpp
 
-    ABE/tools/Bits.cpp
-
     ABE/stl/List.cpp
     ABE/stl/Vector.cpp
     ABE/stl/HashTable.cpp
@@ -115,7 +113,7 @@ endif()
 
 #------------------------------------------------------------------------------#
 # install 
-set (ABE_HEADERS core tools stl math)
+set (ABE_HEADERS core stl math)
 if (XCODE)
     # public headers, xcode need these
     target_sources (${LIBNAME}_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ABE/ABE.h)

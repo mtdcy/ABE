@@ -38,7 +38,6 @@
 
 #include <ABE/core/Types.h>
 #include <ABE/core/Buffer.h>
-#include <ABE/tools/Bits.h>
 
 __BEGIN_NAMESPACE_ABE
 
@@ -47,7 +46,7 @@ __BEGIN_NAMESPACE_ABE
  * a content manager
  * @note not thread safe
  */
-class ABE_EXPORT Content : public SharedObject {
+class ABE_EXPORT Content : public ABuffer {
     public:
         enum eMode {
             Read        = 0x1,              ///< read only
@@ -73,7 +72,7 @@ class ABE_EXPORT Content : public SharedObject {
              * @param length number bytes to read
              * @return return bytes read, otherwise return 0 on eos or error
              */
-            virtual size_t  readBytes(void * buffer, size_t length) = 0;
+            virtual size_t  readBytes(sp<Buffer>& buffer) const = 0;
 
             /**
              * write bytes to protocol
@@ -81,7 +80,7 @@ class ABE_EXPORT Content : public SharedObject {
              * @param length number bytes to write
              * @return return bytes written, otherwise return 0
              */
-            virtual size_t  writeBytes(const void * buffer, size_t length) = 0;
+            virtual size_t  writeBytes(const sp<Buffer>& buffer) = 0;
             
             /**
              * get total bytes of the protocol
@@ -94,7 +93,7 @@ class ABE_EXPORT Content : public SharedObject {
              * @param pos   absolute position to seek to
              * @return return the position after seek, otherwise return -1 on error
              */
-            virtual int64_t seekBytes(int64_t pos) = 0;
+            virtual int64_t seekBytes(int64_t pos) const = 0;
 
             /**
              * get block length of this protocol
@@ -128,61 +127,42 @@ class ABE_EXPORT Content : public SharedObject {
          * return mode of the content
          * @return see @eMode
          */
-        ABE_INLINE eMode mode() const { return mProto->mode(); }
-    
-        /**
-         * get total bytes of the content
-         * @return return number bytes of the content, otherwise return -1 if unknown
-         */
-        int64_t         length() const;
-    
-        /**
-         * get current position of the content
-         * @return return current position in bytes
-         * @note always return >= 0
-         */
-        int64_t         tell() const;
+        ABE_INLINE eMode    mode() const { return mProto->mode(); }
     
     public:
-        /**
-         * seek to a absolute position in bytes
-         * @note pos always be positive
-         */
-        int64_t         seek(int64_t pos);
+        virtual int64_t     capacity() const;
+        virtual int64_t     size() const;
+        virtual int64_t     empty() const;
+        virtual int64_t     offset() const;
+        virtual const char* data() const;
     
-        /**
-         * seek to a relative position in bytes
-         * @note pos can be positive and negtive
-         */
-        int64_t         skip(int64_t pos);
-
     public:
-        /**
-         * read bytes from content
-         */
-        sp<Buffer>  read(size_t size);
-
-        /**
-         * write bytes to content
-         * @return
-         */
-        size_t          write(const char *, size_t);
+        virtual sp<ABuffer> readBytes(size_t) const;
+        virtual size_t      readBytes(char *, size_t) const;
+        virtual int64_t     skipBytes(int64_t) const;
+        virtual void        resetBytes() const;
+        virtual sp<ABuffer> cloneBytes() const;
     
-        ABE_INLINE size_t write(const sp<Buffer>& buffer) {
-            return write(buffer->data(), buffer->size());
-        }
+        virtual size_t      writeBytes(const char *, size_t n = 0);
+        virtual size_t      writeBytes(const sp<ABuffer>& b, size_t n = 0);
+        virtual size_t      writeBytes(int c, size_t n);
+        virtual void        flushBytes();
+        virtual void        clearBytes();
+
+    protected:
+        virtual uint8_t     readByte() const;
+        virtual void        writeByte(uint8_t);
 
     private:
-        bool            readBlock();
-        bool            writeBlockBack();
+        void                prepareBlock(size_t n) const;
+        void                writeBlockBack(bool force = false);
 
     private:
         sp<Protocol>        mProto;
-        int64_t             mPosition;
-        sp<Buffer>          mBlock;         // cache block
-        size_t              mBlockOffset;   // offset shared by read and write
-        size_t              mBlockLength;   // how may bytes of cache in mBlock
-        bool                mBlockPopulated;    // need write back ?
+        mutable int64_t     mReadPosition;
+        mutable sp<Buffer>  mReadBlock;
+        int64_t             mWritePosition;
+        sp<Buffer>          mWriteBlock;
     
         DISALLOW_EVILS(Content);
 };

@@ -102,7 +102,7 @@ __BEGIN_NAMESPACE_ABE
 SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
     mAllocator(NULL), mData(NULL), mSize(0) { }
 
-    SharedBuffer * SharedBuffer::Create(const sp<Allocator> & _allocator, size_t sz) {
+    SharedBuffer * SharedBuffer::allocate(const sp<Allocator> & _allocator, size_t sz) {
         // FIXME: if allocator is aligned, make sure data is also aligned
         const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
 
@@ -155,7 +155,7 @@ SharedBuffer * SharedBuffer::edit() {
     FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
     if (IsBufferNotShared()) return this;
 
-    SharedBuffer * copy = SharedBuffer::Create(mAllocator, mSize);
+    SharedBuffer * copy = SharedBuffer::allocate(mAllocator, mSize);
     memcpy(copy->mData, mData, mSize);
 
     ReleaseBuffer();
@@ -187,7 +187,7 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
         return shared;
     }
 
-    SharedBuffer * copy = SharedBuffer::Create(mAllocator, sz);
+    SharedBuffer * copy = SharedBuffer::allocate(mAllocator, sz);
     memcpy(copy->mData, mData, MIN(sz, mSize));
 
     ReleaseBuffer();

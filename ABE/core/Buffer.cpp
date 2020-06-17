@@ -41,6 +41,7 @@
 #include <ctype.h>  // isprint
 
 #define MIN(a, b)   (a) > (b) ? (b) : (a)
+#define MASK64(n)   ((1ull << (n)) - 1)
 
 __BEGIN_NAMESPACE_ABE
 
@@ -80,54 +81,228 @@ static String hexdump(const void *data, uint32_t bytes) {
     return result;
 }
 
+uint32_t ABuffer::show(size_t n) const {
+    CHECK_GT(n, 0);
+    CHECK_LE(n, 32);
+
+    if (n > mReadReservoir.mLength) {
+        DEBUG("request %zu bits, but %zu left", n, mReadReservoir.mLength);
+        const size_t m  = n - mReadReservoir.mLength;
+        size_t numBytes = (m + 7) / 8;  // round up.
+        CHECK_LE((int64_t)numBytes, size());
+
+        DEBUG("read %zu bytes", numBytes);
+        DEBUG("mReservoir = %#x", mReadReservoir.mBits);
+        for (size_t i = 0; i < numBytes; i++) {
+            mReadReservoir.mBits = (mReadReservoir.mBits << 8) | readByte();
+            mReadReservoir.mLength  += 8;
+        }
+        DEBUG("mReservoir = 0x%#x, mBitsLeft %zu", mReadReservoir.mBits,
+              mReadReservoir.mLength);
+    }
+    CHECK_LE(n, mReadReservoir.mLength);
+    
+    const uint32_t v = (mReadReservoir.mBits >> (mReadReservoir.mLength - n)) & MASK64(n);
+    DEBUG("v = %#x", v);
+    return v;
+}
+
+uint32_t ABuffer::read(size_t n) const {
+    uint32_t x = show(n);
+    mReadReservoir.mLength -= n;
+    return x;
+}
+
+void ABuffer::skip(size_t n) const {
+    if (n < mReadReservoir.mLength) {
+        mReadReservoir.mLength -= n;
+        return;
+    }
+    n -= mReadReservoir.mLength;
+    mReadReservoir.mLength = 0;
+    if (n >= 8) {
+        skipBytes(n / 8);
+        n = n % 8;
+    }
+    if (n > 0) read(n);
+}
+
+void ABuffer::skip() const {
+    mReadReservoir.mLength = 0;
+}
+
+void ABuffer::write(uint32_t x, size_t n) {
+    CHECK_LE(n, 32);
+
+    mWriteReservoir.mBits = (mWriteReservoir.mBits << n) | (uint64_t)x;
+    mWriteReservoir.mLength += n;
+
+    while (mWriteReservoir.mLength >= 8) {
+        mWriteReservoir.mLength -= 8;
+        writeByte((mWriteReservoir.mBits >> mWriteReservoir.mLength) & 0xff);
+    }
+}
+
+void ABuffer::write() {
+    if (mWriteReservoir.mLength == 0) return;
+    write(0, 8 - mWriteReservoir.mLength);
+    CHECK_EQ(mWriteReservoir.mLength, 0);
+}
+
+uint8_t ABuffer::r8() const {
+    return read(8);
+}
+
+uint16_t ABuffer::rl16() const {
+    uint16_t v = r8();
+    v = v | r8() << 8;
+    return v;
+}
+
+uint32_t ABuffer::rl24() const {
+    uint32_t v = r8();
+    v = v | (uint32_t)rl16() << 8;
+    return v;
+}
+
+uint32_t ABuffer::rl32() const {
+    uint32_t v = rl16();
+    v = v | (uint32_t)rl16() << 16;
+    return v;
+}
+
+uint64_t ABuffer::rl64() const {
+    uint64_t v = rl32();
+    v = v | (uint64_t)rl32() << 32;
+    return v;
+}
+
+uint16_t ABuffer::rb16() const {
+    uint16_t v = r8();
+    v = r8() | v << 8;
+    return v;
+}
+
+uint32_t ABuffer::rb24() const {
+    uint32_t v = rb16();
+    v = r8() | v << 8;
+    return v;
+}
+
+uint32_t ABuffer::rb32() const {
+    uint32_t v = rb16();
+    v = rb16() | v << 16;
+    return v;
+}
+
+uint64_t ABuffer::rb64() const {
+    uint64_t v = rb32();
+    v = rb32() | v << 32;
+    return v;
+}
+
+String ABuffer::rs(size_t n) const {
+    uint8_t s[n];
+    for (size_t i = 0; i < n; i++) s[i] = r8();
+    return String((char*)&s[0], n);
+}
+
+void ABuffer::w8(uint8_t x) {
+    write(x, 8);
+}
+
+void ABuffer::wl16(uint16_t x) {
+    w8(x & 0xff);
+    w8(x >> 8);
+}
+
+void ABuffer::wl24(uint32_t x) {
+    w8(x & 0xff);
+    wl16(x >> 8);
+}
+
+void ABuffer::wl32(uint32_t x) {
+    wl16(x & 0xffff);
+    wl16(x >> 16);
+}
+
+void ABuffer::wl64(uint64_t x) {
+    wl32(x & 0xffffffff);
+    wl32(x >> 32);
+}
+
+void ABuffer::wb16(uint16_t x) {
+    w8(x >> 8);
+    w8(x & 0xff);
+}
+
+void ABuffer::wb24(uint32_t x) {
+    wb16(x >> 8);
+    w8(x & 0xff);
+}
+
+void ABuffer::wb32(uint32_t x) {
+    wb16(x >> 16);
+    wb16(x & 0xffff);
+}
+
+void ABuffer::wb64(uint64_t x) {
+    wb32(x >> 32);
+    wb32(x & 0xffffffff);
+}
+
+void ABuffer::ws(const String& s, size_t n) {
+    if (!n || n > s.size()) n = s.size();
+    for (size_t i = 0; i < n; i++) w8(s[i]);
+}
+
+void ABuffer::reset() const {
+    mReadReservoir.mLength;
+}
+
+void ABuffer::flush() {
+    write();
+}
+
 ///////////////////////////////////////////////////////////////////////////
-Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
-    mAllocator(allocator),
-    mData(NULL), mCapacity(capacity),
+Buffer::Buffer(const Buffer * rhs, size_t offset, size_t size) : ABuffer(),
+    mAllocator(rhs->mAllocator), mData(rhs->mData->RetainBuffer()),
+    mOffset(rhs->mOffset + offset), mCapacity(size),
+    mType(Linear), mReadPos(0), mWritePos(size) {
+        CHECK_GT(mCapacity, 0);
+}
+
+Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(NULL),
+    mOffset(0), mCapacity(capacity),
     mType(Linear), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
-    _alloc();
+    mData = alloc();
 }
 
-Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
-    mAllocator(allocator),
-    mData(NULL), mCapacity(capacity),
+Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(NULL),
+    mOffset(0), mCapacity(capacity),
     mType(type), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
-    _alloc();
+    mData = alloc();
 }
 
-Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : SharedObject(OBJECT_ID_BUFFER),
-    mAllocator(allocator),
-    mData(NULL), mCapacity(n ? n : strlen(s)),
+Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(NULL),
+    mOffset(0), mCapacity(n ? n : strlen(s)),
     mType(type), mReadPos(0), mWritePos(0)
 {
     CHECK_GT(mCapacity, 0);
-    _alloc();
-    memcpy(mData, s, n);
+    mData = alloc();
+    memcpy(mData->data(), s, n);
     mWritePos += n;
 }
 
-void Buffer::_alloc() {
-    size_t allocLength = mCapacity;
-    if (mType == Ring) allocLength <<= 1;
-    mData = (char *)mAllocator->allocate(allocLength);
-    CHECK_NULL(mData);
-}
-
 Buffer::~Buffer() {
-    if (mData) mAllocator->deallocate(mData);
-}
-
-bool Buffer::resize(size_t cap) {
-    size_t allocLength = cap;
-    if (mType == Ring) allocLength <<= 1;
-    mData = (char *)mAllocator->reallocate(mData, allocLength);
-    if (mData == NULL) return false;
-    mCapacity = cap;
-    return true;
+    mData->ReleaseBuffer();
 }
 
 String Buffer::string(bool hex) const {
@@ -135,139 +310,190 @@ String Buffer::string(bool hex) const {
             capacity(), mData, mReadPos, mWritePos);
 
     if (hex) {
-        result.append(hexdump(data(), ready() > 128 ? 128 : ready()));
+        result.append(hexdump(data(), size() > 128 ? 128 : size()));
     }
     return result;
 }
 
-size_t Buffer::empty() const {
+int64_t Buffer::empty() const {
     if (mType == Ring) {
-        return capacity() - ready();
+        return capacity() - size();
     }
     return capacity() - mWritePos;
 }
 
-size_t Buffer::write(const char *s, size_t n) {
-    if (!n)     n = strlen(s);
-    CHECK_LE(n, empty());
-
-    memcpy(mData + mWritePos, s, n);
-    mWritePos   += n;
-
-    _rewind();
-    return ready();
+int64_t Buffer::offset() const {
+    if (mType == Ring) {
+        if (mWritePos > capacity())
+            return capacity() - size();
+        else
+            return mReadPos;
+    }
+    return mReadPos;
 }
 
-size_t Buffer::write(int c, size_t n) {
+void Buffer::resetBytes() const {
+    ABuffer::reset();
+    mReadPos -= offset();
+}
+
+void Buffer::flushBytes() {
+    edit();
+    rewind(1);
+    ABuffer::flush();
+}
+
+void Buffer::clearBytes() {
+    edit();
+    mReadPos = mWritePos = 0;
+}
+
+size_t Buffer::writeBytes(const char * s, size_t n) {
+    if (!n) n = strlen((const char *)s);
     CHECK_GT(n, 0);
-    CHECK_LE(n, empty());
-
-    memset(mData + mWritePos, c, n);
-    mWritePos   += n;
-
-    _rewind();
-    return ready();
+    edit();
+    rewind(n);
+    ABuffer::flush();
+    const size_t m = MIN(n, empty());
+    memcpy(mData->data() + mOffset + mWritePos, s, m);
+    mWritePos += m;
+    return m;
 }
 
-void Buffer::replace(size_t pos, int c, size_t n) {
+size_t Buffer::writeBytes(const sp<ABuffer>& buf, size_t n) {
+    if (!n) n = buf->size();
     CHECK_GT(n, 0);
-    CHECK_LT(pos, ready());
-    CHECK_LE(pos + n, ready() + empty());
-
-    memset(mData + mReadPos + pos, c, n);
+    edit();
+    rewind(n);
+    ABuffer::flush();
+    const size_t m = MIN(n, empty());
+    memcpy(mData->data() + mOffset + mWritePos, buf->data(), m);
+    buf->skipBytes(m);
+    mWritePos += m;
+    return m;
 }
 
-void Buffer::replace(size_t pos, const char *s, size_t n) {
-    CHECK_LT(pos, ready());
-    CHECK_LE(pos + n, ready() + empty());
-
-    if (!n)     n = strlen(s);
-    memcpy(mData + mReadPos + pos, s, n);
-}
-
-size_t Buffer::read(char *buf, size_t n) const {
+size_t Buffer::writeBytes(int c, size_t n) {
     CHECK_GT(n, 0);
-    if (ready() == 0) return 0;
+    edit();
+    rewind(n);
+    ABuffer::flush();
+    const size_t m = MIN(n, empty());
+    memset(mData->data() + mOffset + mWritePos, c, m);
+    mWritePos += m;
+    return m;
+}
 
-    n = MIN(n, ready());
-
+size_t Buffer::readBytes(char * buf, size_t n) const {
+    CHECK_GT(n, 0);
+    ABuffer::reset();
+    if (size() == 0) return 0;
+    n = MIN(n, size());
     memcpy(buf, data(), n);
     mReadPos    += n;
-
-    _rewind();
     return n;
 }
 
-sp<Buffer> Buffer::read(size_t n) const {
+sp<ABuffer> Buffer::readBytes(size_t n) const {
     CHECK_GT(n, 0);
-    if (ready() == 0) return NULL;
-    n = MIN(n, ready());
-    sp<Buffer> buf = new Buffer(data(), n);
+    ABuffer::reset();
+    if (size() == 0) return NULL;
+    n = MIN(n, size());
+    sp<Buffer> data = new Buffer(this, mReadPos, n);
     mReadPos += n;
-    _rewind();
-    return buf;
+    return data;
 }
 
-void Buffer::skip(size_t n) const {
-    CHECK_GT(n, 0);
-    CHECK_LE(n, ready());
-
+int64_t Buffer::skipBytes(int64_t n) const {
+    CHECK_GE(n, -offset());
+    CHECK_LE(n, size());
+    ABuffer::reset();
     mReadPos    += n;
-
-    _rewind();
+    return offset();
 }
 
-void Buffer::step(size_t n) {
-    CHECK_GT(n, 0);
-    CHECK_LE(n, empty());
-    
-    mWritePos   += n;
-    
-    _rewind();
+uint8_t Buffer::readByte() const {
+    CHECK_GE(size(), 1);
+    uint8_t x = (uint8_t)*data();
+    ++mReadPos;
+    return x;
 }
 
-sp<Buffer> Buffer::split(size_t pos, size_t n) const {
-    CHECK_GT(n, 0);
-    CHECK_LE(pos + n, ready());
-    sp<Buffer> buf = new Buffer(n);
-    buf->write(data() + pos, n);
-    return buf;
+sp<ABuffer> Buffer::cloneBytes() const {
+    return new Buffer(this, 0, size());
 }
 
-int Buffer::compare(size_t offset, const char *s, size_t n) const {
-    if (!n)     n = strlen(s);
-    CHECK_LE(n, ready());
-    return memcmp(data() + offset, s, n);
+void Buffer::writeByte(uint8_t x) {
+    edit();
+    rewind(1);
+    CHECK_GE(empty(), 1);
+    *(mData->data() + mOffset + mWritePos) = x;
+    ++mWritePos;
 }
 
-ssize_t Buffer::indexOf(size_t offset, const char *s, size_t n) const {
-    if (!n)     n = strlen(s);
+// alloc a shared buffer
+SharedBuffer * Buffer::alloc() {
+    size_t allocLength = mCapacity;
+    if (mType == Ring) allocLength <<= 1;
+    SharedBuffer * data = SharedBuffer::allocate(mAllocator, allocLength);
+    CHECK_NULL(data);
+    return data;
+}
 
-    char *s1    = (char*)memchr(data(), s[0], ready());
-    while (s1) {
-        if (!memcmp(s1, s, n)) return s1 - data();
+void Buffer::edit() {
+    if (mData->IsBufferNotShared()) return;
+    SharedBuffer * data = alloc();
+    // copy all data to new buffer
+    memcpy(data->data(), mData->data() + mOffset, mWritePos);
+    mData->ReleaseBuffer();
+    mData = data;
+    mOffset = 0;
+    CHECK_NULL(mData);
+}
 
-        ++s1;
-        s1 = (char*)memchr(s1, s[0], data() + ready() - s1);
+bool Buffer::resize(size_t cap) {
+    mCapacity = cap;
+    if (mData->IsBufferNotShared() && mOffset == 0) {
+        // resize using SharedBuffer::edit()
+        size_t allocLength = mCapacity;
+        if (mType == Ring) allocLength <<= 1;
+        mData = mData->edit(allocLength);
+    } else {
+        // allocate a new SharedBuffer
+        SharedBuffer * data = alloc();
+        memcpy(data->data(), mData->data() + mOffset, mWritePos);
+        mData->ReleaseBuffer();
+        mData = data;
+        mOffset = 0;
     }
-
-    return -1;
+    
+    if (mReadPos > mCapacity) mReadPos = mCapacity;
+    if (mWritePos > mCapacity) mWritePos = mCapacity;
+    
+    return mData != NULL;
 }
 
 // have to avoid too much rewind ops
-void Buffer::_rewind() const {
-    if (mType == Ring) {
-        if (ready() == 0) {
-            // the easy rewind time 
-            mReadPos = mWritePos = 0;
-        } else if (mReadPos >= capacity()) {
-            // read pos >= threshold
-            memmove(mData, data(), ready());
-            mWritePos   -= mReadPos;
-            mReadPos    = 0;
-        }
-    }
+void Buffer::rewind(size_t n) {
     // for Linear buffer, rewind do NOTHING
+    if (mType != Ring) return;
+
+    // avoid rewind too much
+    // rewind only when no enough space for writeBytes
+    if (mWritePos + n < mCapacity * 2) return;
+    
+    // rewind always keep capacity() bytes or size() bytes?
+    // 1. if we keep capacity() bytes, readBytes can always
+    //  access capacity() bytes data after rewind, but rewind
+    //  will take place more often.
+    // 2. if we keep size() bytes, readBytes can only access
+    //  size() bytes after rewind, and rewind also take place
+    //  at the crucial moment.
+    // we will take option 2
+    
+    memmove(mData->data() + mOffset, data(), size());
+    mWritePos   -= mReadPos;
+    mReadPos    = 0;
 }
 
 __END_NAMESPACE_ABE

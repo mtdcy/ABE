@@ -44,15 +44,13 @@
 #include <ABE/core/SharedBuffer.h>
 #include <ABE/core/String.h>
 #include <ABE/core/Mutex.h>
+#include <ABE/core/Bits.h>
 
 // object types [SharedObject] [c & c++]
 #include <ABE/core/Buffer.h>
 #include <ABE/core/Message.h>
 #include <ABE/core/Content.h>
 #include <ABE/core/Looper.h>
-
-// tools [non-SharedObject]
-#include <ABE/tools/Bits.h>
 
 // containers [non-SharedObject]
 #include <ABE/stl/TypeHelper.h>
@@ -105,7 +103,6 @@ ABE_EXPORT void                 SharedBufferDeallocate(SharedBufferRef);
 
 typedef SharedObjectRef         BufferObjectRef;
 ABE_EXPORT BufferObjectRef      BufferObjectCreate(size_t);
-ABE_EXPORT char *               BufferObjectGetDataPointer(BufferObjectRef);
 ABE_EXPORT const char *         BufferObjectGetConstDataPointer(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectGetCapacity(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectGetDataLength(const BufferObjectRef);

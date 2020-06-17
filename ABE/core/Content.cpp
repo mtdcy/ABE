@@ -37,75 +37,51 @@
 #include "Log.h"
 #include "Content.h"
 
-#include <string.h>  // memcpy
-
 #define MIN(a, b)   ((a) > (b) ? (b) : (a))
 
 __BEGIN_NAMESPACE_ABE
 
-static size_t kMaxLineLength = 1024;
-
-///////////////////////////////////////////////////////////////////////////
-//! return false on error or eos
-bool Content::readBlock() {
-    writeBlockBack();
-
-    // read cache first, and then read from cache.
-    ssize_t ret = mProto->readBytes(mBlock->data(), mBlock->empty());
-    if (ret == 0) {
-        DEBUG("readBlock: eos or error ...");
-        return false;
+// prepare cache block before reading data
+void Content::prepareBlock(size_t n) const {
+    if (mReadBlock->size() >= n) return;
+    
+    // cache in underrun, fetch kBlockLength bytes
+    if (n > mReadBlock->empty() || mReadBlock->empty() < mProto->blockLength()) {
+        const size_t times = (n + mReadBlock->size()) / mReadBlock->capacity() + 1;
+        // resize may fail, but DO NOT assert here, let readBytes handle it
+        if (mReadBlock->resize(mReadBlock->capacity() * times) == false) {
+            ERROR("Block resize failed %zu -> %zu",
+                  (size_t)mReadBlock->capacity(),
+                  (size_t)mReadBlock->capacity() * times);
+        }
     }
-
-    mBlock->step(ret);
-    mBlockLength        = ret;
-    mPosition           += ret;
-
-    return true;
+    DEBUG("prepare %zu bytes with block capacity %zu(%zu) bytes @ %" PRId64,
+          n, (size_t)mReadBlock->capacity(), (size_t)mReadBlock->size(), offset());
+    
+    size_t read = mProto->readBytes(mReadBlock);
+    mReadPosition += read;
+    DEBUG("prepare read %zu bytes, current block size %zu, current @ %" PRId64,
+          read, mReadBlock->size(), offset());
 }
 
-//! return true on success
-bool Content::writeBlockBack() {
-    if (mBlockPopulated && mBlock->ready() > 0) {
-        CHECK_TRUE(mode() & Write);
-        DEBUG("write back, real offset %" PRId64 ", cache offset %" PRId64, 
-                mPosition, mBlockOffset);
-
-        DEBUG("write back: %s", mBlock->string().c_str());
-
-        int64_t offset = mPosition;
-#if 0   // TODO
-        // in read & write mode, which read cache first, 
-        // and then modify cache, then write back
-        // so, we have to seek back before write back
-        const bool readMode = mode() & Read;
-        if (readMode && mBlockLength) {
-            offset  -= mBlockLength;
-            mProto->seekBytes(offset);
-        }
-#endif
-        
-        ssize_t ret = mProto->writeBytes(mBlock->data(), mBlock->ready());
-
-        if (ret < 0) { 
-            ERROR("flush: writeBytes return error %d", ret);
-            return false;
-        } else if ((size_t)ret < mBlockOffset) { 
-            // we have to make sure populated cache are been written back at least
-            WARN("writeBytes: only %d of %d populated cache been written back", 
-                    ret, mBlockOffset);
-        }
-
-        // update range offset & length
-        mPosition    = offset + ret;
+void Content::writeBlockBack(bool force) {
+    if (mWriteBlock->size() == 0) return;
+    
+    // write block when it is full
+    if (!force && mWriteBlock->empty() > 0) return;
+    
+    const size_t size = mWriteBlock->size();
+    size_t n = mProto->writeBytes(mWriteBlock);
+    if (n == 0) {
+        ERROR("No more space ?");
+        return;
     }
     
-    mBlock->reset();
-    mBlockOffset        = 0;
-    mBlockLength        = 0;
-    mBlockPopulated     = false;
-
-    return true;
+    // does protocol skip bytes??
+    if (mWriteBlock->size() == size) {
+        mWriteBlock->skipBytes(n);
+    }
+    mWritePosition += n;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -141,127 +117,176 @@ sp<Content> Content::Create(const sp<Protocol>& proto) {
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
 Content::Content(const sp<Protocol>& proto, size_t blockLength) :
-    mProto(proto),
-    mPosition(0),
-    mBlock(new Buffer(blockLength)), mBlockOffset(0), 
-    mBlockLength(0), mBlockPopulated(false)
-{
+    ABuffer(), mProto(proto),
+    mReadPosition(0), mReadBlock(NULL),
+    mWritePosition(0), mWriteBlock(NULL) {
+    if (mProto->mode() & Read) {
+        mReadBlock = new Buffer(blockLength, Buffer::Ring);
+    }
+    if (mProto->mode() & Write) {
+        mWriteBlock = new Buffer(blockLength, Buffer::Ring);
+    }
 }
 
 Content::~Content() {
-    writeBlockBack();
+    if (!mWriteBlock.isNIL()) writeBlockBack(true);
 }
 
-sp<Buffer> Content::read(size_t size) {
-    CHECK_TRUE(mode() & Read);
-
-    sp<Buffer> data = new Buffer(size);
-
-    //bool eof = false;
-    size_t n = size;
-
-    while (n > 0) {
-        size_t remains = mBlock->ready() - mBlockOffset;
-        char *s = mBlock->data() + mBlockOffset;
-        if (remains > 0) {
-            size_t m = MIN(remains, n);
-            //DEBUG("read %d bytes from cache.", m);
-
-            data->write(s, m);
-
-            mBlockOffset  += m;
-            n -= m;
-        } else {
-            // TODO: read directly from protocol 
-            if (readBlock() == false) {
-                //eof = true;
-                break;
-            }
-        } 
-    }
-
-    n               = size - n;
-
-    if (!n) return NULL;
-
-    //DEBUG("%s", PRINTABLE(data->string()));
-
-    return data;
-}
-
-size_t Content::write(const char *data, size_t size) {
-    CHECK_TRUE(mode() & Write);
-    
-    // TODO: write in Read&Write mode
-    CHECK_FALSE(mode() & Read);
-    //const bool readMode = mode() & Read;
-
-    size_t n = size;
-    while (n) {
-        size_t m = MIN(n, mBlock->empty() - mBlockOffset);
-
-        if (!m) {
-            writeBlockBack();
-        } else {
-            mBlock->write(data, m);
-
-            n       -= m;
-            data    += m;
-            mBlockPopulated = true;
-        }
-    }
-
-    return size - n;
-}
-
-int64_t Content::seek(int64_t offset) {
-    DEBUG("real offset %" PRId64 ", cache offset %" PRId64 ", seek to %" PRId64, 
-            mPosition,
-            mBlockOffset, offset);
-
-    if (mode() & Read) {
-        // read only mode or read & write mode.
-        if (mBlock->ready() 
-                && offset < mPosition
-                && offset >= mPosition - (int64_t)mBlock->ready()) {
-            DEBUG("seek in cache.");
-            mBlockOffset    = 
-                mBlock->ready() - (mPosition - offset);
-            return offset;
-        }
-    } else {
-        // write only mode
-        if (mBlock->ready() 
-                && offset >= mPosition
-                && offset < mPosition + (int64_t)mBlock->ready()) {
-            DEBUG("write only mode: seek in cache.");
-            mBlockOffset    = offset - mPosition;
-            return offset;
-        }
-    }
-
-    writeBlockBack();
-
-    mPosition = mProto->seekBytes(offset);
-    return mPosition;
-}
-
-int64_t Content::length() const {
+int64_t Content::capacity() const {
     return mProto->totalBytes();
 }
 
-int64_t Content::tell() const {
-    if (mBlock->ready() == 0) return mPosition;
-
-    if (mode() & Read) {
-        return mPosition - (mBlock->ready() - mBlockOffset);
-    } else {
-        return mPosition + mBlockOffset;
+int64_t Content::size() const {
+    if (capacity() <= 0) {
+        prepareBlock(1);
+        return mReadBlock->size();
     }
+    return capacity() - offset();
 }
 
-int64_t Content::skip(int64_t pos) {
-    return seek(tell() + pos);
+int64_t Content::empty() const {
+    if (capacity() <= 0) {
+        // THIS IS TRUE
+        // for stream media, file size maybe unknown
+        return 0;
+    }
+    return capacity() - size();
+}
+
+int64_t Content::offset() const {
+    return mReadPosition - mReadBlock->size();
+}
+
+const char * Content::data() const {
+    ABuffer::reset();
+    prepareBlock(1);
+    return mReadBlock->data();
+}
+
+sp<ABuffer> Content::readBytes(size_t n) const {
+    DEBUG("read %zu bytes @ %" PRId64, n, offset());
+    ABuffer::reset();
+    prepareBlock(n);
+    if (mReadBlock->size() == 0) {
+        INFO("End Of File");
+        return NULL;
+    }
+    sp<Buffer> data = mReadBlock->readBytes(n);
+    DEBUG("read return %zu bytes, end @ %" PRId64, data->size(), offset());
+    return data;
+}
+
+size_t Content::readBytes(char * buffer, size_t n) const {
+    ABuffer::reset();
+    prepareBlock(n);
+    if (mReadBlock->size() == 0) {
+        INFO("End Of File");
+        return NULL;
+    }
+    return mReadBlock->readBytes(buffer, n);
+}
+
+int64_t Content::skipBytes(int64_t delta) const {
+    DEBUG("skip %" PRId64 " bytes @ %" PRId64,
+          delta, offset());
+    ABuffer::reset();
+    if (delta < 0) {
+        if (-delta < mReadBlock->offset()) {
+            mReadBlock->skipBytes(delta);
+        } else {
+            mReadPosition = mProto->seekBytes(offset() + delta);
+            mReadBlock->clearBytes();
+        }
+    } else {
+        if (delta < mReadBlock->size()) {
+            mReadBlock->skipBytes(delta);
+        } else {
+            mReadPosition = mProto->seekBytes(offset() + delta);
+            mReadBlock->clearBytes();
+        }
+    }
+    DEBUG("current pos @ %" PRId64, offset());
+    return offset();
+}
+
+sp<ABuffer> Content::cloneBytes() const {
+    ERROR("TODO: clone bytes in content bytes");
+    return NULL;
+}
+
+size_t Content::writeBytes(const char * data, size_t n) {
+    ABuffer::flush();
+    size_t bytesWritten = 0;
+    while (bytesWritten < n) {
+        writeBlockBack();
+        size_t m = mWriteBlock->writeBytes(data, n - bytesWritten);
+        if (m == 0) break;
+        data += m;
+        bytesWritten += m;
+    }
+    return bytesWritten;
+}
+
+size_t Content::writeBytes(const sp<ABuffer>& buffer, size_t n) {
+    ABuffer::flush();
+    while (buffer->size()) {
+        writeBlockBack();
+        size_t m = mWriteBlock->writeBytes(buffer);
+        if (m == 0) break;
+        buffer->skipBytes(m);
+    }
+    return n - buffer->size();
+}
+
+size_t Content::writeBytes(int c, size_t n) {
+    ABuffer::flush();
+    size_t bytesWritten = 0;
+    while (bytesWritten < n) {
+        writeBlockBack();
+        size_t m = mWriteBlock->writeBytes(c, n - bytesWritten);
+        if (m == 0) break;
+        bytesWritten += m;
+    }
+    return bytesWritten;
+}
+
+void Content::resetBytes() const {
+    DEBUG("resetBytes @ %" PRId64, offset());
+    ABuffer::reset();
+    if (offset() < mReadBlock->offset()) {
+        // this is the first block, reset block only
+        mReadBlock->resetBytes();
+        DEBUG("current @ %" PRId64, offset());
+        return;
+    }
+    
+    // drop all data in block
+    mReadBlock->clearBytes();
+    // seek protocal here ?
+    // we work as a FIFO buffer, seek here will cause underlying
+    // protocol seek too much when client read & reset frequently.
+    mReadPosition = mProto->seekBytes(0);
+    DEBUG("current @ %" PRId64, offset());
+}
+
+void Content::flushBytes() {
+    ABuffer::flush();
+    writeBlockBack(true);
+}
+
+void Content::clearBytes() {
+    // TODO
+}
+
+uint8_t Content::readByte() const {
+    prepareBlock(1);
+    return mReadBlock->r8();
+}
+
+void Content::writeByte(uint8_t x) {
+    if (mWriteBlock->empty() == 0)
+        writeBlockBack();
+    mWriteBlock->w8(x);
 }
 
 __END_NAMESPACE_ABE

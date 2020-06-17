@@ -136,7 +136,7 @@ void ListImpl::freeNode(ListNodeImpl* node) {
 }
 
 void ListImpl::_prepare(const sp<Allocator>& allocator) {
-    mStorage = SharedBuffer::Create(allocator, sizeof(ListNodeImpl));
+    mStorage = SharedBuffer::allocate(allocator, sizeof(ListNodeImpl));
     ListNodeImpl * head = (ListNodeImpl *)mStorage->data();
     new (head) ListNodeImpl;
     BUILD_LIST(head);

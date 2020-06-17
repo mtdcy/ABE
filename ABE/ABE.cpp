@@ -70,7 +70,7 @@ void AllocatorDeallocate(AllocatorRef ref, void * p) {
 }
 
 SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
-    return __NAMESPACE_ABE::SharedBuffer::Create(_allocator, sz);
+    return __NAMESPACE_ABE::SharedBuffer::allocate(_allocator, sz);
 }
 
 void SharedBufferRelease(SharedBufferRef ref) {
@@ -110,10 +110,6 @@ BufferObjectRef BufferObjectCreate(size_t cap) {
     return buffer->RetainObject();
 }
 
-char * BufferObjectGetDataPointer(BufferObjectRef ref) {
-    return static_cast<Buffer *>(ref)->data();
-}
-
 const char * BufferObjectGetConstDataPointer(const BufferObjectRef ref) {
     return static_cast<const Buffer *>(ref)->data();
 }
@@ -131,7 +127,7 @@ size_t BufferObjectGetEmptyLength(const BufferObjectRef ref) {
 }
 
 size_t BufferObjectPutData(BufferObjectRef ref, const char * data, size_t n) {
-    return static_cast<Buffer *>(ref)->write(data, n);
+    return static_cast<Buffer *>(ref)->writeBytes(data, n);
 }
 
 MessageObjectRef MessageObjectCreate() {
@@ -209,17 +205,11 @@ ContentObjectRef ContentObjectCreate(const char * url) {
 }
 
 size_t ContentObjectLength(const ContentObjectRef ref) {
-    return static_cast<const Content *>(ref)->length();
+    return static_cast<const Content *>(ref)->capacity();
 }
 
 BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
-    sp<Buffer> buffer = static_cast<Content *>(ref)->read(size);
-    return (BufferObjectRef)buffer->RetainObject();
-}
-
-BufferObjectRef ContentObjectReadPosition(ContentObjectRef ref, size_t size, int64_t offset) {
-    static_cast<Content *>(ref)->seek(offset);
-    sp<Buffer> buffer = static_cast<Content *>(ref)->read(size);
+    sp<Buffer> buffer = static_cast<Content *>(ref)->readBytes(size);
     return (BufferObjectRef)buffer->RetainObject();
 }
 
