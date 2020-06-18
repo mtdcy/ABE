@@ -89,15 +89,14 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})     # Config.h
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/ABE)
 
-# using OBJECT library to avoid build twice for shared & static libraries
-add_library (${LIBNAME} OBJECT ${ABE_SOURCES})
-
 if (XCODE)
     add_library (${LIBNAME}_shared SHARED ${ABE_SOURCES})
     add_library (${LIBNAME}_static STATIC ${ABE_SOURCES})
 else()
-    add_library (${LIBNAME}_shared SHARED $<TARGET_OBJECTS:${LIBNAME}>)
-    add_library (${LIBNAME}_static STATIC $<TARGET_OBJECTS:${LIBNAME}>)
+    # using OBJECT library to avoid build twice for shared & static libraries
+    add_library (${LIBNAME}_objects OBJECT ${ABE_SOURCES})
+    add_library (${LIBNAME}_shared SHARED $<TARGET_OBJECTS:${LIBNAME}_objects>)
+    add_library (${LIBNAME}_static STATIC $<TARGET_OBJECTS:${LIBNAME}_objects>)
 endif()
 
 set_target_properties (${LIBNAME}_shared PROPERTIES 
