@@ -534,11 +534,11 @@ static String MakeQueueName() {
 }
 
 struct QueueDispatcher : public JobDispatcher {
-    Mutex       mLock;
-    Condition   mWait;
-    bool        mDispatching;
+    Mutex           mLock;
+    Condition       mWait;
+    Atomic<size_t>  mSched; // +1 every time post dispatcher into looper
     
-    QueueDispatcher() : JobDispatcher(MakeQueueName()), mDispatching(false) {
+    QueueDispatcher() : JobDispatcher(MakeQueueName()), mSched(0) {
         
     }
     
@@ -546,7 +546,7 @@ struct QueueDispatcher : public JobDispatcher {
     // or it will block underlying looper
     virtual void onJob() {
         AutoLock _l(mLock);
-        mDispatching = true;
+        --mSched;
         Task job;
         int64_t next = 0;
         // execute current job
@@ -558,32 +558,36 @@ struct QueueDispatcher : public JobDispatcher {
                 job.mWait->signal();    // for sync job
             }
             next = JobDispatcher::next();
+        } else {
+            DEBUG("dispatch without job ready, next = %.3f(s)", next / 1E6);
         }
         
         // no more jobs
         if (next < 0) {
             // exit on jobs finished
             DEBUG("%s: no more jobs", mName.c_str());
-            mDispatching = false;
             mWait.signal();
             return;
         }
         
-        Looper::Current()->post(this, next);
+        if (mSched.load() == 0) {
+            // NO more dispatcher in looper, queue a new one
+            Looper::Current()->post(this, next);
+            ++mSched;
+        }
     }
     
     // request exit and wait.
     void requestExit() {
         AutoLock _l(mLock);
-        // no dispatching & no more jobs
-        if (mDispatching == false && JobDispatcher::next() < 0) {
-            DEBUG("%s: not dispatching...", mName.c_str());
+        // NOT scheduled & no more jobs
+        if (mSched.load() == 0 && JobDispatcher::next() < 0) {
+            DEBUG("%s: not dispatching...next %.3f(s)", mName.c_str());
             return;
         }
         
         DEBUG("%s: wait for dispatcher complete", mName.c_str());
         mWait.wait(mLock);
-        CHECK_FALSE(mDispatching);
     }
 };
 
@@ -592,7 +596,6 @@ mLooper(lp), mDispatcher(new QueueDispatcher()) {
 }
 
 DispatchQueue::~DispatchQueue() {
-    mLooper->remove(mDispatcher);
 }
 
 void DispatchQueue::onFirstRetain() {
@@ -610,6 +613,7 @@ void DispatchQueue::sync(const sp<Job>& job) {
     Condition wait;
     if (disp->queue(job, &wait)) {
         mLooper->post(disp);
+        ++disp->mSched;
     }
     wait.wait(disp->mLock);
 }
@@ -617,8 +621,12 @@ void DispatchQueue::sync(const sp<Job>& job) {
 void DispatchQueue::dispatch(const sp<Job>& job, int64_t us) {
     sp<QueueDispatcher> disp = mDispatcher;
     AutoLock _l(disp->mLock);
+    DEBUG("dispatch job @ %.3f(s)", us / 1E6);
     if (mDispatcher->queue(job, us)) {
-        mLooper->post(mDispatcher);
+        DEBUG("schedule @ %.3f(s)", us / 1E6);
+        // remove will affect dispatch's efficiency.
+        mLooper->post(mDispatcher, us);
+        ++disp->mSched;
     }
 }
 
@@ -632,9 +640,8 @@ void DispatchQueue::remove(const sp<Job>& job) {
     sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     if (mDispatcher->remove(job)) {
-        // re-schedule
-        mLooper->remove(mDispatcher);
         mLooper->post(mDispatcher);
+        ++disp->mSched;
     }
 }
 
