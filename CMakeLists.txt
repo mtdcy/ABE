@@ -179,7 +179,7 @@ add_custom_target(${LIBNAME}_test ALL
     COMMAND ${BASH} test_c
     )
 
-add_custom_target(${LIBNAME}_perf_test ALL
+add_custom_target(${LIBNAME}_perf_test EXCLUDE_FROM_ALL
     DEPENDS perf
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMAND echo perf
