@@ -163,16 +163,24 @@ struct JobDispatcher : public Job {
     String                          mName;
     // mutable context, access with lock
     mutable Mutex                   mTaskLock;
+    // check perf test, in multi-producer & single consumer case,
+    // LockFree::Queue is much faster than List
     mutable LockFree::Queue<Task>   mTasks;
     mutable List<Task>              mTimedTasks;
+    // with both mTasks & mTimedTasks queues, pop() will be hard,
+    // in extreme case, mTasks or mTimedTasks will be ignored forever.
+    // so we use an extra virable to handle this situation.
+    enum { IMMEDIATE = 0, TIMED = 1 };
+    Atomic<int>                     mHacker;
 
     JobDispatcher(const String& name) :
-        Job(), mName(name) { }
+        Job(), mName(name), mHacker(TIMED) { }
     
     virtual bool queue(const sp<Job>& job, Condition* wait) {
         Task task(job, 0);
         task.mWait = wait;
         mTasks.push(task);
+        mHacker.store(IMMEDIATE);
         return mTasks.size() == 1;
     }
 
@@ -182,8 +190,9 @@ struct JobDispatcher : public Job {
         
         // using lockfree queue to speed up queue()
         // but this will cause remove() and exists() more complex
-        if (delay == 0) {
+        if (delay <= 0) {
             mTasks.push(task);
+            mHacker.store(IMMEDIATE);
             return mTasks.size() == 1;
         }
 
@@ -199,6 +208,7 @@ struct JobDispatcher : public Job {
         // insert() will change begin()
         bool first = it == mTimedTasks.begin();
         mTimedTasks.insert(it, task);
+        mHacker.store(TIMED);
         return mTasks.empty() && first;
     }
 
@@ -208,6 +218,14 @@ struct JobDispatcher : public Job {
         AutoLock _l(mTaskLock);
 
         *next = -1;     // job not exists
+        
+        if (mHacker.load() == IMMEDIATE) {
+            if (mTasks.pop(job)) {
+                mHacker.store(TIMED);
+                next = 0;
+                return true;
+            }
+        }
 
         if (mTimedTasks.size()) {
             Task& head = mTimedTasks.front();
