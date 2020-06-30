@@ -367,8 +367,7 @@ size_t Buffer::writeBytes(const sp<ABuffer>& buf, size_t n) {
     rewind(n);
     ABuffer::flush();
     const size_t m = MIN(n, empty());
-    memcpy(mData->data() + mOffset + mWritePos, buf->data(), m);
-    buf->skipBytes(m);
+    buf->readBytes(mData->data() + mOffset + mWritePos, m);
     mWritePos += m;
     return m;
 }
@@ -384,6 +383,14 @@ size_t Buffer::writeBytes(int c, size_t n) {
     return m;
 }
 
+char * Buffer::base() {
+    ABuffer::reset();
+    edit();
+    rewind(empty());
+    ABuffer::flush();
+    return mData->data() + mOffset;
+}
+
 size_t Buffer::readBytes(char * buf, size_t n) const {
     CHECK_GT(n, 0);
     ABuffer::reset();
@@ -392,6 +399,26 @@ size_t Buffer::readBytes(char * buf, size_t n) const {
     memcpy(buf, data(), n);
     mReadPos    += n;
     return n;
+}
+
+size_t Buffer::stepBytes(size_t n) {
+    CHECK_GT(n, 0);
+    // NO edit() & rewind() here
+    // NO ABuffer::flush() here.
+    const size_t m = MIN(n, size() + empty());
+    // NO memset here
+    mWritePos = mReadPos + m;
+    return size();
+}
+
+void Buffer::setBytesRange(size_t offset, size_t n) {
+    CHECK_LT(offset, capacity());
+    CHECK_GT(n, 0);
+    // NO edit() & rewind() here
+    const size_t m = MIN(n, capacity() - offset);
+    // NO memset here
+    mReadPos    = offset;
+    mWritePos   = mReadPos + n;
 }
 
 sp<ABuffer> Buffer::readBytes(size_t n) const {
@@ -490,8 +517,9 @@ void Buffer::rewind(size_t n) {
     //  size() bytes after rewind, and rewind also take place
     //  at the crucial moment.
     // we will take option 2
-    
-    memmove(mData->data() + mOffset, data(), size());
+    memmove(mData->data() + mOffset,
+            mData->data() + mOffset + mReadPos,
+            size());
     mWritePos   -= mReadPos;
     mReadPos    = 0;
 }

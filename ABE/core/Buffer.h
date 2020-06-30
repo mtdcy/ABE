@@ -69,7 +69,6 @@ class ABE_EXPORT ABuffer : public SharedObject {
         virtual int64_t     size() const = 0;       ///< return data size in bytes in buffer
         virtual int64_t     empty() const = 0;      ///< return empty bytes in buffer
         virtual int64_t     offset() const = 0;     ///< return current read position
-        virtual const char* data() const = 0;       ///< return pointer to bytes. access directy to underlying data is UNSAFE
     
     public:
         /**
@@ -200,11 +199,6 @@ class ABE_EXPORT Buffer : public ABuffer {
          * @return return the flags @see eBufferFlags
          */
         eBufferType type() const { return mType; }
-        
-        /**
-         * return underlying data pointer
-         */
-        virtual const char * data() const { return mData->data() + mOffset + mReadPos; }
     
         /**
          * resize this buffer's backend memory
@@ -234,6 +228,24 @@ class ABE_EXPORT Buffer : public ABuffer {
         virtual size_t      writeBytes(int c, size_t n);
         virtual void        flushBytes();
         virtual void        clearBytes();
+    
+    public:
+        // access bytes directly. UNSAFE!
+        // MUST avoid using these routines
+        const char *        base() const { return mData->data() + mOffset; }
+        const char *        data() const { return base() + mReadPos; }
+        char *              base();
+        char *              data() { return base() + mReadPos; }
+        /**
+         * move read pointer forword by n bytes
+         * @note after write directly @ data()
+         */
+        size_t              stepBytes(size_t n);
+        /**
+         * set buffer range, read pos @ offset with n bytes data
+         * @note after write directly @ base()
+         */
+        void                setBytesRange(size_t offset, size_t n);
 
     protected:
         virtual uint8_t     readByte() const;
@@ -251,7 +263,7 @@ class ABE_EXPORT Buffer : public ABuffer {
         // backend memory provider
         sp<Allocator>       mAllocator;
         SharedBuffer *      mData;
-        size_t              mOffset;    // for copy buffer
+        size_t              mOffset;    // for cow buffer
         size_t              mCapacity;
         const eBufferType   mType;
         mutable size_t      mReadPos;
