@@ -70,7 +70,7 @@ void AllocatorDeallocate(AllocatorRef ref, void * p) {
 }
 
 SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
-    return __NAMESPACE_ABE::SharedBuffer::allocate(_allocator, sz);
+    return SharedBuffer::allocate(_allocator, sz);
 }
 
 void SharedBufferRelease(SharedBufferRef ref) {
@@ -106,28 +106,65 @@ void SharedBufferDeallocate(SharedBufferRef ref) {
 }
 
 BufferObjectRef BufferObjectCreate(size_t cap) {
-    sp<Buffer> buffer = new Buffer(cap);
+    sp<ABuffer> buffer = new Buffer(cap);
     return buffer->RetainObject();
 }
 
-const char * BufferObjectGetConstDataPointer(const BufferObjectRef ref) {
-    return static_cast<const Buffer *>(ref)->data();
+BufferObjectRef BufferObjectCreateWithUrl(const char * url) {
+    sp<ABuffer> buffer = Content::Create(String(url));
+    return buffer->RetainObject();
 }
 
-size_t BufferObjectGetCapacity(const BufferObjectRef ref) {
-    return static_cast<const Buffer *>(ref)->capacity();
+int64_t BufferObjectGetCapacity(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->capacity();
 }
 
-size_t BufferObjectGetDataLength(const BufferObjectRef ref) {
-    return static_cast<const Buffer *>(ref)->size();
+int64_t BufferObjectGetDataLength(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->size();
 }
 
-size_t BufferObjectGetEmptyLength(const BufferObjectRef ref) {
-    return static_cast<const Buffer *>(ref)->empty();
+int64_t BufferObjectGetEmptyLength(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->empty();
+}
+
+int64_t BufferObjectGetOffset(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->offset();
+}
+
+size_t BufferObjectGetData(const BufferObjectRef ref, char * data, size_t n) {
+    return static_cast<const ABuffer *>(ref)->readBytes(data, n);
+}
+
+BufferObjectRef BufferObjectReadBytes(const BufferObjectRef ref, size_t n) {
+    return static_cast<const ABuffer *>(ref)->readBytes(n)->RetainObject();
+}
+
+int64_t BufferObjectSkipBytes(const BufferObjectRef ref, int64_t offset) {
+    return static_cast<const ABuffer *>(ref)->skipBytes(offset);
+}
+
+void BufferObjectResetBytes(const BufferObjectRef ref) {
+    static_cast<const ABuffer *>(ref)->resetBytes();
+}
+
+BufferObjectRef BufferObjectCloneBytes(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->cloneBytes()->RetainObject();
 }
 
 size_t BufferObjectPutData(BufferObjectRef ref, const char * data, size_t n) {
-    return static_cast<Buffer *>(ref)->writeBytes(data, n);
+    return static_cast<ABuffer *>(ref)->writeBytes(data, n);
+}
+
+size_t BufferObjectWriteBytes(BufferObjectRef ref, BufferObjectRef data, size_t n) {
+    return static_cast<ABuffer *>(ref)->writeBytes(data, n);
+}
+
+void BufferObjectFlushBytes(BufferObjectRef ref) {
+    static_cast<ABuffer *>(ref)->flushBytes();
+}
+
+void BufferObjectClearBytes(BufferObjectRef ref) {
+    static_cast<ABuffer *>(ref)->clearBytes();
 }
 
 MessageObjectRef MessageObjectCreate() {
@@ -196,21 +233,6 @@ MessageObjectGet(String,    const char *);
 
 SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, uint32_t name, SharedObjectRef def) {
     return (SharedObjectRef)static_cast<const Message *>(ref)->findObject(name, static_cast<SharedObject *>(def));
-}
-
-ContentObjectRef ContentObjectCreate(const char * url) {
-    sp<Content> content = Content::Create(String(url));
-    if (content == NULL) return NULL;
-    return (ContentObjectRef)content->RetainObject();
-}
-
-size_t ContentObjectLength(const ContentObjectRef ref) {
-    return static_cast<const Content *>(ref)->capacity();
-}
-
-BufferObjectRef ContentObjectRead(ContentObjectRef ref, size_t size) {
-    sp<Buffer> buffer = static_cast<Content *>(ref)->readBytes(size);
-    return (BufferObjectRef)buffer->RetainObject();
 }
 
 //////////////////////////////////////////////////////////////////////////////////

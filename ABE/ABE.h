@@ -79,7 +79,6 @@ ABE_EXPORT size_t               SharedObjectGetRetainCount(const SharedObjectRef
 #define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
 ABE_EXPORT uint32_t             SharedObjectGetID(const SharedObjectRef);
 
-
 typedef SharedObjectRef         AllocatorRef;
 ABE_EXPORT AllocatorRef         AllocatorGetDefault(void);
 ABE_EXPORT AllocatorRef         AllocatorGetDefaultAligned(size_t);
@@ -87,7 +86,6 @@ ABE_EXPORT size_t               AllocatorGetAlignment(AllocatorRef);
 ABE_EXPORT void *               AllocatorAllocate(AllocatorRef, size_t);
 ABE_EXPORT void *               AllocatorReallocate(AllocatorRef, void *, size_t);
 ABE_EXPORT void                 AllocatorDeallocate(AllocatorRef, void *);
-
 
 typedef SharedObjectRef         SharedBufferRef;
 ABE_EXPORT SharedBufferRef      SharedBufferCreate(AllocatorRef allocator, size_t);
@@ -100,15 +98,22 @@ ABE_EXPORT SharedBufferRef      SharedBufferEditWithSize(SharedBufferRef, size_t
 ABE_EXPORT size_t               SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
 ABE_EXPORT void                 SharedBufferDeallocate(SharedBufferRef);
 
-
 typedef SharedObjectRef         BufferObjectRef;
-ABE_EXPORT BufferObjectRef      BufferObjectCreate(size_t);
-ABE_EXPORT const char *         BufferObjectGetConstDataPointer(const BufferObjectRef);
-ABE_EXPORT size_t               BufferObjectGetCapacity(const BufferObjectRef);
-ABE_EXPORT size_t               BufferObjectGetDataLength(const BufferObjectRef);
-ABE_EXPORT size_t               BufferObjectGetEmptyLength(const BufferObjectRef);
+ABE_EXPORT BufferObjectRef      BufferObjectCreate(size_t);                     // sp<Buffer>
+ABE_EXPORT BufferObjectRef      BufferObjectCreateWithUrl(const char * url);    // sp<Content>
+ABE_EXPORT int64_t              BufferObjectGetCapacity(const BufferObjectRef);
+ABE_EXPORT int64_t              BufferObjectGetDataLength(const BufferObjectRef);
+ABE_EXPORT int64_t              BufferObjectGetEmptyLength(const BufferObjectRef);
+ABE_EXPORT int64_t              BufferObjectGetOffset(const BufferObjectRef);
+ABE_EXPORT size_t               BufferObjectGetData(const BufferObjectRef, char *, size_t);
+ABE_EXPORT BufferObjectRef      BufferObjectReadBytes(const BufferObjectRef, size_t);
+ABE_EXPORT BufferObjectRef      BufferObjectCloneBytes(const BufferObjectRef);
+ABE_EXPORT int64_t              BufferObjectSkipBytes(const BufferObjectRef, int64_t);
+ABE_EXPORT void                 BufferObjectResetBytes(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectPutData(BufferObjectRef, const char *, size_t);
-
+ABE_EXPORT size_t               BufferObjectWriteBytes(BufferObjectRef, BufferObjectRef, size_t);
+ABE_EXPORT void                 BufferObjectFlushBytes(BufferObjectRef);
+ABE_EXPORT void                 BufferObjectClearBytes(BufferObjectRef);
 
 typedef SharedObjectRef         MessageObjectRef;
 ABE_EXPORT MessageObjectRef     MessageObjectCreate();
@@ -133,13 +138,6 @@ ABE_EXPORT double               MessageObjectGetDouble  (const MessageObjectRef,
 ABE_EXPORT void *               MessageObjectGetPointer (const MessageObjectRef, uint32_t, void *);
 ABE_EXPORT const char *         MessageObjectGetString  (const MessageObjectRef, uint32_t, const char *);
 ABE_EXPORT SharedObjectRef      MessageObjectGetObject  (const MessageObjectRef, uint32_t, SharedObjectRef);
-
-
-typedef SharedObjectRef         ContentObjectRef;
-ABE_EXPORT ContentObjectRef     ContentObjectCreate(const char *);
-ABE_EXPORT size_t               ContentObjectLength(ContentObjectRef);
-ABE_EXPORT BufferObjectRef      ContentObjectRead(ContentObjectRef, size_t);
-ABE_EXPORT BufferObjectRef      ContentObjectReadPosition(ContentObjectRef, size_t, int64_t);
 
 typedef SharedObjectRef         JobObjectRef;
 typedef SharedObjectRef         LooperObjectRef;
