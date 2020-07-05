@@ -69,6 +69,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
         virtual int64_t     size() const = 0;       ///< return data size in bytes in buffer
         virtual int64_t     empty() const = 0;      ///< return empty bytes in buffer
         virtual int64_t     offset() const = 0;     ///< return current read position
+        virtual const char* data() const = 0;
     
     public:
         /**
@@ -233,7 +234,7 @@ class ABE_EXPORT Buffer : public ABuffer {
         // access bytes directly. UNSAFE!
         // MUST avoid using these routines
         const char *        base() const { return mData->data() + mOffset; }
-        const char *        data() const { return base() + mReadPos; }
+        virtual const char* data() const { return base() + mReadPos; }
         char *              base();
         char *              data() { return base() + mReadPos; }
         /**

@@ -105,6 +105,7 @@ ABE_EXPORT int64_t              BufferObjectGetCapacity(const BufferObjectRef);
 ABE_EXPORT int64_t              BufferObjectGetDataLength(const BufferObjectRef);
 ABE_EXPORT int64_t              BufferObjectGetEmptyLength(const BufferObjectRef);
 ABE_EXPORT int64_t              BufferObjectGetOffset(const BufferObjectRef);
+ABE_EXPORT const char *         BufferObjectGetDataPointer(const BufferObjectRef);
 ABE_EXPORT size_t               BufferObjectGetData(const BufferObjectRef, char *, size_t);
 ABE_EXPORT BufferObjectRef      BufferObjectReadBytes(const BufferObjectRef, size_t);
 ABE_EXPORT BufferObjectRef      BufferObjectCloneBytes(const BufferObjectRef);

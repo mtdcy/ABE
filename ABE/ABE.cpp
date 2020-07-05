@@ -131,6 +131,10 @@ int64_t BufferObjectGetOffset(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->offset();
 }
 
+const char * BufferObjectGetDataPointer(const BufferObjectRef ref) {
+    return static_cast<const ABuffer *>(ref)->data();
+}
+
 size_t BufferObjectGetData(const BufferObjectRef ref, char * data, size_t n) {
     return static_cast<const ABuffer *>(ref)->readBytes(data, n);
 }
