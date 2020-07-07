@@ -63,6 +63,7 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
          * @note retain is thread safe, can perform at any time
          */
         ABE_INLINE SharedBuffer *   RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
+    
         /**
          * release this cow buffer
          * @param keep  if keep == False & this is the last ref, backend memory will be released
@@ -106,7 +107,7 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
         Char *          mData;
         UInt32          mSize;
     
-    DISALLOW_EVILS(SharedBuffer);
+        DISALLOW_EVILS(SharedBuffer);
 };
 
 __END_NAMESPACE_ABE

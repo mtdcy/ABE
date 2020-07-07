@@ -61,18 +61,18 @@
 
 __BEGIN_NAMESPACE_ABE
 
-struct File : public Content::Protocol {
+struct File : public Protocol {
     String          mUrl;
-    Content::eMode  mMode;  // read | write
+    eMode           mMode;  // read | write
     
     int             mFd;
-    Int64         mOffset;
-    Int64         mLength;
-    mutable Int64 mPosition;
+    Int64           mOffset;
+    Int64           mLength;
+    mutable Int64   mPosition;
     const UInt32    kBlockLength;
     mutable Char *  mBlock;
     
-    File(const String& url, Content::eMode mode) : Content::Protocol(),
+    File(const String& url, eMode mode) : Protocol(),
     mUrl(url), mMode(mode), mFd(-1), mOffset(0), mLength(0), mPosition(0),
     kBlockLength(4096), mBlock((Char *)malloc(kBlockLength))
     {
@@ -105,14 +105,14 @@ struct File : public Content::Protocol {
             
         } else {
             int flags = O_LARGEFILE;
-            if ((mode & Content::Read) && (mode & Content::Write)) {
+            if ((mode & Read) && (mode & Write)) {
                 flags |= O_CREAT;
                 flags |= O_RDWR;
                 flags |= O_BINARY;
-            } else if (mode & Content::Read) {
+            } else if (mode & Read) {
                 flags |= O_RDONLY;
                 flags |= O_BINARY;
-            } else if (mode & Content::Write) {
+            } else if (mode & Write) {
                 flags |= O_CREAT;
                 flags |= O_WRONLY;
                 flags |= O_BINARY;
@@ -147,7 +147,7 @@ struct File : public Content::Protocol {
         }
     }
     
-    virtual Content::eMode mode() const {
+    virtual Protocol::eMode mode() const {
         return mMode;
     }
     
@@ -222,7 +222,7 @@ struct File : public Content::Protocol {
     }
 };
 
-sp<Content::Protocol> CreateFile(const String& url, Content::eMode mode) {
+sp<Protocol> CreateFile(const String& url, File::eMode mode) {
     sp<File> file = new File(url, mode);
     if (file->mFd < 0) return Nil;
     return file;

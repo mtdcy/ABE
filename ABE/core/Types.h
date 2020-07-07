@@ -95,9 +95,9 @@ typedef UInt32          Status;
 
 #pragma mark Macros
 #define FOURCC(x) ((((UInt32)(x) >> 24) & 0xff)         \
-                | (((UInt32)(x) >> 8) & 0xff00)         \
-                | (((UInt32)(x) << 8) & 0xff0000)       \
-                | (((UInt32)(x) << 24) & 0xff000000))
+        | (((UInt32)(x) >> 8) & 0xff00)         \
+        | (((UInt32)(x) << 8) & 0xff0000)       \
+        | (((UInt32)(x) << 24) & 0xff000000))
 
 // atomic
 // FIXME: understand the memmodel
@@ -195,8 +195,8 @@ typedef UInt32          Status;
 // and it may cause problem if you don't declare it or misuse it.
 #define DISALLOW_EVILS(TypeName)            \
     private:                                \
-    TypeName(const TypeName&);              \
-    TypeName& operator=(const TypeName&)
+TypeName(const TypeName&);              \
+TypeName& operator=(const TypeName&)
 
 //=============================================================
 // sp Type
@@ -204,13 +204,13 @@ __BEGIN_NAMESPACE_ABE
 
 // https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
 /**
- * static object that can not be shared
+ * static object that can not be object
  * @note usally for local auxiliary class
  */
 #define STATIC_OBJECT(TypeName)             \
     private:                                \
-    void *  operator new(size_t);           \
-    void    operator delete(void *)
+void *  operator new(size_t);           \
+void    operator delete(void *)
 struct ABE_EXPORT StaticObject {
     StaticObject() { }
     ~StaticObject() { }
@@ -218,7 +218,8 @@ struct ABE_EXPORT StaticObject {
 };
 
 // FIXME: limit T to basic types
-template <typename T> class Atomic : public StaticObject {
+template <typename T>
+class Atomic : public StaticObject {
     private:
         volatile T value;
 
@@ -230,7 +231,7 @@ template <typename T> class Atomic : public StaticObject {
         ABE_INLINE void   store(T val)          { ABE_ATOMIC_STORE(&value, val);                }
         ABE_INLINE T      load() const          { return ABE_ATOMIC_LOAD(&value);               }
         ABE_INLINE T      exchange(T val)       { return ABE_ATOMIC_EXCHANGE(&value, val);      }
-        ABE_INLINE Bool   cas(T& to, T val)     { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
+        ABE_INLINE Bool   cas(T to, T val)      { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
 
         ABE_INLINE T      operator++()          { return ABE_ATOMIC_ADD(&value, 1);             }   // pre-increment
         ABE_INLINE T      operator++(int)       { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
@@ -255,14 +256,47 @@ template <typename T> class Atomic : public StaticObject {
  * to avoid overload by subclass
  * @note client should NOT keep a pointer to SharedObject without retain, always
  *       retain first, use it later
+ * @note NEVER retain to self in constructor.
+ * @note 
  */
+template<typename T> class sp;
+template<typename U> class wp;
 struct ABE_EXPORT SharedObject {
     private:
+        struct Refs {
+            private:
+                SharedObject * const    mObject;
+                Atomic<UInt32>          mRefs;
+                Atomic<UInt32>          mWeakRefs;
+
+            public:
+                Refs(SharedObject *);
+                ~Refs();
+
+            public:
+                // strong refs
+                UInt32  incRefs();
+                UInt32  decRefs(Bool keep = False);
+
+                // weak refs
+                UInt32  incWeakRefs();
+                UInt32  decWeakRefs();
+                Bool    retain();
+
+            public:
+                // DEBUGGING
+                UInt32  refCount() const;
+                UInt32  weakRefCount() const;
+
+                DISALLOW_EVILS(Refs);
+        };
         UInt32          mID;
-        Atomic<UInt>    mRefs;
+        Refs * const    mRefs;
+        template<typename T> friend class sp;
+        template<typename T> friend class wp;
 
     protected:
-        SharedObject(const uint32_t id = FOURCC('?obj'));
+        SharedObject(const UInt32 id = FOURCC('?obj')) : mID(id), mRefs(new Refs(this)) { }
         /**
          * @note it is a good practice to leave virtual destruction empty
          */
@@ -272,12 +306,12 @@ struct ABE_EXPORT SharedObject {
         /**
          * been called when first retain the object
          */
-        virtual void    onFirstRetain() { }
+        virtual void        onFirstRetain() { }
         /**
          * been called when last retain released and before delete memory
          * @note put code here to avoid 'Pure virtual function called!'.
          */
-        virtual void    onLastRetain() { }
+        virtual void        onLastRetain() { }
 
     public:
         ABE_INLINE UInt32   GetObjectID() const { return mID; }
@@ -286,26 +320,29 @@ struct ABE_EXPORT SharedObject {
          * get this object reference count
          * @return return current reference count
          */
-        ABE_INLINE UInt32   GetRetainCount() const { return mRefs.load(); }
+        ABE_INLINE UInt32   GetRetainCount() const { return mRefs->refCount();  }
 
+        // API FOR ACQUIRE STRONG REFS FOR EXPORT OBJECT INTO C CODE.
         /**
-         * retain this object by increase reference count
+         * retain this object by inc strong refs.
          * XXX: did subclass need to overload RetainObject() ?
          */
-        SharedObject *      RetainObject();
+        SharedObject *      RetainObject()  { mRefs->incRefs(); return this; }
 
         /**
-         * release this object by decrease reference count
-         * if reference count reach 0, this object will be deleted
-         * @param keep  whether to keep the memory if this is the last ref
-         * @return return new reference count
+         * release this object by dec strong refs.
+         * if refs reach 0, this object will be deleted
+         * @param keep  whether to keep the memory if this is the last refs
+         * @return return new refs count
          * @note keep the memory if subclass need to do extra destruction work
          */
-        UInt32              ReleaseObject(Bool keep = False);
+        UInt32              ReleaseObject(Bool keep = False) { return mRefs->decRefs(keep); }
+
+        // NO API FOR ACQUIRE WEAK REFS AS OBJECT MAYBE GONE WHEN WEAK REFS STILL EXISTS.
 
         /**
-         * is this object shared with others
-         * @note if object is not shared, it is safe to do anything
+         * is this object object with others
+         * @note if object is not object, it is safe to do anything
          *       else either copy this object or lock it to modify its context
          */
         ABE_INLINE Bool    IsObjectShared() const      { return GetRetainCount() > 1; }
@@ -316,94 +353,222 @@ struct ABE_EXPORT SharedObject {
 
 #define COMPARE(_op_)                                                   \
     ABE_INLINE Bool operator _op_ (const sp<T>& o) const {              \
-        return mShared _op_ o.mShared;                                  \
+        return mObject _op_ o.mObject;                                  \
     }                                                                   \
     ABE_INLINE Bool operator _op_ (const T* o) const {                  \
-        return mShared _op_ o;                                          \
+        return mObject _op_ o;                                          \
     }                                                                   \
     template<typename U>                                                \
     ABE_INLINE Bool operator _op_ (const sp<U>& o) const {              \
-        return mShared _op_ o.mShared;                                  \
+        return mObject _op_ o.mObject;                                  \
     }                                                                   \
     template<typename U>                                                \
     ABE_INLINE Bool operator _op_ (const U* o) const {                  \
-        return mShared _op_ o;                                          \
+        return mObject _op_ o;                                          \
     }                                                                   \
 
 /**
- * Shared/Strong Pointer for SharedObject only
+ * shared/strong pointer for SharedObject only
+ * @note can NOT assign from raw pointer except class derived from SharedPointer
+ * @note NO assignment from wp<T>, using wp<T>.retain()
  */
-template <class T> class ABE_EXPORT sp : public StaticObject {
+template <class T>
+class ABE_EXPORT sp : public StaticObject {
     public:
         // constructors
-        ABE_INLINE sp() : mShared(Nil) { }
-        ABE_INLINE sp(SharedObject * rhs)                       { set(rhs);             }
-        ABE_INLINE sp(const sp<T>& rhs)                         { set(rhs.mShared);     }
-        template<typename U> ABE_INLINE sp(U * rhs)             { set(rhs);             }
-        template<typename U> ABE_INLINE sp(const sp<U>& rhs)    { set(rhs.mShared);     }
+        ABE_INLINE sp() : mObject(Nil), mRefs(Nil) { }
+        ABE_INLINE sp(SharedObject * rhs)                       { set(rhs); }
+        ABE_INLINE sp(const sp<T>& rhs)                         { set(rhs); }
+        template<typename U> ABE_INLINE sp(U * rhs)             { set(rhs); }
+        template<typename U> ABE_INLINE sp(const sp<U>& rhs)    { set(rhs); }
 
         // destructors
         ABE_INLINE ~sp() { clear(); }
 
         // copy assignments
-        ABE_INLINE sp& operator=(SharedObject * rhs)                    { clear(); set(rhs); return *this;          }
-        ABE_INLINE sp& operator=(const sp<T>& rhs)                      { clear(); set(rhs.mShared); return *this;  }
-        template<typename U> ABE_INLINE sp& operator=(U * rhs)          { clear(); set(rhs); return *this;          }
-        template<typename U> ABE_INLINE sp& operator=(const sp<U>& rhs) { clear(); set(rhs.mShared); return *this;  }
+        ABE_INLINE sp& operator=(const sp<T>& rhs)                      { clear(); set(rhs); return *this;  }
+        template<typename U> ABE_INLINE sp& operator=(const sp<U>& rhs) { clear(); set(rhs); return *this;  }
 
         // clear
         ABE_INLINE void clear();
 
         // Nil test
-        ABE_INLINE Bool isNil() const { return mShared == Nil ; }
+        ABE_INLINE Bool isNil() const { return mObject == Nil ; }
 
     public:
-        /**
-         * @note compare the object pointer, not the object content
-         */
+        // compare object pointer.
         COMPARE(==);
         COMPARE(!=);
 
     public:
         // access
-        ABE_INLINE  T*         operator->()       { return static_cast<T*>(mShared);          }
-        ABE_INLINE  const T*   operator->() const { return static_cast<const T*>(mShared);    }
+        ABE_INLINE  T*          operator->()       { return static_cast<T*>(mObject);           }
+        ABE_INLINE  const T*    operator->() const { return static_cast<const T*>(mObject);     }
 
-        ABE_INLINE  T&         operator*()        { return *static_cast<T*>(mShared);         }
-        ABE_INLINE  const T&   operator*() const  { return *static_cast<const T*>(mShared);   }
-
-        ABE_INLINE  T*         get() const        { return static_cast<T*>(mShared);          }
+        ABE_INLINE  T&          operator*()        { return *static_cast<T*>(mObject);          }
+        ABE_INLINE  const T&    operator*() const  { return *static_cast<const T*>(mObject);    }
 
     public:
         // DEBUGGING
-        ABE_INLINE UInt32      refsCount() const  { return mShared->GetRetainCount();         }
+        ABE_INLINE const T*     get() const        { return static_cast<const T*>(mObject);     }
+        ABE_INLINE UInt32       refsCount() const  { return mRefs->refCount();                  }
 
     public:
         template<typename U> friend class sp;
-        ABE_INLINE void set(SharedObject *);
+        template<typename U> friend class wp;
         template<typename U> ABE_INLINE void set(U *);
-        SharedObject *  mShared;
+        template<typename U> ABE_INLINE void set(const sp<U>&);
+        // for wp<T>::retain()
+        sp(SharedObject * object, SharedObject::Refs * refs) : mObject(object), mRefs(refs) { }
+        SharedObject *          mObject;
+        SharedObject::Refs *    mRefs;
+};
+#undef COMPARE
+
+#define COMPARE(_op_)                                                   \
+    ABE_INLINE Bool operator _op_ (const sp<T>& o) const {              \
+        return mObject _op_ o.mObject;                                  \
+    }                                                                   \
+    ABE_INLINE Bool operator _op_ (const T* o) const {                  \
+        return mObject _op_ o;                                          \
+    }                                                                   \
+    template<typename U>                                                \
+    ABE_INLINE Bool operator _op_ (const sp<U>& o) const {              \
+        return mObject _op_ o.mObject;                                  \
+    }                                                                   \
+    template<typename U>                                                \
+    ABE_INLINE Bool operator _op_ (const U* o) const {                  \
+        return mObject _op_ o;                                          \
+    }                                                                   \
+/**
+ * weak pointer for SharedObject only
+ * @note assign from raw pointer SHOULD be careful. only from *this*.
+ * @note no object access operation in wp<T>, please retain first then using sp<T>.
+ */
+template <typename T>
+class wp : public StaticObject {
+    public:
+        // constructors
+        ABE_INLINE wp() : mObject(Nil), mRefs(Nil) { }
+        ABE_INLINE wp(SharedObject * rhs)                       { set(rhs); }
+        ABE_INLINE wp(const wp<T>& rhs)                         { set(rhs); }
+        ABE_INLINE wp(const sp<T>& rhs)                         { set(rhs); }
+        template<typename U> ABE_INLINE wp(U * rhs)             { set(rhs); }
+        template<typename U> ABE_INLINE wp(const wp<U>& rhs)    { set(rhs); }
+        template<typename U> ABE_INLINE wp(const sp<U>& rhs)    { set(rhs); }
+    
+        // copy assiments
+        ABE_INLINE wp& operator=(const wp<T>& rhs)              { clear(); set(rhs); return *this; }
+        ABE_INLINE wp& operator=(const sp<T>& rhs)              { clear(); set(rhs); return *this; }
+        template<typename U> ABE_INLINE wp& operator=(const wp<U>& rhs) { clear(); set(rhs); return *this; }
+        template<typename U> ABE_INLINE wp& operator=(const sp<U>& rhs) { clear(); set(rhs); return *this; }
+
+        // destructors
+        ABE_INLINE ~wp() { clear(); }
+
+        // retain, with const qualifier
+        ABE_INLINE sp<T> retain() const;
+
+        // clear
+        ABE_INLINE void clear();
+
+        // test
+        ABE_INLINE Bool isNil() const { return mObject == Nil; }
+
+    public:
+        // compare object pointer.
+        COMPARE(==)
+        COMPARE(!=)
+
+    public:
+        // DEBUGGING
+        ABE_INLINE const T* get() const         { return static_cast<const T*>(mObject);    }
+        ABE_INLINE UInt32   refsCount() const   { return mRefs->weakRefCount();                 }
+
+    private:
+        template<typename U> friend class wp;
+        template<typename U> ABE_INLINE void set(U *);
+        template<typename U> ABE_INLINE void set(const wp<U>&);
+        template<typename U> ABE_INLINE void set(const sp<U>&);
+
+        // test on mObject but NEVER access on mOjbect as it maybe orphan pointer.
+        SharedObject *          mObject;
+        // NO test on mRefs except sanity check.
+        // mRefs is always valid when mObject != Nil, access at any time.
+        SharedObject::Refs *    mRefs;
 };
 #undef COMPARE
 
 ///////////////////////////////////////////////////////////////////////////
-template <typename T> void sp<T>::set(SharedObject * shared) {
-    mShared = shared;
-    if (mShared) { mShared->RetainObject(); }
+template<typename T> template<typename U>
+void sp<T>::set(U * object) {
+    mObject = static_cast<SharedObject *>(object);
+    if (mObject) {
+        mRefs = mObject->mRefs;
+        mRefs->incRefs();
+    }
 }
 
-template<typename T> template<typename U> void sp<T>::set(U * shared) {
-    mShared = static_cast<SharedObject *>(shared);
-    if (mShared) { mShared->RetainObject(); }
+template<typename T> template<typename U>
+void sp<T>::set(const sp<U>& rhs) {
+    mObject = static_cast<SharedObject *>(rhs.mObject);
+    if (mObject) {
+        mRefs = mObject->mRefs;
+        mRefs->incRefs();
+    }
 }
 
-template<typename T> void sp<T>::clear() {
-    if (mShared) {
-        // we should clear mShared before ReleaseObject() to avoid loop
-        // in object destruction. but it will also make this object
-        // inaccessable in onLastRetain()
-        mShared->ReleaseObject();
-        mShared = Nil;
+template<typename T>
+void sp<T>::clear() {
+    if (mObject) {
+        mRefs->decRefs();
+        mRefs = Nil;
+        mObject = Nil;
+    }
+}
+
+template<typename T> template<typename U>
+void wp<T>::set(U * object) {
+    mObject = static_cast<SharedObject*>(object);
+    if (mObject) {
+        mRefs = mObject->mRefs;
+        mRefs->incWeakRefs();
+    }
+}
+
+template<typename T> template<typename U>
+void wp<T>::set(const wp<U>& rhs) {
+    mObject = static_cast<SharedObject*>(rhs.mObject);
+    mRefs = rhs.mRefs;
+    if (mObject) {
+        mRefs->incWeakRefs();
+    }
+}
+
+template<typename T> template<typename U>
+void wp<T>::set(const sp<U>& rhs) {
+    mObject = static_cast<SharedObject*>(rhs.mObject);
+    mRefs = rhs.mRefs;
+    if (mObject) {
+        mRefs->incWeakRefs();
+    }
+}
+
+template<typename T>
+sp<T> wp<T>::retain() const {
+    if (mObject) {
+        if (mRefs->retain())
+            return sp<T>(mObject, mRefs);
+    }
+    return Nil;
+}
+
+template<typename T>
+void wp<T>::clear() {
+    if (mObject) {
+        mRefs->decWeakRefs();
+        mRefs = Nil;
+        mObject = Nil;
     }
 }
 

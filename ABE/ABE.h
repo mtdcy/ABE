@@ -77,7 +77,7 @@ ABE_EXPORT void                 SharedObjectRelease(SharedObjectRef);
 ABE_EXPORT UInt32               SharedObjectGetRetainCount(const SharedObjectRef);
 #define SharedObjectIsShared(s)     (SharedObjectGetRetainCount(s) > 1)
 #define SharedObjectIsNotShared(s)  !SharedObjectIsShared(s)
-ABE_EXPORT UInt32             SharedObjectGetID(const SharedObjectRef);
+ABE_EXPORT UInt32               SharedObjectGetID(const SharedObjectRef);
 
 typedef SharedObjectRef         AllocatorRef;
 ABE_EXPORT AllocatorRef         AllocatorGetDefault(void);
@@ -101,15 +101,15 @@ ABE_EXPORT void                 SharedBufferDeallocate(SharedBufferRef);
 typedef SharedObjectRef         BufferObjectRef;
 ABE_EXPORT BufferObjectRef      BufferObjectCreate(UInt32);                     // sp<Buffer>
 ABE_EXPORT BufferObjectRef      BufferObjectCreateWithUrl(const Char * url);    // sp<Content>
-ABE_EXPORT Int64              BufferObjectGetCapacity(const BufferObjectRef);
-ABE_EXPORT Int64              BufferObjectGetDataLength(const BufferObjectRef);
-ABE_EXPORT Int64              BufferObjectGetEmptyLength(const BufferObjectRef);
-ABE_EXPORT Int64              BufferObjectGetOffset(const BufferObjectRef);
+ABE_EXPORT Int64                BufferObjectGetCapacity(const BufferObjectRef);
+ABE_EXPORT Int64                BufferObjectGetDataLength(const BufferObjectRef);
+ABE_EXPORT Int64                BufferObjectGetEmptyLength(const BufferObjectRef);
+ABE_EXPORT Int64                BufferObjectGetOffset(const BufferObjectRef);
 ABE_EXPORT const Char *         BufferObjectGetDataPointer(const BufferObjectRef);
 ABE_EXPORT UInt32               BufferObjectGetData(const BufferObjectRef, Char *, UInt32);
 ABE_EXPORT BufferObjectRef      BufferObjectReadBytes(const BufferObjectRef, UInt32);
 ABE_EXPORT BufferObjectRef      BufferObjectCloneBytes(const BufferObjectRef);
-ABE_EXPORT Int64              BufferObjectSkipBytes(const BufferObjectRef, Int64);
+ABE_EXPORT Int64                BufferObjectSkipBytes(const BufferObjectRef, Int64);
 ABE_EXPORT void                 BufferObjectResetBytes(const BufferObjectRef);
 ABE_EXPORT UInt32               BufferObjectPutData(BufferObjectRef, const Char *, UInt32);
 ABE_EXPORT UInt32               BufferObjectWriteBytes(BufferObjectRef, BufferObjectRef, UInt32);
@@ -120,7 +120,7 @@ typedef SharedObjectRef         MessageObjectRef;
 ABE_EXPORT MessageObjectRef     MessageObjectCreate();
 ABE_EXPORT MessageObjectRef     MessageObjectCreateWithId(UInt32 id);
 ABE_EXPORT MessageObjectRef     MessageObjectCopy(MessageObjectRef);
-ABE_EXPORT UInt32             MessageObjectGetId      (const MessageObjectRef);
+ABE_EXPORT UInt32               MessageObjectGetId      (const MessageObjectRef);
 ABE_EXPORT UInt32               MessageObjectGetSize    (const MessageObjectRef);
 ABE_EXPORT Bool                 MessageObjectContains   (const MessageObjectRef, UInt32);
 ABE_EXPORT Bool                 MessageObjectRemove     (MessageObjectRef, UInt32);
@@ -132,10 +132,10 @@ ABE_EXPORT void                 MessageObjectPutDouble  (MessageObjectRef, UInt3
 ABE_EXPORT void                 MessageObjectPutPointer (MessageObjectRef, UInt32, void *);
 ABE_EXPORT void                 MessageObjectPutString  (MessageObjectRef, UInt32, const Char *);
 ABE_EXPORT void                 MessageObjectPutObject  (MessageObjectRef, UInt32, SharedObjectRef);
-ABE_EXPORT Int32              MessageObjectGetInt32   (const MessageObjectRef, UInt32, Int32);
-ABE_EXPORT Int64              MessageObjectGetInt64   (const MessageObjectRef, UInt32, Int64);
-ABE_EXPORT Float32                MessageObjectGetFloat   (const MessageObjectRef, UInt32, Float32);
-ABE_EXPORT Float64               MessageObjectGetDouble  (const MessageObjectRef, UInt32, Float64);
+ABE_EXPORT Int32                MessageObjectGetInt32   (const MessageObjectRef, UInt32, Int32);
+ABE_EXPORT Int64                MessageObjectGetInt64   (const MessageObjectRef, UInt32, Int64);
+ABE_EXPORT Float32              MessageObjectGetFloat   (const MessageObjectRef, UInt32, Float32);
+ABE_EXPORT Float64              MessageObjectGetDouble  (const MessageObjectRef, UInt32, Float64);
 ABE_EXPORT void *               MessageObjectGetPointer (const MessageObjectRef, UInt32, void *);
 ABE_EXPORT const Char *         MessageObjectGetString  (const MessageObjectRef, UInt32, const Char *);
 ABE_EXPORT SharedObjectRef      MessageObjectGetObject  (const MessageObjectRef, UInt32, SharedObjectRef);

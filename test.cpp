@@ -93,20 +93,28 @@ void testAtomic() {
 }
 
 void testSharedObject() {
-    SharedObject * shared = new MySharedObject;
-    ASSERT_EQ(shared->GetRetainCount(), 0);
+    SharedObject * object = new MySharedObject;
+    ASSERT_EQ(object->GetRetainCount(), 0);
 
-    sp<SharedObject> sp_shared1 = shared;
-    ASSERT_EQ(shared->GetRetainCount(), 1);
-    ASSERT_EQ(sp_shared1.refsCount(), 1);
+    sp<SharedObject> sp1 = object;
+    ASSERT_EQ(object->GetRetainCount(), 1);
+    ASSERT_EQ(sp1.refsCount(), 1);
 
-    sp<SharedObject> sp_shared2 = sp_shared1;
-    ASSERT_EQ(shared->GetRetainCount(), 2);
-    ASSERT_EQ(sp_shared2.refsCount(), 2);
+    sp<SharedObject> sp2 = sp1;
+    ASSERT_EQ(object->GetRetainCount(), 2);
+    ASSERT_EQ(sp2.refsCount(), 2);
+    
+    wp<SharedObject> wp1 = sp1;
+    ASSERT_EQ(wp1.refsCount(), 3);
+    ASSERT_EQ(sp1.refsCount(), 2);
+    ASSERT_TRUE(wp1.retain() != Nil);
 
-    sp_shared2.clear();
-    ASSERT_EQ(shared->GetRetainCount(), 1);
-    sp_shared1.clear();
+    sp2.clear();
+    ASSERT_EQ(object->GetRetainCount(), 1);
+    sp1.clear();
+    
+    ASSERT_EQ(wp1.refsCount(), 1);
+    ASSERT_TRUE(wp1.retain() == Nil);
 }
 
 void testAllocator() {
@@ -411,7 +419,7 @@ struct EmptySharedObject : public SharedObject {
 
 void testMessage() {
     Message message;
-    SharedObject * shared = new EmptySharedObject;
+    SharedObject * object = new EmptySharedObject;
     
 #define TEST_MESSAGE(NAME, VALUE) {                     \
     Message msg;                                        \
@@ -426,7 +434,7 @@ void testMessage() {
     TEST_MESSAGE(Float, 1.0)
     TEST_MESSAGE(Double, 2.0)
     TEST_MESSAGE(Pointer, &message);
-    TEST_MESSAGE(Object, shared)
+    TEST_MESSAGE(Object, object)
     
 #undef TEST_MESSAGE
     
@@ -814,7 +822,7 @@ void testContent() {
     String url = String::format("%s/file2", gCurrentDir);
     sp<Content> pipe = Content::Create(url);
     
-    ASSERT_EQ(pipe->mode(), Content::Read);
+    ASSERT_EQ(pipe->mode(), Protocol::Read);
     ASSERT_EQ(pipe->offset(), 0);
     ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     

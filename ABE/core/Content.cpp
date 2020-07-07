@@ -86,9 +86,9 @@ void Content::writeBlockBack(Bool force) {
 
 ///////////////////////////////////////////////////////////////////////////
 // static
-sp<Content::Protocol> CreateFile(const String& url, Content::eMode mode);
+sp<Protocol> CreateFile(const String& url, Protocol::eMode mode);
 
-sp<Content> Content::Create(const String& url, eMode mode) {
+sp<Content> Content::Create(const String& url, Protocol::eMode mode) {
     INFO("Open content %s", url.c_str());
 
     sp<Protocol> proto;
@@ -120,10 +120,10 @@ Content::Content(const sp<Protocol>& proto, UInt32 blockLength) :
     ABuffer(), mProto(proto),
     mReadPosition(0), mReadBlock(Nil),
     mWritePosition(0), mWriteBlock(Nil) {
-    if (mProto->mode() & Read) {
+    if (mProto->mode() & Protocol::Read) {
         mReadBlock = new Buffer(blockLength, Buffer::Ring);
     }
-    if (mProto->mode() & Write) {
+    if (mProto->mode() & Protocol::Write) {
         mWriteBlock = new Buffer(blockLength, Buffer::Ring);
     }
 }

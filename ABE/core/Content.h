@@ -41,66 +41,63 @@
 
 __BEGIN_NAMESPACE_ABE
 
+/**
+ * protocol interface
+ */
+struct ABE_EXPORT Protocol : public SharedObject {
+    enum eMode {
+        Read        = 0x1,              ///< read only
+        Write       = 0x2,              ///< write only
+        ReadWrite   = Read | Write,     ///< read & write
+        Default     = Read              ///< default mode
+    };
+    
+    /**
+     * return mode of the protocol
+     * @return see @Content::eMode
+     */
+    virtual eMode   mode() const = 0;
+    
+    /**
+     * read bytes from protocol
+     * @param buffer pointer to memory
+     * @param length number bytes to read
+     * @return return bytes read, otherwise return 0 on eos or error
+     */
+    virtual UInt32  readBytes(sp<Buffer>& buffer) const = 0;
+
+    /**
+     * write bytes to protocol
+     * @param buffer pointer to memory
+     * @param length number bytes to write
+     * @return return bytes written, otherwise return 0
+     */
+    virtual UInt32  writeBytes(const sp<Buffer>& buffer) = 0;
+    
+    /**
+     * get total bytes of the protocol
+     * @return return number bytes of the protocol, otherwise return -1 if unknown
+     */
+    virtual Int64   totalBytes() const = 0;
+    
+    /**
+     * seek to absolute position of the protocol
+     * @param pos   absolute position to seek to
+     * @return return the position after seek, otherwise return -1 on error
+     */
+    virtual Int64   seekBytes(Int64 pos) const = 0;
+
+    /**
+     * get block length of this protocol
+     */
+    virtual UInt32  blockLength() const = 0;
+};
 
 /**
- * a content manager
- * @note not thread safe
- */
+* a content manager
+* @note not thread safe
+*/
 class ABE_EXPORT Content : public ABuffer {
-    public:
-        enum eMode {
-            Read        = 0x1,              ///< read only
-            Write       = 0x2,              ///< write only
-            ReadWrite   = Read | Write,     ///< read & write
-            Default     = Read              ///< default mode
-        };
-    
-    public:
-        /**
-         * protocol interface
-         */
-        struct ABE_EXPORT Protocol : public SharedObject {
-            /**
-             * return mode of the protocol
-             * @return see @Content::eMode
-             */
-            virtual eMode   mode() const = 0;
-            
-            /**
-             * read bytes from protocol
-             * @param buffer pointer to memory
-             * @param length number bytes to read
-             * @return return bytes read, otherwise return 0 on eos or error
-             */
-            virtual UInt32  readBytes(sp<Buffer>& buffer) const = 0;
-
-            /**
-             * write bytes to protocol
-             * @param buffer pointer to memory
-             * @param length number bytes to write
-             * @return return bytes written, otherwise return 0
-             */
-            virtual UInt32  writeBytes(const sp<Buffer>& buffer) = 0;
-            
-            /**
-             * get total bytes of the protocol
-             * @return return number bytes of the protocol, otherwise return -1 if unknown
-             */
-            virtual Int64 totalBytes() const = 0;
-            
-            /**
-             * seek to absolute position of the protocol
-             * @param pos   absolute position to seek to
-             * @return return the position after seek, otherwise return -1 on error
-             */
-            virtual Int64 seekBytes(Int64 pos) const = 0;
-
-            /**
-             * get block length of this protocol
-             */
-            virtual UInt32 blockLength() const = 0;
-        };
-
     public:
         /**
          * create a content object
@@ -108,7 +105,7 @@ class ABE_EXPORT Content : public ABuffer {
          * @param mode mode of the content object
          * @return return a new content object
          */
-        static sp<Content> Create(const String& url, eMode mode = Default);
+        static sp<Content> Create(const String& url, Protocol::eMode mode = Protocol::Default);
 
         /**
          * create a content object with custom protocol
@@ -127,19 +124,19 @@ class ABE_EXPORT Content : public ABuffer {
          * return mode of the content
          * @return see @eMode
          */
-        ABE_INLINE eMode    mode() const { return mProto->mode(); }
+        ABE_INLINE Protocol::eMode mode() const { return mProto->mode(); }
     
     public:
-        virtual Int64     capacity() const;
-        virtual Int64     size() const;
-        virtual Int64     empty() const;
-        virtual Int64     offset() const;
+        virtual Int64       capacity() const;
+        virtual Int64       size() const;
+        virtual Int64       empty() const;
+        virtual Int64       offset() const;
         virtual const Char* data() const;
     
     public:
         virtual sp<ABuffer> readBytes(UInt32) const;
         virtual UInt32      readBytes(Char *, UInt32) const;
-        virtual Int64     skipBytes(Int64) const;
+        virtual Int64       skipBytes(Int64) const;
         virtual void        resetBytes() const;
         virtual sp<ABuffer> cloneBytes() const;
     
@@ -150,7 +147,7 @@ class ABE_EXPORT Content : public ABuffer {
         virtual void        clearBytes();
 
     protected:
-        virtual UInt8     readByte() const;
+        virtual UInt8       readByte() const;
         virtual void        writeByte(UInt8);
 
     private:
@@ -159,9 +156,9 @@ class ABE_EXPORT Content : public ABuffer {
 
     private:
         sp<Protocol>        mProto;
-        mutable Int64     mReadPosition;
+        mutable Int64       mReadPosition;
         mutable sp<Buffer>  mReadBlock;
-        Int64             mWritePosition;
+        Int64               mWritePosition;
         sp<Buffer>          mWriteBlock;
     
         DISALLOW_EVILS(Content);

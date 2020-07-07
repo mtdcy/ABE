@@ -78,7 +78,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
          */
         virtual sp<ABuffer> readBytes(UInt32) const = 0;        ///< read n bytes as a new buffer
         virtual UInt32      readBytes(Char *, UInt32) const = 0;///< read n bytes into certain memory
-        virtual Int64     skipBytes(Int64) const = 0;       ///< skip read n bytes, [-offset(), size()]
+        virtual Int64       skipBytes(Int64) const = 0;       ///< skip read n bytes, [-offset(), size()]
         virtual void        resetBytes() const = 0;             ///< reset bytes reader
         virtual sp<ABuffer> cloneBytes() const = 0;             ///< clone all bytes
         
@@ -94,7 +94,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
 
     protected:
         // basic operators for bit reader & writer
-        virtual UInt8     readByte() const = 0;               ///< read one byte
+        virtual UInt8       readByte() const = 0;               ///< read one byte
         virtual void        writeByte(UInt8) = 0;             ///< write one byte
 
     public:
@@ -104,17 +104,17 @@ class ABE_EXPORT ABuffer : public SharedObject {
          */
         void                skip(UInt32) const;         ///< skip n bits
         void                skip() const;               ///< skip current byte tail bits
-        UInt32            read(UInt32) const;         ///< read n bits
-        UInt32            show(UInt32) const;         ///< show n bits
-        UInt8             r8() const;                 ///< read 8 bits
-        UInt16            rl16() const;               ///< read 16 bits as little endian
-        UInt16            rb16() const;               ///< read 16 bits as big endian
-        UInt32            rl24() const;               ///< read 24 bits as little endian
-        UInt32            rb24() const;               ///< read 24 bits as big endian
-        UInt32            rl32() const;               ///< read 32 bits as little endian
-        UInt32            rb32() const;               ///< read 32 bits as big endian
-        UInt64            rl64() const;               ///< read 64 bits as little endian
-        UInt64            rb64() const;               ///< read 64 bits as big endian
+        UInt32              read(UInt32) const;         ///< read n bits
+        UInt32              show(UInt32) const;         ///< show n bits
+        UInt8               r8() const;                 ///< read 8 bits
+        UInt16              rl16() const;               ///< read 16 bits as little endian
+        UInt16              rb16() const;               ///< read 16 bits as big endian
+        UInt32              rl24() const;               ///< read 24 bits as little endian
+        UInt32              rb24() const;               ///< read 24 bits as big endian
+        UInt32              rl32() const;               ///< read 32 bits as little endian
+        UInt32              rb32() const;               ///< read 32 bits as big endian
+        UInt64              rl64() const;               ///< read 64 bits as little endian
+        UInt64              rb64() const;               ///< read 64 bits as big endian
         String              rs(UInt32) const;           ///< read n Char as string
 
         /**
@@ -140,10 +140,10 @@ class ABE_EXPORT ABuffer : public SharedObject {
          */
         ABE_INLINE eByteOrder byteOrder() const { return mByteOrder; }
         ABE_INLINE void     setByteOrder(eByteOrder order) const { mByteOrder = order; }
-        ABE_INLINE UInt16 r16() const     { return mByteOrder == Big ? rb16() : rl16(); }
-        ABE_INLINE UInt32 r24() const     { return mByteOrder == Big ? rb24() : rl24(); }
-        ABE_INLINE UInt32 r32() const     { return mByteOrder == Big ? rb32() : rl32(); }
-        ABE_INLINE UInt64 r64() const     { return mByteOrder == Big ? rb64() : rl64(); }
+        ABE_INLINE UInt16   r16() const     { return mByteOrder == Big ? rb16() : rl16(); }
+        ABE_INLINE UInt32   r24() const     { return mByteOrder == Big ? rb24() : rl24(); }
+        ABE_INLINE UInt32   r32() const     { return mByteOrder == Big ? rb32() : rl32(); }
+        ABE_INLINE UInt64   r64() const     { return mByteOrder == Big ? rb64() : rl64(); }
         ABE_INLINE void     w16(UInt16 x) { mByteOrder == Big ? wb16(x) : wl16(x); }
         ABE_INLINE void     w24(UInt32 x) { mByteOrder == Big ? wb24(x) : wl24(x); }
         ABE_INLINE void     w32(UInt32 x) { mByteOrder == Big ? wb32(x) : wl32(x); }
@@ -161,7 +161,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
     private:
         mutable eByteOrder mByteOrder;
         struct Reservoir {
-            UInt64    mBits;
+            UInt64      mBits;
             UInt32      mLength;
         };
         mutable Reservoir mReadReservoir;
@@ -212,15 +212,15 @@ class ABE_EXPORT Buffer : public ABuffer {
         String      string(Bool hex = False) const;
     
     public:
-        virtual Int64     capacity() const { return mCapacity; }
-        virtual Int64     size() const { return mWritePos - mReadPos; }
-        virtual Int64     empty() const;
-        virtual Int64     offset() const;
+        virtual Int64       capacity() const { return mCapacity; }
+        virtual Int64       size() const { return mWritePos - mReadPos; }
+        virtual Int64       empty() const;
+        virtual Int64       offset() const;
     
     public:
         virtual sp<ABuffer> readBytes(UInt32) const;
         virtual UInt32      readBytes(Char *, UInt32) const;
-        virtual Int64     skipBytes(Int64) const;
+        virtual Int64       skipBytes(Int64) const;
         virtual void        resetBytes() const;
         virtual sp<ABuffer> cloneBytes() const;
     
@@ -249,7 +249,7 @@ class ABE_EXPORT Buffer : public ABuffer {
         void                setBytesRange(UInt32 offset, UInt32 n);
 
     protected:
-        virtual UInt8     readByte() const;
+        virtual UInt8       readByte() const;
         virtual void        writeByte(UInt8);
 
     private:
