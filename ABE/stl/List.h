@@ -51,7 +51,7 @@ class ListNodeImpl {
         ListNodeImpl    *mNext;
 
     protected:
-        ABE_INLINE ListNodeImpl() : mData(NULL), mPrev(NULL), mNext(NULL) { }
+        ABE_INLINE ListNodeImpl() : mData(Nil), mPrev(Nil), mNext(Nil) { }
 
     public:
         ABE_INLINE void *          data() const   { return mData; }
@@ -59,7 +59,7 @@ class ListNodeImpl {
         ABE_INLINE ListNodeImpl *  prev() const   { return mPrev; }
 
     protected:
-        bool            orphan() const;
+        Bool            orphan() const;
         void            unlink();
         ListNodeImpl *  link(ListNodeImpl * next);
         ListNodeImpl *  insert(ListNodeImpl * next);
@@ -77,7 +77,7 @@ class ABE_EXPORT ListImpl {
         ListImpl& operator=(const ListImpl& rhs);
 
     protected:
-        ABE_INLINE size_t size() const    { return mListLength; }
+        ABE_INLINE UInt32 size() const    { return mListLength; }
         void                clear();
 
     protected:
@@ -101,17 +101,17 @@ class ABE_EXPORT ListImpl {
         TypeHelper          mTypeHelper;
         sp<Allocator>   mAllocator;
         SharedBuffer *      mStorage;
-        size_t              mListLength;
+        UInt32              mListLength;
 };
 __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
-template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl, public  NonSharedObject {
+template <typename TYPE> class List : private __NAMESPACE_PRIVATE::ListImpl, public  StaticObject {
     protected:
         // iterator for List, bidirection iterator
         template <typename NODE_TYPE, typename VALUE_TYPE> class Iterator {
             public:
-                ABE_INLINE Iterator() : mNode(NULL) { }
+                ABE_INLINE Iterator() : mNode(Nil) { }
                 ABE_INLINE Iterator(NODE_TYPE node) : mNode(node) { }
                 ABE_INLINE ~Iterator() { }
 
@@ -125,8 +125,8 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl,
                 ABE_INLINE VALUE_TYPE* operator->()    { return static_cast<VALUE_TYPE*>(mNode->data());   }
 
             public:
-                ABE_INLINE bool        operator==(const Iterator& rhs) const   { return mNode == rhs.mNode;    }
-                ABE_INLINE bool        operator!=(const Iterator& rhs) const   { return mNode != rhs.mNode;    }
+                ABE_INLINE Bool        operator==(const Iterator& rhs) const   { return mNode == rhs.mNode;    }
+                ABE_INLINE Bool        operator!=(const Iterator& rhs) const   { return mNode != rhs.mNode;    }
 
             protected:
                 friend class List<VALUE_TYPE>;
@@ -134,23 +134,23 @@ template <typename TYPE> class List : private __NAMESPACE_ABE_PRIVATE::ListImpl,
         };
 
     public:
-        typedef Iterator<__NAMESPACE_ABE_PRIVATE::ListNodeImpl *, TYPE> iterator;
-        typedef Iterator<const __NAMESPACE_ABE_PRIVATE::ListNodeImpl *, const TYPE> const_iterator;
+        typedef Iterator<__NAMESPACE_PRIVATE::ListNodeImpl *, TYPE> iterator;
+        typedef Iterator<const __NAMESPACE_PRIVATE::ListNodeImpl *, const TYPE> const_iterator;
 
     public:
         ABE_INLINE List(const sp<Allocator>& allocator = kAllocatorDefault) :
-            ListImpl(allocator, TypeHelperBuilder<TYPE, false, true, false>()) { }
+            ListImpl(allocator, TypeHelperBuilder<TYPE, False, True, False>()) { }
 
         ABE_INLINE ~List() { }
 
     public:
         ABE_INLINE void    clear()                    { return ListImpl::clear();         }
-        ABE_INLINE size_t  size() const               { return ListImpl::size();          }
-        ABE_INLINE bool    empty() const              { return size() == 0;               }
+        ABE_INLINE UInt32  size() const               { return ListImpl::size();          }
+        ABE_INLINE Bool    empty() const              { return size() == 0;               }
 
     public:
         // stable sort, uses operator< or custom compare
-        typedef bool (*compare_t)(const TYPE*, const TYPE*);
+        typedef Bool (*compare_t)(const TYPE*, const TYPE*);
         ABE_INLINE void    sort(compare_t cmp)        { ListImpl::sort(reinterpret_cast<type_compare_t>(cmp));    }
         ABE_INLINE void    sort()                     { ListImpl::sort(type_compare_less<TYPE>);                  }
 

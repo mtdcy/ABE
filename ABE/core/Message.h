@@ -44,7 +44,7 @@ __BEGIN_NAMESPACE_ABE
 // we prefer FOURCC as name
 class ABE_EXPORT Message : public SharedObject {
     public:
-        Message(uint32_t what = 0);
+        Message(UInt32 what = 0);
         virtual ~Message();
     
         sp<Message> dup() const;
@@ -61,55 +61,55 @@ class ABE_EXPORT Message : public SharedObject {
         };
 
     public:
-        ABE_INLINE uint32_t    what        () const { return mWhat; }
-        ABE_INLINE size_t      countEntries() const { return mEntries.size(); }
+        ABE_INLINE UInt32    what        () const { return mWhat; }
+        ABE_INLINE UInt32      countEntries() const { return mEntries.size(); }
 
         void            clear       ();
-        bool            contains    (uint32_t name) const;
-        bool            remove      (uint32_t name);
+        Bool            contains    (UInt32 name) const;
+        Bool            remove      (UInt32 name);
         String          string      () const;
-        bool            contains    (uint32_t name, Type) const;
-        uint32_t        getEntryNameAt(size_t index, Type *type) const;
+        Bool            contains    (UInt32 name, Type) const;
+        UInt32        getEntryNameAt(UInt32 index, Type *type) const;
 
     public:
         // core types
-        void            setInt32    (uint32_t name, int32_t value);                    // kTypeInt32
-        void            setInt64    (uint32_t name, int64_t value);                    // kTypeInt64
-        void            setFloat    (uint32_t name, float value);                      // kTypeFloat
-        void            setDouble   (uint32_t name, double value);                     // kTypeDouble
-        void            setPointer  (uint32_t name, void *value);                      // kTypePointer
-        void            setString   (uint32_t name, const char *s, size_t len = 0);    // kTypeString
-        void            setObject   (uint32_t name, SharedObject * object);            // kTypeObject
+        void            setInt32    (UInt32 name, Int32 value);                    // kTypeInt32
+        void            setInt64    (UInt32 name, Int64 value);                    // kTypeInt64
+        void            setFloat    (UInt32 name, Float32 value);                      // kTypeFloat
+        void            setDouble   (UInt32 name, Float64 value);                     // kTypeDouble
+        void            setPointer  (UInt32 name, void *value);                      // kTypePointer
+        void            setString   (UInt32 name, const Char *s, UInt32 len = 0);    // kTypeString
+        void            setObject   (UInt32 name, SharedObject * object);            // kTypeObject
 
-        template <class T> ABE_INLINE void setObject(uint32_t name, const sp<T>& o)
+        template <class T> ABE_INLINE void setObject(UInt32 name, const sp<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
-        int32_t         findInt32   (uint32_t name, int32_t def = 0) const;            // kTypeInt32
-        int64_t         findInt64   (uint32_t name, int64_t def = 0) const;            // kTypeInt64
-        float           findFloat   (uint32_t name, float def = 0) const;              // kTypeFloat
-        double          findDouble  (uint32_t name, double def = 0) const;             // kTypeDouble
-        void *          findPointer (uint32_t name, void * def = NULL) const;          // kTypePointer
-        const char *    findString  (uint32_t name, const char * def = NULL) const;    // kTypeString
-        SharedObject *  findObject  (uint32_t name, SharedObject * def = NULL) const;  // kTypeObject
+        Int32         findInt32   (UInt32 name, Int32 def = 0) const;            // kTypeInt32
+        Int64         findInt64   (UInt32 name, Int64 def = 0) const;            // kTypeInt64
+        Float32           findFloat   (UInt32 name, Float32 def = 0) const;              // kTypeFloat
+        Float64          findDouble  (UInt32 name, Float64 def = 0) const;             // kTypeDouble
+        void *          findPointer (UInt32 name, void * def = Nil) const;          // kTypePointer
+        const Char *    findString  (UInt32 name, const Char * def = Nil) const;    // kTypeString
+        SharedObject *  findObject  (UInt32 name, SharedObject * def = Nil) const;  // kTypeObject
 
         // alias
-        ABE_INLINE void setString   (uint32_t name, const String &s)
+        ABE_INLINE void setString   (UInt32 name, const String &s)
         { setString(name, s.c_str()); }
 
     private:
-        uint32_t                    mWhat;
+        UInt32                    mWhat;
         struct Entry {
             Type                    mType;
             union {
-                int32_t             i32;
-                int64_t             i64;
-                float               flt;
-                double              dbl;
+                Int32             i32;
+                Int64             i64;
+                Float32               flt;
+                Float64              dbl;
                 void *              ptr;
                 SharedObject *      obj;
             } u;
         };
-        HashTable<uint32_t, Entry>  mEntries;
+        HashTable<UInt32, Entry>  mEntries;
     
         DISALLOW_EVILS(Message);
 };

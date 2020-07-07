@@ -72,7 +72,7 @@ class ABE_EXPORT Content : public ABuffer {
              * @param length number bytes to read
              * @return return bytes read, otherwise return 0 on eos or error
              */
-            virtual size_t  readBytes(sp<Buffer>& buffer) const = 0;
+            virtual UInt32  readBytes(sp<Buffer>& buffer) const = 0;
 
             /**
              * write bytes to protocol
@@ -80,25 +80,25 @@ class ABE_EXPORT Content : public ABuffer {
              * @param length number bytes to write
              * @return return bytes written, otherwise return 0
              */
-            virtual size_t  writeBytes(const sp<Buffer>& buffer) = 0;
+            virtual UInt32  writeBytes(const sp<Buffer>& buffer) = 0;
             
             /**
              * get total bytes of the protocol
              * @return return number bytes of the protocol, otherwise return -1 if unknown
              */
-            virtual int64_t totalBytes() const = 0;
+            virtual Int64 totalBytes() const = 0;
             
             /**
              * seek to absolute position of the protocol
              * @param pos   absolute position to seek to
              * @return return the position after seek, otherwise return -1 on error
              */
-            virtual int64_t seekBytes(int64_t pos) const = 0;
+            virtual Int64 seekBytes(Int64 pos) const = 0;
 
             /**
              * get block length of this protocol
              */
-            virtual size_t blockLength() const = 0;
+            virtual UInt32 blockLength() const = 0;
         };
 
     public:
@@ -118,7 +118,7 @@ class ABE_EXPORT Content : public ABuffer {
         static sp<Content> Create(const sp<Protocol>& proto);
 
     protected:
-        Content(const sp<Protocol>& proto, size_t blockLength);
+        Content(const sp<Protocol>& proto, UInt32 blockLength);
 
         ~Content();
     
@@ -130,38 +130,38 @@ class ABE_EXPORT Content : public ABuffer {
         ABE_INLINE eMode    mode() const { return mProto->mode(); }
     
     public:
-        virtual int64_t     capacity() const;
-        virtual int64_t     size() const;
-        virtual int64_t     empty() const;
-        virtual int64_t     offset() const;
-        virtual const char* data() const;
+        virtual Int64     capacity() const;
+        virtual Int64     size() const;
+        virtual Int64     empty() const;
+        virtual Int64     offset() const;
+        virtual const Char* data() const;
     
     public:
-        virtual sp<ABuffer> readBytes(size_t) const;
-        virtual size_t      readBytes(char *, size_t) const;
-        virtual int64_t     skipBytes(int64_t) const;
+        virtual sp<ABuffer> readBytes(UInt32) const;
+        virtual UInt32      readBytes(Char *, UInt32) const;
+        virtual Int64     skipBytes(Int64) const;
         virtual void        resetBytes() const;
         virtual sp<ABuffer> cloneBytes() const;
     
-        virtual size_t      writeBytes(const char *, size_t n = 0);
-        virtual size_t      writeBytes(const sp<ABuffer>& b, size_t n = 0);
-        virtual size_t      writeBytes(int c, size_t n);
+        virtual UInt32      writeBytes(const Char *, UInt32 n = 0);
+        virtual UInt32      writeBytes(const sp<ABuffer>& b, UInt32 n = 0);
+        virtual UInt32      writeBytes(int c, UInt32 n);
         virtual void        flushBytes();
         virtual void        clearBytes();
 
     protected:
-        virtual uint8_t     readByte() const;
-        virtual void        writeByte(uint8_t);
+        virtual UInt8     readByte() const;
+        virtual void        writeByte(UInt8);
 
     private:
-        void                prepareBlock(size_t n) const;
-        void                writeBlockBack(bool force = false);
+        void                prepareBlock(UInt32 n) const;
+        void                writeBlockBack(Bool force = False);
 
     private:
         sp<Protocol>        mProto;
-        mutable int64_t     mReadPosition;
+        mutable Int64     mReadPosition;
         mutable sp<Buffer>  mReadBlock;
-        int64_t             mWritePosition;
+        Int64             mWritePosition;
         sp<Buffer>          mWriteBlock;
     
         DISALLOW_EVILS(Content);

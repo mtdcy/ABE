@@ -38,6 +38,8 @@
 #include <ABE/core/Types.h>
 #include <ABE/core/String.h>
 
+#include <pthread.h>
+
 /**
  * thread type
  * combine of nice, priority and sched policy
@@ -61,6 +63,7 @@ enum eThreadType {
     kThreadDefault          = kThreadNormal,
 };
 
+#ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
 /**
@@ -69,7 +72,7 @@ __BEGIN_NAMESPACE_ABE
  * @note we prefer looper instead of thread, so keep thread simple
  */
 class Job;
-class ABE_EXPORT Thread : public NonSharedObject {
+class ABE_EXPORT Thread : public StaticObject {
     public:
         /**
          * get current thread reference
@@ -135,15 +138,15 @@ class ABE_EXPORT Thread : public NonSharedObject {
         pthread_t native_thread_handle() const;
     
     public:
-        bool operator==(const Thread& rhs) const { return mNative == rhs.mNative; }
-        bool operator!=(const Thread& rhs) const { return mNative != rhs.mNative; }
+        Bool operator==(const Thread& rhs) const { return mNative == rhs.mNative; }
+        Bool operator!=(const Thread& rhs) const { return mNative != rhs.mNative; }
 
     private:
         struct NativeContext;
         sp<NativeContext> mNative;
 
     private:
-        Thread() : mNative(NULL) { }
+        Thread() : mNative(Nil) { }
 };
 
 // two methods to use Job
@@ -162,10 +165,10 @@ class ABE_EXPORT Job : public SharedObject {
         // if no Looper bind, delay will be ignored
         // @param us    time to delay
         // @return return current ticks
-        virtual size_t run(int64_t us = 0);
+        virtual UInt32 run(Int64 us = 0);
 
         // cancel execution
-        virtual size_t cancel();
+        virtual UInt32 cancel();
 
         // abstract interface
         virtual void onJob() = 0;
@@ -178,7 +181,7 @@ class ABE_EXPORT Job : public SharedObject {
         sp<Looper>          mLooper;
         sp<DispatchQueue>   mQueue;
         // current ticks, inc after execution complete
-        Atomic<size_t>      mTicks;
+        Atomic<UInt32>      mTicks;
         DISALLOW_EVILS(Job);
 };
 
@@ -216,7 +219,7 @@ class ABE_EXPORT Looper : public SharedObject {
          * @param what      - runnable object
          * @param delayUs   - delay time in us
          */
-        void        post(const sp<Job>& what, int64_t delayUs = 0);
+        void        post(const sp<Job>& what, Int64 delayUs = 0);
 
         /**
          * remove a Job object from this looper
@@ -228,7 +231,7 @@ class ABE_EXPORT Looper : public SharedObject {
          * test if a Job object is already in this looper
          * @param what      - runnable object
          */
-        bool        exists(const sp<Job>& what) const;
+        Bool        exists(const sp<Job>& what) const;
 
         /**
          * flush Job objects from this looper
@@ -252,7 +255,7 @@ class ABE_EXPORT Looper : public SharedObject {
         /**
          * profile looper, for debugging purpose
          */
-        void        profile(int64_t interval = 5 * 1000000LL);
+        void        profile(Int64 interval = 5 * 1000000LL);
 
     private:
         virtual void onFirstRetain();
@@ -262,7 +265,7 @@ class ABE_EXPORT Looper : public SharedObject {
         sp<JobDispatcher> mJobDisp;
 
     private:
-        Looper() : mJobDisp(NULL) { }
+        Looper() : mJobDisp(Nil) { }
         DISALLOW_EVILS(Looper);
 };
 
@@ -278,9 +281,9 @@ class ABE_EXPORT DispatchQueue : public SharedObject {
     public:
         void    sync(const sp<Job>&);
     
-        void    dispatch(const sp<Job>&, int64_t us = 0);
+        void    dispatch(const sp<Job>&, Int64 us = 0);
     
-        bool    exists(const sp<Job>&) const;
+        Bool    exists(const sp<Job>&) const;
         
         void    remove(const sp<Job>&);
         
@@ -298,4 +301,5 @@ class ABE_EXPORT DispatchQueue : public SharedObject {
 };
 
 __END_NAMESPACE_ABE
+#endif // __cplusplus
 #endif // ABE_HEADERS_LOOPER_H

@@ -37,7 +37,7 @@
 
 #include <ABE/core/Types.h>
 
-__BEGIN_DECLS
+BEGIN_DECLS
 
 #define ABE_VERSION_INT(a, b, c)    ((a)<<16 | (b)<<8 | (c))
 
@@ -47,6 +47,6 @@ __BEGIN_DECLS
 
 #define ABE_VERSION ABE_VERSION_INT(ABE_VERSION_MAJOR, ABE_VERSION_MINOR, ABE_VERSION_BUILD)
 
-__END_DECLS
+END_DECLS
 
 #endif 

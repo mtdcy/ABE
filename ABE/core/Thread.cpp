@@ -47,12 +47,14 @@
 
 #include "compat/pthread.h"
 
+#include <errno.h>
+
 #define JOINABLE 1
 
 __BEGIN_NAMESPACE_ABE
 
-static __thread Thread * thCurrent = NULL;
-static Thread * thMain = NULL;
+static __thread Thread * thCurrent = Nil;
+static Thread * thMain = Nil;
 
 enum eThreadState {
     kThreadNew,
@@ -63,7 +65,7 @@ enum eThreadState {
     kThreadTerminated,
 };
 
-static const char * NAMES[] = {
+static const Char * NAMES[] = {
     "Lowest",
     "Backgroud",
     "Normal",
@@ -157,7 +159,7 @@ struct Thread::NativeContext : public SharedObject {
         CHECK_EQ(mState, kThreadTerminated);
     }
 
-    ABE_INLINE bool wouldBlock() {
+    ABE_INLINE Bool wouldBlock() {
         return pthread_equal(mNativeHandler, pthread_self());
     }
 
@@ -223,7 +225,7 @@ struct Thread::NativeContext : public SharedObject {
             INFO("%s: join inside thread", mName.c_str());
             pthread_detach(mNativeHandler);
         } else {
-            switch (pthread_join(mNativeHandler, NULL)) {
+            switch (pthread_join(mNativeHandler, Nil)) {
                 case EDEADLK:
                     FATAL("%s: A deadlock was detected", mName.c_str());
                     break;
@@ -275,11 +277,11 @@ struct Thread::NativeContext : public SharedObject {
         // execution
         thiz->execution();
 
-        thCurrent = NULL;
+        thCurrent = Nil;
         thiz->ReleaseObject();
 
-        pthread_exit(NULL);
-        return NULL;    // just fix build warnings
+        pthread_exit(Nil);
+        return Nil;    // just fix build warnings
     }
 
     ABE_INLINE void execution() {
@@ -360,7 +362,7 @@ void Thread::join() {
 }
 
 pthread_t Thread::native_thread_handle() const {
-    if (mNative.isNIL()) return pthread_self();
+    if (mNative.isNil()) return pthread_self();
     return mNative->mNativeHandler;
 }
 
@@ -369,7 +371,7 @@ Thread& Thread::Current() {
 }
 
 Thread& Thread::Main() {
-    if (thMain == NULL) {
+    if (thMain == Nil) {
         CHECK_TRUE(pthread_main(), "init main thread outside...");
         static Thread thread;
         pthread_setname("main");

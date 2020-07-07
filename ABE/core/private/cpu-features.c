@@ -82,11 +82,11 @@
 static  pthread_once_t     g_once;
 static  int                g_inited;
 static  AndroidCpuFamily   g_cpuFamily;
-static  uint64_t           g_cpuFeatures;
+static  UInt64           g_cpuFeatures;
 static  int                g_cpuCount;
 
 #ifdef __arm__
-static  uint32_t           g_cpuIdArm;
+static  UInt32           g_cpuIdArm;
 #endif
 
 static const int android_cpufeatures_debug = 0;
@@ -124,11 +124,11 @@ static __inline__ void x86_cpuid(int func, int values[4])
  * using fseek(0, SEEK_END) + ftell(). Nor can they be mmap()-ed.
  */
 static int
-get_file_size(const char* pathname)
+get_file_size(const Char* pathname)
 {
 
    int fd, result = 0;
-    char buffer[256];
+    Char buffer[256];
 
     fd = open(pathname, O_RDONLY);
     if (fd < 0) {
@@ -159,7 +159,7 @@ get_file_size(const char* pathname)
  * than 'buffsize' bytes.
  */
 static int
-read_file(const char*  pathname, char*  buffer, size_t  buffsize)
+read_file(const Char*  pathname, Char*  buffer, UInt32  buffsize)
 {
     int  fd, count;
 
@@ -191,22 +191,22 @@ read_file(const char*  pathname, char*  buffer, size_t  buffsize)
  * the content of /proc/cpuinfo and return it as a heap-allocated
  * string that must be freed by the caller.
  *
- * Return NULL if not found
+ * Return Nil if not found
  */
-static char*
-extract_cpuinfo_field(const char* buffer, int buflen, const char* field)
+static Char*
+extract_cpuinfo_field(const Char* buffer, int buflen, const Char* field)
 {
     int  fieldlen = strlen(field);
-    const char* bufend = buffer + buflen;
-    char* result = NULL;
+    const Char* bufend = buffer + buflen;
+    Char* result = Nil;
     int len;
-    const char *p, *q;
+    const Char *p, *q;
 
     /* Look for first field occurence, and ensures it starts the line. */
     p = buffer;
     for (;;) {
         p = memmem(p, bufend-p, field, fieldlen);
-        if (p == NULL)
+        if (p == Nil)
             goto EXIT;
 
         if (p == buffer || p[-1] == '\n')
@@ -218,19 +218,19 @@ extract_cpuinfo_field(const char* buffer, int buflen, const char* field)
     /* Skip to the first column followed by a space */
     p += fieldlen;
     p  = memchr(p, ':', bufend-p);
-    if (p == NULL || p[1] != ' ')
+    if (p == Nil || p[1] != ' ')
         goto EXIT;
 
     /* Find the end of the line */
     p += 2;
     q = memchr(p, '\n', bufend-p);
-    if (q == NULL)
+    if (q == Nil)
         q = bufend;
 
     /* Copy the line into a heap-allocated buffer */
     len = q-p;
     result = malloc(len+1);
-    if (result == NULL)
+    if (result == Nil)
         goto EXIT;
 
     memcpy(result, p, len);
@@ -244,16 +244,16 @@ EXIT:
  * Returns 1 if found, 0 otherwise.
  */
 static int
-has_list_item(const char* list, const char* item)
+has_list_item(const Char* list, const Char* item)
 {
-    const char*  p = list;
+    const Char*  p = list;
     int itemlen = strlen(item);
 
-    if (list == NULL)
+    if (list == Nil)
         return 0;
 
     while (*p) {
-        const char*  q;
+        const Char*  q;
 
         /* skip spaces */
         while (*p == ' ' || *p == '\t')
@@ -279,14 +279,14 @@ has_list_item(const char* list, const char* item)
  * NOTE: Does not skip over leading spaces, or deal with sign characters.
  * NOTE: Ignores overflows.
  *
- * The function returns NULL in case of error (bad format), or the new
+ * The function returns Nil in case of error (bad format), or the new
  * position after the decimal number in case of success (which will always
  * be <= 'limit').
  */
-static const char*
-parse_number(const char* input, const char* limit, int base, int* result)
+static const Char*
+parse_number(const Char* input, const Char* limit, int base, int* result)
 {
-    const char* p = input;
+    const Char* p = input;
     int val = 0;
     while (p < limit) {
         int d = (*p - '0');
@@ -304,20 +304,20 @@ parse_number(const char* input, const char* limit, int base, int* result)
         p++;
     }
     if (p == input)
-        return NULL;
+        return Nil;
 
     *result = val;
     return p;
 }
 
-static const char*
-parse_decimal(const char* input, const char* limit, int* result)
+static const Char*
+parse_decimal(const Char* input, const Char* limit, int* result)
 {
     return parse_number(input, limit, 10, result);
 }
 
-static const char*
-parse_hexadecimal(const char* input, const char* limit, int* result)
+static const Char*
+parse_hexadecimal(const Char* input, const Char* limit, int* result)
 {
     return parse_number(input, limit, 16, result);
 }
@@ -329,7 +329,7 @@ parse_hexadecimal(const char* input, const char* limit, int* result)
  * everything simple.
  */
 typedef struct {
-    uint32_t mask;
+    UInt32 mask;
 } CpuList;
 
 static __inline__ void
@@ -345,7 +345,7 @@ cpulist_and(CpuList* list1, CpuList* list2) {
 static __inline__ void
 cpulist_set(CpuList* list, int index) {
     if ((unsigned)index < 32) {
-        list->mask |= (uint32_t)(1U << index);
+        list->mask |= (UInt32)(1U << index);
     }
 }
 
@@ -365,11 +365,11 @@ cpulist_count(CpuList* list) {
  *             0-1
  */
 static void
-cpulist_parse(CpuList* list, const char* line, int line_len)
+cpulist_parse(CpuList* list, const Char* line, int line_len)
 {
-    const char* p = line;
-    const char* end = p + line_len;
-    const char* q;
+    const Char* p = line;
+    const Char* end = p + line_len;
+    const Char* q;
 
     /* NOTE: the input line coming from sysfs typically contains a
      * trailing newline, so take care of it in the code below
@@ -380,13 +380,13 @@ cpulist_parse(CpuList* list, const char* line, int line_len)
 
         /* Find the end of current item, and put it into 'q' */
         q = memchr(p, ',', end-p);
-        if (q == NULL) {
+        if (q == Nil) {
             q = end;
         }
 
         /* Get first value */
         p = parse_decimal(p, q, &start_value);
-        if (p == NULL)
+        if (p == Nil)
             goto BAD_FORMAT;
 
         end_value = start_value;
@@ -396,7 +396,7 @@ cpulist_parse(CpuList* list, const char* line, int line_len)
          */
         if (p < q && *p == '-') {
             p = parse_decimal(p+1, q, &end_value);
-            if (p == NULL)
+            if (p == Nil)
                 goto BAD_FORMAT;
         }
 
@@ -417,9 +417,9 @@ BAD_FORMAT:
 
 /* Read a CPU list from one sysfs file */
 static void
-cpulist_read_from(CpuList* list, const char* filename)
+cpulist_read_from(CpuList* list, const Char* filename)
 {
-    char   file[64];
+    Char   file[64];
     int    filelen;
 
     cpulist_init(list);
@@ -493,7 +493,7 @@ cpulist_read_from(CpuList* list, const char* filename)
 // its implementation does not parse /proc/self/auxv. Instead it depends
 // on values  that are passed by the kernel at process-init time to the
 // C runtime initialization layer.
-static uint32_t
+static UInt32
 get_elf_hwcap_from_getauxval(int hwcap_type) {
     typedef unsigned long getauxval_func_t(unsigned long);
 
@@ -504,14 +504,14 @@ get_elf_hwcap_from_getauxval(int hwcap_type) {
         return 0;
     }
 
-    uint32_t ret = 0;
+    UInt32 ret = 0;
     getauxval_func_t* func = (getauxval_func_t*)
             dlsym(libc_handle, "getauxval");
     if (!func) {
         D("Could not find getauxval() in C library\n");
     } else {
         // Note: getauxval() returns 0 on failure. Doesn't touch errno.
-        ret = (uint32_t)(*func)(hwcap_type);
+        ret = (UInt32)(*func)(hwcap_type);
     }
     dlclose(libc_handle);
     return ret;
@@ -523,20 +523,20 @@ get_elf_hwcap_from_getauxval(int hwcap_type) {
 // current CPU. Note that this file is not accessible from regular
 // application processes on some Android platform releases.
 // On success, return new ELF hwcaps, or 0 on failure.
-static uint32_t
+static UInt32
 get_elf_hwcap_from_proc_self_auxv(void) {
-    const char filepath[] = "/proc/self/auxv";
+    const Char filepath[] = "/proc/self/auxv";
     int fd = TEMP_FAILURE_RETRY(open(filepath, O_RDONLY));
     if (fd < 0) {
         D("Could not open %s: %s\n", filepath, strerror(errno));
         return 0;
     }
 
-    struct { uint32_t tag; uint32_t value; } entry;
+    struct { UInt32 tag; UInt32 value; } entry;
 
-    uint32_t result = 0;
+    UInt32 result = 0;
     for (;;) {
-        int ret = TEMP_FAILURE_RETRY(read(fd, (char*)&entry, sizeof entry));
+        int ret = TEMP_FAILURE_RETRY(read(fd, (Char*)&entry, sizeof entry));
         if (ret < 0) {
             D("Error while reading %s: %s\n", filepath, strerror(errno));
             break;
@@ -558,13 +558,13 @@ get_elf_hwcap_from_proc_self_auxv(void) {
  * features the device's CPU supports, on top of its reference
  * architecture.
  */
-static uint32_t
-get_elf_hwcap_from_proc_cpuinfo(const char* cpuinfo, int cpuinfo_len) {
-    uint32_t hwcaps = 0;
+static UInt32
+get_elf_hwcap_from_proc_cpuinfo(const Char* cpuinfo, int cpuinfo_len) {
+    UInt32 hwcaps = 0;
     long architecture = 0;
-    char* cpuArch = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "CPU architecture");
+    Char* cpuArch = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "CPU architecture");
     if (cpuArch) {
-        architecture = strtol(cpuArch, NULL, 10);
+        architecture = strtol(cpuArch, Nil, 10);
         free(cpuArch);
 
         if (architecture >= 8L) {
@@ -577,8 +577,8 @@ get_elf_hwcap_from_proc_cpuinfo(const char* cpuinfo, int cpuinfo_len) {
         }
     }
 
-    char* cpuFeatures = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "Features");
-    if (cpuFeatures != NULL) {
+    Char* cpuFeatures = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "Features");
+    if (cpuFeatures != Nil) {
         D("Found cpuFeatures = '%s'\n", cpuFeatures);
 
         if (has_list_item(cpuFeatures, "vfp"))
@@ -653,7 +653,7 @@ android_cpuInitFamily(void)
 static void
 android_cpuInit(void)
 {
-    char* cpuinfo = NULL;
+    Char* cpuinfo = Nil;
     int   cpuinfo_len;
 
     android_cpuInitFamily();
@@ -668,7 +668,7 @@ android_cpuInit(void)
       return;
     }
     cpuinfo = malloc(cpuinfo_len);
-    if (cpuinfo == NULL) {
+    if (cpuinfo == Nil) {
       D("cpuinfo buffer could not be allocated");
       return;
     }
@@ -699,10 +699,10 @@ android_cpuInit(void)
          * $KERNEL/arch/arm/kernel/setup.c and the 'c_show' function in
          * same file.
          */
-        char* cpuArch = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "CPU architecture");
+        Char* cpuArch = extract_cpuinfo_field(cpuinfo, cpuinfo_len, "CPU architecture");
 
-        if (cpuArch != NULL) {
-            char*  end;
+        if (cpuArch != Nil) {
+            Char*  end;
             long   archNumber;
             int    hasARMv7 = 0;
 
@@ -727,9 +727,9 @@ android_cpuInit(void)
              * an ARMv6-one.
              */
             if (hasARMv7) {
-                char* cpuProc = extract_cpuinfo_field(cpuinfo, cpuinfo_len,
+                Char* cpuProc = extract_cpuinfo_field(cpuinfo, cpuinfo_len,
                                                       "Processor");
-                if (cpuProc != NULL) {
+                if (cpuProc != Nil) {
                     D("found cpuProc = '%s'\n", cpuProc);
                     if (has_list_item(cpuProc, "(v6l)")) {
                         D("CPU processor and architecture mismatch!!\n");
@@ -752,7 +752,7 @@ android_cpuInit(void)
         }
 
         /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = 0;
+        UInt32 hwcaps = 0;
         hwcaps = get_elf_hwcap_from_getauxval(AT_HWCAP);
         if (!hwcaps) {
             D("Parsing /proc/self/auxv to extract ELF hwcaps!\n");
@@ -826,7 +826,7 @@ android_cpuInit(void)
         }
 
         /* Extract the list of CPU features from ELF hwcaps2 */
-        uint32_t hwcaps2 = 0;
+        UInt32 hwcaps2 = 0;
         hwcaps2 = get_elf_hwcap_from_getauxval(AT_HWCAP2);
         if (hwcaps2 != 0) {
             int has_aes     = (hwcaps2 & HWCAP2_AES);
@@ -850,33 +850,33 @@ android_cpuInit(void)
         // The CPUID value is broken up in several entries in /proc/cpuinfo.
         // This table is used to rebuild it from the entries.
         static const struct CpuIdEntry {
-            const char* field;
-            char        format;
-            char        bit_lshift;
-            char        bit_length;
+            const Char* field;
+            Char        format;
+            Char        bit_lshift;
+            Char        bit_length;
         } cpu_id_entries[] = {
             { "CPU implementer", 'x', 24, 8 },
             { "CPU variant", 'x', 20, 4 },
             { "CPU part", 'x', 4, 12 },
             { "CPU revision", 'd', 0, 4 },
         };
-        size_t i;
+        UInt32 i;
         D("Parsing /proc/cpuinfo to recover CPUID\n");
         for (i = 0;
              i < sizeof(cpu_id_entries)/sizeof(cpu_id_entries[0]);
              ++i) {
             const struct CpuIdEntry* entry = &cpu_id_entries[i];
-            char* value = extract_cpuinfo_field(cpuinfo,
+            Char* value = extract_cpuinfo_field(cpuinfo,
                                                 cpuinfo_len,
                                                 entry->field);
-            if (value == NULL)
+            if (value == Nil)
                 continue;
 
             D("field=%s value='%s'\n", entry->field, value);
-            char* value_end = value + strlen(value);
+            Char* value_end = value + strlen(value);
             int val = 0;
-            const char* start = value;
-            const char* p;
+            const Char* start = value;
+            const Char* p;
             if (value[0] == '0' && (value[1] == 'x' || value[1] == 'X')) {
               start += 2;
               p = parse_hexadecimal(start, value_end, &val);
@@ -885,10 +885,10 @@ android_cpuInit(void)
             else
               p = parse_decimal(value, value_end, &val);
 
-            if (p > (const char*)start) {
+            if (p > (const Char*)start) {
               val &= ((1 << entry->bit_length)-1);
               val <<= entry->bit_lshift;
-              g_cpuIdArm |= (uint32_t) val;
+              g_cpuIdArm |= (UInt32) val;
             }
 
             free(value);
@@ -897,8 +897,8 @@ android_cpuInit(void)
         // Handle kernel configuration bugs that prevent the correct
         // reporting of CPU features.
         static const struct CpuFix {
-            uint32_t  cpuid;
-            uint64_t  or_flags;
+            UInt32  cpuid;
+            UInt64  or_flags;
         } cpu_fixes[] = {
             /* The Nexus 4 (Qualcomm Krait) kernel configuration
              * forgets to report IDIV support. */
@@ -907,7 +907,7 @@ android_cpuInit(void)
             { 0x510006f3, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
                           ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
         };
-        size_t n;
+        UInt32 n;
         for (n = 0; n < sizeof(cpu_fixes)/sizeof(cpu_fixes[0]); ++n) {
             const struct CpuFix* entry = &cpu_fixes[n];
 
@@ -920,7 +920,7 @@ android_cpuInit(void)
         // Technically, this is a feature of the virtual CPU implemented
         // by the emulator. Note that it could also support Thumb IDIV
         // in the future, and this will have to be slightly updated.
-        char* hardware = extract_cpuinfo_field(cpuinfo,
+        Char* hardware = extract_cpuinfo_field(cpuinfo,
                                                cpuinfo_len,
                                                "Hardware");
         if (hardware) {
@@ -936,7 +936,7 @@ android_cpuInit(void)
 #ifdef __aarch64__
     {
         /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = 0;
+        UInt32 hwcaps = 0;
         hwcaps = get_elf_hwcap_from_getauxval(AT_HWCAP);
         if (hwcaps != 0) {
             int has_fp      = (hwcaps & HWCAP_FP);
@@ -1009,7 +1009,7 @@ android_getCpuFamily(void)
 }
 
 
-uint64_t
+UInt64
 android_getCpuFeatures(void)
 {
     pthread_once(&g_once, android_cpuInit);
@@ -1031,7 +1031,7 @@ android_cpuInitDummy(void)
 }
 
 int
-android_setCpu(int cpu_count, uint64_t cpu_features)
+android_setCpu(int cpu_count, UInt64 cpu_features)
 {
     /* Fail if the library was already initialized. */
     if (g_inited)
@@ -1046,7 +1046,7 @@ android_setCpu(int cpu_count, uint64_t cpu_features)
 }
 
 #ifdef __arm__
-uint32_t
+UInt32
 android_getCpuIdArm(void)
 {
     pthread_once(&g_once, android_cpuInit);
@@ -1054,7 +1054,7 @@ android_getCpuIdArm(void)
 }
 
 int
-android_setCpuArm(int cpu_count, uint64_t cpu_features, uint32_t cpu_id)
+android_setCpuArm(int cpu_count, UInt64 cpu_features, UInt32 cpu_id)
 {
     if (!android_setCpu(cpu_count, cpu_features))
         return 0;
@@ -1083,12 +1083,12 @@ android_setCpuArm(int cpu_count, uint64_t cpu_features, uint32_t cpu_id)
  * VFPv3-D16 adds a few instructions on top of VFPv2 and is typically used
  * on ARMv7-A CPUs which implement a FPU. Note that it is also mandated
  * by the Android 'armeabi-v7a' ABI. The -D16 suffix in its name means
- * that it provides 16 double-precision FPU registers (d0-d15) and 32
+ * that it provides 16 Float64-precision FPU registers (d0-d15) and 32
  * single-precision ones (s0-s31) which happen to be mapped to the same
  * register banks.
  *
  * VFPv3-D32 is the name of an extension to VFPv3-D16 that provides 16
- * additional double precision registers (d16-d31). Note that there are
+ * additional Float64 precision registers (d16-d31). Note that there are
  * still only 32 single precision registers.
  *
  * VFPv3xD is a *subset* of VFPv3-D16 that only provides single-precision
@@ -1110,7 +1110,7 @@ android_setCpuArm(int cpu_count, uint64_t cpu_features, uint32_t cpu_id)
  * perform fused multiply-accumulate on VFP registers, as well as
  * half-precision (16-bit) conversion operations.
  *
- * VFPv4-D32 is VFPv4-D16 with 32, instead of 16, FPU double precision
+ * VFPv4-D32 is VFPv4-D16 with 32, instead of 16, FPU Float64 precision
  * registers.
  *
  * VPFv4-NEON is VFPv4-D32 with NEON instructions. It also adds fused
@@ -1128,7 +1128,7 @@ android_setCpuArm(int cpu_count, uint64_t cpu_features, uint32_t cpu_id)
  * #define FPU_VFP_EXT_V1   0x04000000     // Double-precision insns.
  * #define FPU_VFP_EXT_V2   0x02000000     // ARM10E VFPr1.
  * #define FPU_VFP_EXT_V3xD 0x01000000     // VFPv3 single-precision.
- * #define FPU_VFP_EXT_V3   0x00800000     // VFPv3 double-precision.
+ * #define FPU_VFP_EXT_V3   0x00800000     // VFPv3 Float64-precision.
  * #define FPU_NEON_EXT_V1  0x00400000     // Neon (SIMD) insns.
  * #define FPU_VFP_EXT_D32  0x00200000     // Registers D16-D31.
  * #define FPU_VFP_EXT_FP16 0x00100000     // Half-precision extensions.

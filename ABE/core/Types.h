@@ -54,22 +54,50 @@
  * @note NO Endian specific operations expect tool designed for this
  **/
 
-#include <stdint.h>         // fixed width integer: int8_t int16_t int32_t ...
-#include <stddef.h>         // size_t, null
-#include <stdbool.h>        // true, false
+#pragma mark Headers
+#include <stdint.h>
 #include <stdarg.h>         // va_list
-#include <sys/types.h>      // other types: ssize_t
 #include <inttypes.h>       // for PRId32/PRId64/...
-#include <errno.h>          // errno, ...do NOT expose errno in your API, define your own or nothing.
+#include <stddef.h>         // size_t, need by some internal apis
+#define PRIf32  "f"
+#define PRIf64  "lf"
 
-// at least these types should be defined.
-// uint8_t  int8_t
-// uint16_t int16_t
-// uint32_t int32_t
-// uint64_t int64_t
-// size_t ssize_t
-// bool     true false
-// null
+#pragma mark Basic Types
+/**
+ * Basic Types
+ * @note we discourage the use of size_t/Int
+ */
+// platform-depended width integer type
+typedef int             Int;
+typedef unsigned int    UInt;
+// fixed-width unsigned integer type
+typedef uint8_t         UInt8;
+typedef uint16_t        UInt16;
+typedef uint32_t        UInt32;
+typedef uint64_t        UInt64;
+// fixed-width signed integer type
+typedef int8_t          Int8;
+typedef int16_t         Int16;
+typedef int32_t         Int32;
+typedef int64_t         Int64;
+// other types
+typedef float           Float32;
+typedef double          Float64;;
+typedef char            Char;
+// alias types
+typedef Int             Bool;
+typedef UInt32          Status;
+// type values
+#define True            1
+#define False           0
+#define Nil             0
+#define OK              0   // For Status with no error
+
+#pragma mark Macros
+#define FOURCC(x) ((((UInt32)(x) >> 24) & 0xff)         \
+                | (((UInt32)(x) >> 8) & 0xff00)         \
+                | (((UInt32)(x) << 8) & 0xff0000)       \
+                | (((UInt32)(x) << 24) & 0xff000000))
 
 // atomic
 // FIXME: understand the memmodel
@@ -87,8 +115,8 @@
 #define ABE_ATOMIC_STORE(p, val)        __atomic_store_n(p, val, ABE_ATOMIC_MEMMODEL)
 #define ABE_ATOMIC_LOAD(p)              __atomic_load_n(p, ABE_ATOMIC_MEMMODEL)
 #define ABE_ATOMIC_EXCHANGE(p, val)     __atomic_exchange_n(p, val, ABE_ATOMIC_MEMMODEL)
-// if *p0 == *p1: val => *p0 : return true; else: *p0 => *p1 : return false
-#define ABE_ATOMIC_CAS(p0, p1, val)     __atomic_compare_exchange_n(p0, p1, val, false, ABE_ATOMIC_MEMMODEL, ABE_ATOMIC_MEMMODEL)    // compare and swap
+// if *p0 == *p1: val => *p0 : return True; else: *p0 => *p1 : return False
+#define ABE_ATOMIC_CAS(p0, p1, val)     __atomic_compare_exchange_n(p0, p1, val, False, ABE_ATOMIC_MEMMODEL, ABE_ATOMIC_MEMMODEL)    // compare and swap
 
 #define ABE_ATOMIC_ADD(p, val)          __atomic_add_fetch(p, val, ABE_ATOMIC_MEMMODEL)
 #define ABE_ATOMIC_SUB(p, val)          __atomic_sub_fetch(p, val, ABE_ATOMIC_MEMMODEL)
@@ -108,14 +136,12 @@
 #endif
 
 // macros
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #ifdef __cplusplus
-#define __BEGIN_DECLS                   extern "C" {
-#define __END_DECLS                     }
+#define BEGIN_DECLS                     extern "C" {
+#define END_DECLS                       }
 #else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
+#define BEGIN_DECLS
+#define END_DECLS
 #endif
 
 #if defined(_MSC_VER)
@@ -137,8 +163,8 @@
 #define ABE_LIKELY(x)                   (x)
 #define ABE_UNLIKELY(x)                 !(x)
 #else
-#define ABE_LIKELY(x)                   __builtin_expect(x, true)
-#define ABE_UNLIKELY(x)                 __builtin_expect(x, false)
+#define ABE_LIKELY(x)                   __builtin_expect(x, True)
+#define ABE_UNLIKELY(x)                 __builtin_expect(x, False)
 #endif
 
 #ifdef __cplusplus
@@ -150,12 +176,11 @@
 #define __BEGIN_NAMESPACE_ABE           __BEGIN_NAMESPACE(__NAMESPACE_ABE)
 #define __END_NAMESPACE_ABE             __END_NAMESPACE(__NAMESPACE_ABE)
 
-#define __NAMESPACE_ABE_PRIVATE         abe_private
-#define __BEGIN_NAMESPACE_ABE_PRIVATE   __BEGIN_NAMESPACE(__NAMESPACE_ABE) __BEGIN_NAMESPACE(__NAMESPACE_ABE_PRIVATE)
-#define __END_NAMESPACE_ABE_PRIVATE     __END_NAMESPACE(__NAMESPACE_ABE_PRIVATE) __END_NAMESPACE(__NAMESPACE_ABE)
+#define __NAMESPACE_PRIVATE             _privates
+#define __BEGIN_NAMESPACE_ABE_PRIVATE   __BEGIN_NAMESPACE(__NAMESPACE_ABE) __BEGIN_NAMESPACE(__NAMESPACE_PRIVATE)
+#define __END_NAMESPACE_ABE_PRIVATE     __END_NAMESPACE(__NAMESPACE_PRIVATE) __END_NAMESPACE(__NAMESPACE_ABE)
 
 #define USING_NAMESPACE_ABE             __USING_NAMESPACE(__NAMESPACE_ABE)
-#define USING_NAMESPACE_ABE_PRIVATE     __USING_NAMESPACE(__NAMESPACE_ABE::__NAMESPACE_ABE_PRIVATE)
 
 // borrow from Android
 // Put this in the private: declarations for a class to be uncopyable.
@@ -173,42 +198,27 @@
     TypeName(const TypeName&);              \
     TypeName& operator=(const TypeName&)
 
-#define DISALLOW_DYNAMIC(TypeName)          \
-    private:                                \
-    void *  operator new(size_t);           \
-    void    operator delete(void *)
-
 //=============================================================
 // sp Type
 __BEGIN_NAMESPACE_ABE
 
-enum {      //-- XXX remove this XXX --//
-    OBJECT_ID_ANY,
-    OBJECT_ID_ALLOCATOR,
-    OBJECT_ID_SHAREDBUFFER,
-    OBJECT_ID_STRING,
-    OBJECT_ID_BUFFER,
-    OBJECT_ID_MESSAGE,
-    OBJECT_ID_RUNNABLE,
-    OBJECT_ID_LOOPER,
-    OBJECT_ID_EVENT,
-    OBJECT_ID_MAX   = INT32_MAX
-};
-
 // https://stackoverflow.com/questions/6271615/any-way-to-prevent-dynamic-allocation-of-a-class
 /**
- * object can NOT be shared
- * @note usally for local accessory class
+ * static object that can not be shared
+ * @note usally for local auxiliary class
  */
-struct ABE_EXPORT NonSharedObject {
-    NonSharedObject() { }
-    ~NonSharedObject() { }
-
-    DISALLOW_DYNAMIC(NonSharedObject);
+#define STATIC_OBJECT(TypeName)             \
+    private:                                \
+    void *  operator new(size_t);           \
+    void    operator delete(void *)
+struct ABE_EXPORT StaticObject {
+    StaticObject() { }
+    ~StaticObject() { }
+    STATIC_OBJECT(StaticObject);
 };
 
 // FIXME: limit T to basic types
-template <typename T> class Atomic : public NonSharedObject {
+template <typename T> class Atomic : public StaticObject {
     private:
         volatile T value;
 
@@ -220,7 +230,7 @@ template <typename T> class Atomic : public NonSharedObject {
         ABE_INLINE void   store(T val)          { ABE_ATOMIC_STORE(&value, val);                }
         ABE_INLINE T      load() const          { return ABE_ATOMIC_LOAD(&value);               }
         ABE_INLINE T      exchange(T val)       { return ABE_ATOMIC_EXCHANGE(&value, val);      }
-        ABE_INLINE bool   cas(T& to, T val)     { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
+        ABE_INLINE Bool   cas(T& to, T val)     { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
 
         ABE_INLINE T      operator++()          { return ABE_ATOMIC_ADD(&value, 1);             }   // pre-increment
         ABE_INLINE T      operator++(int)       { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
@@ -248,11 +258,11 @@ template <typename T> class Atomic : public NonSharedObject {
  */
 struct ABE_EXPORT SharedObject {
     private:
-        const uint32_t  mID;
-        Atomic<size_t>  mRefs;
+        UInt32          mID;
+        Atomic<UInt>    mRefs;
 
     protected:
-        SharedObject(const uint32_t id = OBJECT_ID_ANY);
+        SharedObject(const uint32_t id = FOURCC('?obj'));
         /**
          * @note it is a good practice to leave virtual destruction empty
          */
@@ -270,13 +280,13 @@ struct ABE_EXPORT SharedObject {
         virtual void    onLastRetain() { }
 
     public:
-        ABE_INLINE uint32_t GetObjectID() const { return mID; }
+        ABE_INLINE UInt32   GetObjectID() const { return mID; }
 
         /**
          * get this object reference count
          * @return return current reference count
          */
-        ABE_INLINE size_t   GetRetainCount() const { return mRefs.load(); }
+        ABE_INLINE UInt32   GetRetainCount() const { return mRefs.load(); }
 
         /**
          * retain this object by increase reference count
@@ -291,43 +301,42 @@ struct ABE_EXPORT SharedObject {
          * @return return new reference count
          * @note keep the memory if subclass need to do extra destruction work
          */
-        size_t              ReleaseObject(bool keep = false);
+        UInt32              ReleaseObject(Bool keep = False);
 
         /**
          * is this object shared with others
          * @note if object is not shared, it is safe to do anything
          *       else either copy this object or lock it to modify its context
          */
-        ABE_INLINE bool    IsObjectShared() const      { return GetRetainCount() > 1; }
-        ABE_INLINE bool    IsObjectNotShared() const   { return !IsObjectShared(); }
+        ABE_INLINE Bool    IsObjectShared() const      { return GetRetainCount() > 1; }
+        ABE_INLINE Bool    IsObjectNotShared() const   { return !IsObjectShared(); }
 
         DISALLOW_EVILS(SharedObject);
 };
 
 #define COMPARE(_op_)                                                   \
-    ABE_INLINE bool operator _op_ (const sp<T>& o) const {              \
+    ABE_INLINE Bool operator _op_ (const sp<T>& o) const {              \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
-    ABE_INLINE bool operator _op_ (const T* o) const {                  \
+    ABE_INLINE Bool operator _op_ (const T* o) const {                  \
         return mShared _op_ o;                                          \
     }                                                                   \
     template<typename U>                                                \
-    ABE_INLINE bool operator _op_ (const sp<U>& o) const {              \
+    ABE_INLINE Bool operator _op_ (const sp<U>& o) const {              \
         return mShared _op_ o.mShared;                                  \
     }                                                                   \
     template<typename U>                                                \
-    ABE_INLINE bool operator _op_ (const U* o) const {                  \
+    ABE_INLINE Bool operator _op_ (const U* o) const {                  \
         return mShared _op_ o;                                          \
     }                                                                   \
 
 /**
- * SharedObject accessory
- * help retain & release SharedObject
+ * Shared/Strong Pointer for SharedObject only
  */
-template <class T> class ABE_EXPORT sp : public NonSharedObject {
+template <class T> class ABE_EXPORT sp : public StaticObject {
     public:
         // constructors
-        ABE_INLINE sp() : mShared(NULL) { }
+        ABE_INLINE sp() : mShared(Nil) { }
         ABE_INLINE sp(SharedObject * rhs)                       { set(rhs);             }
         ABE_INLINE sp(const sp<T>& rhs)                         { set(rhs.mShared);     }
         template<typename U> ABE_INLINE sp(U * rhs)             { set(rhs);             }
@@ -345,11 +354,12 @@ template <class T> class ABE_EXPORT sp : public NonSharedObject {
         // clear
         ABE_INLINE void clear();
 
-        ABE_INLINE bool isNIL() const { return mShared == NULL ; }
+        // Nil test
+        ABE_INLINE Bool isNil() const { return mShared == Nil ; }
 
     public:
         /**
-         * compare the object pointer, not the object content
+         * @note compare the object pointer, not the object content
          */
         COMPARE(==);
         COMPARE(!=);
@@ -365,12 +375,13 @@ template <class T> class ABE_EXPORT sp : public NonSharedObject {
         ABE_INLINE  T*         get() const        { return static_cast<T*>(mShared);          }
 
     public:
-        ABE_INLINE size_t      refsCount() const  { return mShared->GetRetainCount();         }
+        // DEBUGGING
+        ABE_INLINE UInt32      refsCount() const  { return mShared->GetRetainCount();         }
 
     public:
         template<typename U> friend class sp;
-        ABE_INLINE void                       set(SharedObject *);
-        template<typename U> ABE_INLINE void  set(U * );
+        ABE_INLINE void set(SharedObject *);
+        template<typename U> ABE_INLINE void set(U *);
         SharedObject *  mShared;
 };
 #undef COMPARE
@@ -392,7 +403,7 @@ template<typename T> void sp<T>::clear() {
         // in object destruction. but it will also make this object
         // inaccessable in onLastRetain()
         mShared->ReleaseObject();
-        mShared = NULL;
+        mShared = Nil;
     }
 }
 

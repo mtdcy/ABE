@@ -59,29 +59,29 @@
 
 __BEGIN_NAMESPACE_ABE
 
-SharedObject::SharedObject(const uint32_t id) : mID(id), mRefs(0) {
+SharedObject::SharedObject(const UInt32 id) : mID(id), mRefs(0) {
 }
 
 SharedObject *  SharedObject::RetainObject() {
     DEBUG("retain %" PRIu32, mID);
-    size_t refs = ++mRefs;
+    UInt32 refs = ++mRefs;
     if (refs == 1) onFirstRetain();
     return this;
 }
 
-size_t SharedObject::ReleaseObject(bool keep) {
+UInt32 SharedObject::ReleaseObject(Bool keep) {
     DEBUG("release %" PRIu32, mID);
     if (mRefs.load() == 0) {
         ERROR("release object %p after destruction", this);
         return 0;
     }
     
-    size_t refs = --mRefs;
+    UInt32 refs = --mRefs;
     if (refs == 0) {
         onLastRetain();
         if (!keep) delete this;
     }
-    return (size_t)refs;
+    return (UInt32)refs;
 }
 
 SharedObject::SharedObject(const SharedObject& rhs) : mID(rhs.mID), mRefs(0) {
@@ -96,15 +96,15 @@ __END_NAMESPACE_ABE
 
 #define BUFFER_START_MAGIC  0xbaaddead
 #define BUFFER_END_MAGIC    0xdeadbaad
-
+#define BUFFER_OBJECT_ID    FOURCC('sbuf')
 __BEGIN_NAMESPACE_ABE
 
-SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
-    mAllocator(NULL), mData(NULL), mSize(0) { }
+SharedBuffer::SharedBuffer() : SharedObject(BUFFER_OBJECT_ID),
+    mAllocator(Nil), mData(Nil), mSize(0) { }
 
-    SharedBuffer * SharedBuffer::allocate(const sp<Allocator> & _allocator, size_t sz) {
+    SharedBuffer * SharedBuffer::allocate(const sp<Allocator> & _allocator, UInt32 sz) {
         // FIXME: if allocator is aligned, make sure data is also aligned
-        const size_t allocLength = sizeof(SharedBuffer) + sz + sizeof(uint32_t) * 2;
+        const UInt32 allocLength = sizeof(SharedBuffer) + sz + sizeof(UInt32) * 2;
 
         // keep a strong ref local
         sp<Allocator> allocator = _allocator;
@@ -116,10 +116,10 @@ SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
         shared->mSize       = sz;
 
         // put magic guard before and after data
-        char * data = (char *)&shared[1];
-        *(uint32_t *)data           = BUFFER_START_MAGIC;
-        data                        += sizeof(uint32_t);
-        *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
+        Char * data = (Char *)&shared[1];
+        *(UInt32 *)data           = BUFFER_START_MAGIC;
+        data                        += sizeof(UInt32);
+        *(UInt32 *)(data + sz)    = BUFFER_END_MAGIC;
         shared->mData               = data;
 
         shared->RetainObject();
@@ -127,9 +127,9 @@ SharedBuffer::SharedBuffer() : SharedObject(OBJECT_ID_SHAREDBUFFER),
     }
 
 void SharedBuffer::deallocate() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
-    FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
-    FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
+    FATAL_CHECK_EQ(GetObjectID(), BUFFER_OBJECT_ID);
+    FATAL_CHECK_EQ(((UInt32 *)mData)[-1], BUFFER_START_MAGIC);
+    FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), BUFFER_END_MAGIC);
 
     // keep a strong ref local
     sp<Allocator> allocator = mAllocator;
@@ -137,12 +137,12 @@ void SharedBuffer::deallocate() {
     allocator->deallocate(this);
 }
 
-size_t SharedBuffer::ReleaseBuffer(bool keep) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
-    FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
-    FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
+UInt32 SharedBuffer::ReleaseBuffer(Bool keep) {
+    FATAL_CHECK_EQ(GetObjectID(), BUFFER_OBJECT_ID);
+    FATAL_CHECK_EQ(((UInt32 *)mData)[-1], BUFFER_START_MAGIC);
+    FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), BUFFER_END_MAGIC);
 
-    size_t refs = SharedObject::ReleaseObject(true);
+    UInt32 refs = SharedObject::ReleaseObject(True);
     if (refs == 0 && !keep) {
         deallocate();
     }
@@ -150,9 +150,9 @@ size_t SharedBuffer::ReleaseBuffer(bool keep) {
 }
 
 SharedBuffer * SharedBuffer::edit() {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
-    FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
-    FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
+    FATAL_CHECK_EQ(GetObjectID(), BUFFER_OBJECT_ID);
+    FATAL_CHECK_EQ(((UInt32 *)mData)[-1], BUFFER_START_MAGIC);
+    FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), BUFFER_END_MAGIC);
     if (IsBufferNotShared()) return this;
 
     SharedBuffer * copy = SharedBuffer::allocate(mAllocator, mSize);
@@ -162,10 +162,10 @@ SharedBuffer * SharedBuffer::edit() {
     return copy;
 }
 
-SharedBuffer * SharedBuffer::edit(size_t sz) {
-    FATAL_CHECK_EQ(GetObjectID(), OBJECT_ID_SHAREDBUFFER);
-    FATAL_CHECK_EQ(((uint32_t *)mData)[-1], BUFFER_START_MAGIC);
-    FATAL_CHECK_EQ(*(uint32_t *)(mData + mSize), BUFFER_END_MAGIC);
+SharedBuffer * SharedBuffer::edit(UInt32 sz) {
+    FATAL_CHECK_EQ(GetObjectID(), BUFFER_OBJECT_ID);
+    FATAL_CHECK_EQ(((UInt32 *)mData)[-1], BUFFER_START_MAGIC);
+    FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), BUFFER_END_MAGIC);
 
     if (IsBufferNotShared() && sz <= mSize) return this;
 
@@ -173,16 +173,16 @@ SharedBuffer * SharedBuffer::edit(size_t sz) {
         // reallocate
         // keep a strong ref local
         sp<Allocator> allocator = mAllocator;
-        const size_t allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(uint32_t);
+        const UInt32 allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(UInt32);
         SharedBuffer * shared = (SharedBuffer *)allocator->reallocate(this, allocLength);
         // fix context
         shared->mAllocator  = allocator;
         shared->mSize       = sz;
 
-        char * data                 = (char *)&shared[1];
-        *(uint32_t *)data           = BUFFER_START_MAGIC;
-        data                        += sizeof(uint32_t);
-        *(uint32_t *)(data + sz)    = BUFFER_END_MAGIC;
+        Char * data                 = (Char *)&shared[1];
+        *(UInt32 *)data           = BUFFER_START_MAGIC;
+        data                        += sizeof(UInt32);
+        *(UInt32 *)(data + sz)    = BUFFER_END_MAGIC;
         shared->mData               = data;
         return shared;
     }

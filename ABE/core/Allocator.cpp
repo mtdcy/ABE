@@ -44,10 +44,10 @@
 #define ALIGN (32)
 
 #if 0
-static int posix_memalign(void **ptr, size_t alignment, size_t size) {
+static int posix_memalign(void **ptr, UInt32 alignment, UInt32 size) {
     if (alignment < ALIGN) alignment = ALIGN;
 
-    *ptr = NULL;
+    *ptr = Nil;
 
 #if defined(HAVE_MEMALIGN)
 #ifndef __DJGPP__
@@ -70,12 +70,12 @@ __BEGIN_NAMESPACE_ABE
 struct AllocatorDefault : public Allocator {
     AllocatorDefault() : Allocator() { }
     virtual ~AllocatorDefault() { }
-    virtual void * allocate(size_t size) {
+    virtual void * allocate(UInt32 size) {
         void * ptr = malloc(size);
         CHECK_NULL(ptr);
         return ptr;
     }
-    virtual void * reallocate(void * ptr, size_t size) {
+    virtual void * reallocate(void * ptr, UInt32 size) {
         void * _ptr = realloc(ptr, size);
         CHECK_NULL(_ptr);
         return _ptr;
@@ -88,18 +88,18 @@ struct AllocatorDefault : public Allocator {
 sp<Allocator> kAllocatorDefault = new AllocatorDefault;
 
 struct AllocatorDefaultAligned : public Allocator {
-    const size_t mAlignment;
-    size_t mSize;
-    AllocatorDefaultAligned(size_t align) : Allocator(), mAlignment(POW_2(align)) { }
+    const UInt32 mAlignment;
+    UInt32 mSize;
+    AllocatorDefaultAligned(UInt32 align) : Allocator(), mAlignment(POW_2(align)) { }
     virtual ~AllocatorDefaultAligned() { }
-    virtual void * allocate(size_t size) {
+    virtual void * allocate(UInt32 size) {
         void * ptr;
         CHECK_EQ(posix_memalign(&ptr, mAlignment, size), 0);
         CHECK_NULL(ptr);
         mSize = size;
         return ptr;
     }
-    virtual void * reallocate(void * ptr, size_t size) {
+    virtual void * reallocate(void * ptr, UInt32 size) {
         // From man(3) posix_memalign:
         // Memory that is allocated via posix_memalign() can be used
         // as an argument in subsequent calls to realloc(3), reallocf(3),
@@ -121,7 +121,7 @@ struct AllocatorDefaultAligned : public Allocator {
     }
 };
 
-sp<Allocator> GetAlignedAllocator(size_t alignment) {
+sp<Allocator> GetAlignedAllocator(UInt32 alignment) {
     return new AllocatorDefaultAligned(alignment);
 }
 

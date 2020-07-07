@@ -50,20 +50,20 @@ mQueue(disp), mTicks(0) { }
 Job::~Job() {
 }
 
-size_t Job::run(int64_t us) {
-    if (!mLooper.isNIL())
+UInt32 Job::run(Int64 us) {
+    if (!mLooper.isNil())
         mLooper->post(this, us);
-    else if (!mQueue.isNIL())
+    else if (!mQueue.isNil())
         mQueue->dispatch(this, us);
     else
         execution();
     return mTicks.load();
 }
 
-size_t Job::cancel() {
-    if (!mLooper.isNIL())
+UInt32 Job::cancel() {
+    if (!mLooper.isNil())
         mLooper->remove(this);
-    else if (!mQueue.isNIL())
+    else if (!mQueue.isNil())
         mQueue->remove(this);
     return mTicks.load();
 }

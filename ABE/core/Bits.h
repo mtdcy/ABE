@@ -40,7 +40,7 @@
 __BEGIN_NAMESPACE_ABE
 
 template <typename T>
-class ABE_EXPORT Bits : public NonSharedObject {
+class ABE_EXPORT Bits : public StaticObject {
     public:
         ABE_INLINE Bits() : V(0) { }
         ABE_INLINE Bits(T v) : V(v) { }
@@ -48,13 +48,13 @@ class ABE_EXPORT Bits : public NonSharedObject {
         ABE_INLINE Bits& operator=(const Bits& rhs) { V = rhs.V; return *this;  }
     
     public:
-        ABE_INLINE T    set(size_t n)           { V |= ((T)1 << n); return V;   }
-        ABE_INLINE T    clear(size_t n)         { V &= ~((T)1 << n); return V;  }
-        ABE_INLINE T    flip(size_t n)          { V ^= ((T)1 << n); return V;   }
+        ABE_INLINE T    set(UInt32 n)           { V |= ((T)1 << n); return V;   }
+        ABE_INLINE T    clear(UInt32 n)         { V &= ~((T)1 << n); return V;  }
+        ABE_INLINE T    flip(UInt32 n)          { V ^= ((T)1 << n); return V;   }
         ABE_INLINE void clear()                 { V = 0;                        }
         ABE_INLINE T    flip()                  { V = ~V; return V;             }
-        ABE_INLINE bool test(size_t n) const    { return V & ((T)1 << n);       }
-        ABE_INLINE bool empty() const           { return V == 0;                }
+        ABE_INLINE Bool test(UInt32 n) const    { return V & ((T)1 << n);       }
+        ABE_INLINE Bool empty() const           { return V == 0;                }
         ABE_INLINE T    value() const           { return V;                     }
     
     private:

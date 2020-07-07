@@ -45,13 +45,13 @@
 
 __BEGIN_NAMESPACE_ABE
 
-static String hexdump(const void *data, uint32_t bytes) {
+static String hexdump(const void *data, UInt32 bytes) {
     String result;
-    const uint8_t *head = (const uint8_t*)data;
-    const uint8_t *end = head + bytes;
+    const UInt8 *head = (const UInt8*)data;
+    const UInt8 *end = head + bytes;
 
     while (head < end) {
-        String line = String::format("%08" PRIx32 ": ", (uint32_t)(head - (uint8_t*)data));
+        String line = String::format("%08" PRIx32 ": ", (UInt32)(head - (UInt8*)data));
 
         for (int i = 0; i < 16; i++) {
             if (head + i < end)
@@ -81,19 +81,19 @@ static String hexdump(const void *data, uint32_t bytes) {
     return result;
 }
 
-uint32_t ABuffer::show(size_t n) const {
+UInt32 ABuffer::show(UInt32 n) const {
     CHECK_GT(n, 0);
     CHECK_LE(n, 32);
 
     if (n > mReadReservoir.mLength) {
         DEBUG("request %zu bits, but %zu left", n, mReadReservoir.mLength);
-        const size_t m  = n - mReadReservoir.mLength;
-        size_t numBytes = (m + 7) / 8;  // round up.
-        CHECK_LE((int64_t)numBytes, size());
+        const UInt32 m  = n - mReadReservoir.mLength;
+        UInt32 numBytes = (m + 7) / 8;  // round up.
+        CHECK_LE((Int64)numBytes, size());
 
         DEBUG("read %zu bytes", numBytes);
         DEBUG("mReservoir = %#x", mReadReservoir.mBits);
-        for (size_t i = 0; i < numBytes; i++) {
+        for (UInt32 i = 0; i < numBytes; i++) {
             mReadReservoir.mBits = (mReadReservoir.mBits << 8) | readByte();
             mReadReservoir.mLength  += 8;
         }
@@ -102,18 +102,18 @@ uint32_t ABuffer::show(size_t n) const {
     }
     CHECK_LE(n, mReadReservoir.mLength);
     
-    const uint32_t v = (mReadReservoir.mBits >> (mReadReservoir.mLength - n)) & MASK64(n);
+    const UInt32 v = (mReadReservoir.mBits >> (mReadReservoir.mLength - n)) & MASK64(n);
     DEBUG("v = %#x", v);
     return v;
 }
 
-uint32_t ABuffer::read(size_t n) const {
-    uint32_t x = show(n);
+UInt32 ABuffer::read(UInt32 n) const {
+    UInt32 x = show(n);
     mReadReservoir.mLength -= n;
     return x;
 }
 
-void ABuffer::skip(size_t n) const {
+void ABuffer::skip(UInt32 n) const {
     if (n < mReadReservoir.mLength) {
         mReadReservoir.mLength -= n;
         return;
@@ -131,10 +131,10 @@ void ABuffer::skip() const {
     mReadReservoir.mLength = 0;
 }
 
-void ABuffer::write(uint32_t x, size_t n) {
+void ABuffer::write(UInt32 x, UInt32 n) {
     CHECK_LE(n, 32);
 
-    mWriteReservoir.mBits = (mWriteReservoir.mBits << n) | (uint64_t)x;
+    mWriteReservoir.mBits = (mWriteReservoir.mBits << n) | (UInt64)x;
     mWriteReservoir.mLength += n;
 
     while (mWriteReservoir.mLength >= 8) {
@@ -149,111 +149,111 @@ void ABuffer::write() {
     CHECK_EQ(mWriteReservoir.mLength, 0);
 }
 
-uint8_t ABuffer::r8() const {
+UInt8 ABuffer::r8() const {
     return read(8);
 }
 
-uint16_t ABuffer::rl16() const {
-    uint16_t v = r8();
+UInt16 ABuffer::rl16() const {
+    UInt16 v = r8();
     v = v | r8() << 8;
     return v;
 }
 
-uint32_t ABuffer::rl24() const {
-    uint32_t v = r8();
-    v = v | (uint32_t)rl16() << 8;
+UInt32 ABuffer::rl24() const {
+    UInt32 v = r8();
+    v = v | (UInt32)rl16() << 8;
     return v;
 }
 
-uint32_t ABuffer::rl32() const {
-    uint32_t v = rl16();
-    v = v | (uint32_t)rl16() << 16;
+UInt32 ABuffer::rl32() const {
+    UInt32 v = rl16();
+    v = v | (UInt32)rl16() << 16;
     return v;
 }
 
-uint64_t ABuffer::rl64() const {
-    uint64_t v = rl32();
-    v = v | (uint64_t)rl32() << 32;
+UInt64 ABuffer::rl64() const {
+    UInt64 v = rl32();
+    v = v | (UInt64)rl32() << 32;
     return v;
 }
 
-uint16_t ABuffer::rb16() const {
-    uint16_t v = r8();
+UInt16 ABuffer::rb16() const {
+    UInt16 v = r8();
     v = r8() | v << 8;
     return v;
 }
 
-uint32_t ABuffer::rb24() const {
-    uint32_t v = rb16();
+UInt32 ABuffer::rb24() const {
+    UInt32 v = rb16();
     v = r8() | v << 8;
     return v;
 }
 
-uint32_t ABuffer::rb32() const {
-    uint32_t v = rb16();
+UInt32 ABuffer::rb32() const {
+    UInt32 v = rb16();
     v = rb16() | v << 16;
     return v;
 }
 
-uint64_t ABuffer::rb64() const {
-    uint64_t v = rb32();
+UInt64 ABuffer::rb64() const {
+    UInt64 v = rb32();
     v = rb32() | v << 32;
     return v;
 }
 
-String ABuffer::rs(size_t n) const {
-    uint8_t s[n];
-    for (size_t i = 0; i < n; i++) s[i] = r8();
-    return String((char*)&s[0], n);
+String ABuffer::rs(UInt32 n) const {
+    UInt8 s[n];
+    for (UInt32 i = 0; i < n; i++) s[i] = r8();
+    return String((Char*)&s[0], n);
 }
 
-void ABuffer::w8(uint8_t x) {
+void ABuffer::w8(UInt8 x) {
     write(x, 8);
 }
 
-void ABuffer::wl16(uint16_t x) {
+void ABuffer::wl16(UInt16 x) {
     w8(x & 0xff);
     w8(x >> 8);
 }
 
-void ABuffer::wl24(uint32_t x) {
+void ABuffer::wl24(UInt32 x) {
     w8(x & 0xff);
     wl16(x >> 8);
 }
 
-void ABuffer::wl32(uint32_t x) {
+void ABuffer::wl32(UInt32 x) {
     wl16(x & 0xffff);
     wl16(x >> 16);
 }
 
-void ABuffer::wl64(uint64_t x) {
+void ABuffer::wl64(UInt64 x) {
     wl32(x & 0xffffffff);
     wl32(x >> 32);
 }
 
-void ABuffer::wb16(uint16_t x) {
+void ABuffer::wb16(UInt16 x) {
     w8(x >> 8);
     w8(x & 0xff);
 }
 
-void ABuffer::wb24(uint32_t x) {
+void ABuffer::wb24(UInt32 x) {
     wb16(x >> 8);
     w8(x & 0xff);
 }
 
-void ABuffer::wb32(uint32_t x) {
+void ABuffer::wb32(UInt32 x) {
     wb16(x >> 16);
     wb16(x & 0xffff);
 }
 
-void ABuffer::wb64(uint64_t x) {
+void ABuffer::wb64(UInt64 x) {
     wb32(x >> 32);
     wb32(x & 0xffffffff);
 }
 
-void ABuffer::ws(const String& s, size_t n) {
+void ABuffer::ws(const String& s, UInt32 n) {
     if (!n || n > s.size()) n = s.size();
-    for (size_t i = 0; i < n; i++) w8(s[i]);
+    for (UInt32 i = 0; i < n; i++) w8(s[i]);
 }
 
 void ABuffer::reset() const {
@@ -265,15 +265,15 @@ void ABuffer::flush() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-Buffer::Buffer(const Buffer * rhs, size_t offset, size_t size) : ABuffer(),
+Buffer::Buffer(const Buffer * rhs, UInt32 offset, UInt32 size) : ABuffer(),
     mAllocator(rhs->mAllocator), mData(rhs->mData->RetainBuffer()),
     mOffset(rhs->mOffset + offset), mCapacity(size),
     mType(Linear), mReadPos(0), mWritePos(size) {
         CHECK_GT(mCapacity, 0);
 }
 
-Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : ABuffer(),
-    mAllocator(allocator), mData(NULL),
+Buffer::Buffer(UInt32 capacity, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(Nil),
     mOffset(0), mCapacity(capacity),
     mType(Linear), mReadPos(0), mWritePos(0)
 {
@@ -281,8 +281,8 @@ Buffer::Buffer(size_t capacity, const sp<Allocator>& allocator) : ABuffer(),
     mData = alloc();
 }
 
-Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
-    mAllocator(allocator), mData(NULL),
+Buffer::Buffer(UInt32 capacity, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(Nil),
     mOffset(0), mCapacity(capacity),
     mType(type), mReadPos(0), mWritePos(0)
 {
@@ -290,8 +290,8 @@ Buffer::Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator
     mData = alloc();
 }
 
-Buffer::Buffer(const char *s, size_t n, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
-    mAllocator(allocator), mData(NULL),
+Buffer::Buffer(const Char *s, UInt32 n, eBufferType type, const sp<Allocator>& allocator) : ABuffer(),
+    mAllocator(allocator), mData(Nil),
     mOffset(0), mCapacity(n ? n : strlen(s)),
     mType(type), mReadPos(0), mWritePos(0)
 {
@@ -305,7 +305,7 @@ Buffer::~Buffer() {
     mData->ReleaseBuffer();
 }
 
-String Buffer::string(bool hex) const {
+String Buffer::string(Bool hex) const {
     String result = String::format("Buffer %zu@%p [%zu, %zu]\n", 
             capacity(), mData, mReadPos, mWritePos);
 
@@ -315,14 +315,14 @@ String Buffer::string(bool hex) const {
     return result;
 }
 
-int64_t Buffer::empty() const {
+Int64 Buffer::empty() const {
     if (mType == Ring) {
         return capacity() - size();
     }
     return capacity() - mWritePos;
 }
 
-int64_t Buffer::offset() const {
+Int64 Buffer::offset() const {
     if (mType == Ring) {
         if (mWritePos > capacity())
             return capacity() - size();
@@ -348,42 +348,42 @@ void Buffer::clearBytes() {
     mReadPos = mWritePos = 0;
 }
 
-size_t Buffer::writeBytes(const char * s, size_t n) {
-    if (!n) n = strlen((const char *)s);
+UInt32 Buffer::writeBytes(const Char * s, UInt32 n) {
+    if (!n) n = strlen((const Char *)s);
     CHECK_GT(n, 0);
     edit();
     rewind(n);
     ABuffer::flush();
-    const size_t m = MIN(n, empty());
+    const UInt32 m = MIN(n, empty());
     memcpy(mData->data() + mOffset + mWritePos, s, m);
     mWritePos += m;
     return m;
 }
 
-size_t Buffer::writeBytes(const sp<ABuffer>& buf, size_t n) {
+UInt32 Buffer::writeBytes(const sp<ABuffer>& buf, UInt32 n) {
     if (!n) n = buf->size();
     CHECK_GT(n, 0);
     edit();
     rewind(n);
     ABuffer::flush();
-    const size_t m = MIN(n, empty());
+    const UInt32 m = MIN(n, empty());
     buf->readBytes(mData->data() + mOffset + mWritePos, m);
     mWritePos += m;
     return m;
 }
 
-size_t Buffer::writeBytes(int c, size_t n) {
+UInt32 Buffer::writeBytes(int c, UInt32 n) {
     CHECK_GT(n, 0);
     edit();
     rewind(n);
     ABuffer::flush();
-    const size_t m = MIN(n, empty());
+    const UInt32 m = MIN(n, empty());
     memset(mData->data() + mOffset + mWritePos, c, m);
     mWritePos += m;
     return m;
 }
 
-char * Buffer::base() {
+Char * Buffer::base() {
     ABuffer::reset();
     edit();
     rewind(empty());
@@ -391,7 +391,7 @@ char * Buffer::base() {
     return mData->data() + mOffset;
 }
 
-size_t Buffer::readBytes(char * buf, size_t n) const {
+UInt32 Buffer::readBytes(Char * buf, UInt32 n) const {
     CHECK_GT(n, 0);
     ABuffer::reset();
     if (size() == 0) return 0;
@@ -401,37 +401,37 @@ size_t Buffer::readBytes(char * buf, size_t n) const {
     return n;
 }
 
-size_t Buffer::stepBytes(size_t n) {
+UInt32 Buffer::stepBytes(UInt32 n) {
     CHECK_GT(n, 0);
     // NO edit() & rewind() here
     // NO ABuffer::flush() here.
-    const size_t m = MIN(n, size() + empty());
+    const UInt32 m = MIN(n, size() + empty());
     // NO memset here
     mWritePos = mReadPos + m;
     return size();
 }
 
-void Buffer::setBytesRange(size_t offset, size_t n) {
+void Buffer::setBytesRange(UInt32 offset, UInt32 n) {
     CHECK_LT(offset, capacity());
     CHECK_GT(n, 0);
     // NO edit() & rewind() here
-    const size_t m = MIN(n, capacity() - offset);
+    const UInt32 m = MIN(n, capacity() - offset);
     // NO memset here
     mReadPos    = offset;
     mWritePos   = mReadPos + n;
 }
 
-sp<ABuffer> Buffer::readBytes(size_t n) const {
+sp<ABuffer> Buffer::readBytes(UInt32 n) const {
     CHECK_GT(n, 0);
     ABuffer::reset();
-    if (size() == 0) return NULL;
+    if (size() == 0) return Nil;
     n = MIN(n, size());
     sp<Buffer> data = new Buffer(this, mReadPos, n);
     mReadPos += n;
     return data;
 }
 
-int64_t Buffer::skipBytes(int64_t n) const {
+Int64 Buffer::skipBytes(Int64 n) const {
     CHECK_GE(n, -offset());
     CHECK_LE(n, size());
     ABuffer::reset();
@@ -439,9 +439,9 @@ int64_t Buffer::skipBytes(int64_t n) const {
     return offset();
 }
 
-uint8_t Buffer::readByte() const {
+UInt8 Buffer::readByte() const {
     CHECK_GE(size(), 1);
-    uint8_t x = (uint8_t)*data();
+    UInt8 x = (UInt8)*data();
     ++mReadPos;
     return x;
 }
@@ -450,7 +450,7 @@ sp<ABuffer> Buffer::cloneBytes() const {
     return new Buffer(this, 0, size());
 }
 
-void Buffer::writeByte(uint8_t x) {
+void Buffer::writeByte(UInt8 x) {
     edit();
     rewind(1);
     CHECK_GE(empty(), 1);
@@ -460,7 +460,7 @@ void Buffer::writeByte(uint8_t x) {
 
 // alloc a shared buffer
 SharedBuffer * Buffer::alloc() {
-    size_t allocLength = mCapacity;
+    UInt32 allocLength = mCapacity;
     if (mType == Ring) allocLength <<= 1;
     SharedBuffer * data = SharedBuffer::allocate(mAllocator, allocLength);
     CHECK_NULL(data);
@@ -478,11 +478,11 @@ void Buffer::edit() {
     CHECK_NULL(mData);
 }
 
-bool Buffer::resize(size_t cap) {
+Bool Buffer::resize(UInt32 cap) {
     mCapacity = cap;
     if (mData->IsBufferNotShared() && mOffset == 0) {
         // resize using SharedBuffer::edit()
-        size_t allocLength = mCapacity;
+        UInt32 allocLength = mCapacity;
         if (mType == Ring) allocLength <<= 1;
         mData = mData->edit(allocLength);
     } else {
@@ -497,11 +497,11 @@ bool Buffer::resize(size_t cap) {
     if (mReadPos > mCapacity) mReadPos = mCapacity;
     if (mWritePos > mCapacity) mWritePos = mCapacity;
     
-    return mData != NULL;
+    return mData != Nil;
 }
 
 // have to avoid too much rewind ops
-void Buffer::rewind(size_t n) {
+void Buffer::rewind(UInt32 n) {
     // for Linear buffer, rewind do NOTHING
     if (mType != Ring) return;
 

@@ -31,7 +31,7 @@
 
 USING_NAMESPACE_ABE
 
-__BEGIN_DECLS
+BEGIN_DECLS
 
 SharedObjectRef SharedObjectRetain(SharedObjectRef ref) {
     return static_cast<SharedObject *>(ref)->RetainObject();
@@ -41,11 +41,11 @@ void SharedObjectRelease(SharedObjectRef ref) {
     static_cast<SharedObject *>(ref)->ReleaseObject();
 }
 
-size_t SharedObjectGetRetainCount(const SharedObjectRef ref) {
+UInt32 SharedObjectGetRetainCount(const SharedObjectRef ref) {
     return static_cast<const SharedObject *>(ref)->GetRetainCount();
 }
 
-uint32_t SharedObjectGetID(const SharedObjectRef ref) {
+UInt32 SharedObjectGetID(const SharedObjectRef ref) {
     return static_cast<const SharedObject *>(ref)->GetObjectID();
 }
 
@@ -53,15 +53,15 @@ AllocatorRef AllocatorGetDefault(void) {
     return (AllocatorRef)kAllocatorDefault->RetainObject();
 }
 
-AllocatorRef AllocatorGetDefaultAligned(size_t alignment) {
+AllocatorRef AllocatorGetDefaultAligned(UInt32 alignment) {
     return (AllocatorRef)GetAlignedAllocator(alignment)->RetainObject();
 }
 
-void * AllocatorAllocate(AllocatorRef ref, size_t n) {
+void * AllocatorAllocate(AllocatorRef ref, UInt32 n) {
     return static_cast<Allocator *>(ref)->allocate(n);
 }
 
-void * AllocatorReallocate(AllocatorRef ref, void * p, size_t n) {
+void * AllocatorReallocate(AllocatorRef ref, void * p, UInt32 n) {
     return static_cast<Allocator *>(ref)->reallocate(p, n);
 }
 
@@ -69,23 +69,23 @@ void AllocatorDeallocate(AllocatorRef ref, void * p) {
     static_cast<Allocator *>(ref)->deallocate(p);
 }
 
-SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, size_t sz) {
+SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, UInt32 sz) {
     return SharedBuffer::allocate(_allocator, sz);
 }
 
 void SharedBufferRelease(SharedBufferRef ref) {
-    static_cast<SharedBuffer *>(ref)->ReleaseBuffer(false);
+    static_cast<SharedBuffer *>(ref)->ReleaseBuffer(False);
 }
 
-char * SharedBufferGetDataPointer(SharedBufferRef ref) {
+Char * SharedBufferGetDataPointer(SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->data();
 }
 
-const char * SharedBufferGetConstDataPointer(const SharedBufferRef ref) {
+const Char * SharedBufferGetConstDataPointer(const SharedBufferRef ref) {
     return static_cast<const SharedBuffer *>(ref)->data();
 }
 
-size_t SharedBufferGetDataLength(const SharedBufferRef ref) {
+UInt32 SharedBufferGetDataLength(const SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->size();
 }
 
@@ -93,57 +93,57 @@ SharedBufferRef SharedBufferEdit(SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->edit();
 }
 
-SharedBufferRef SharedBufferEditWithSize(SharedBufferRef ref, size_t sz) {
+SharedBufferRef SharedBufferEditWithSize(SharedBufferRef ref, UInt32 sz) {
     return static_cast<SharedBuffer *>(ref)->edit(sz);
 }
 
-size_t SharedBufferReleaseWithoutDeallocate(SharedBufferRef ref) {
-    return static_cast<SharedBuffer *>(ref)->ReleaseBuffer(true);
+UInt32 SharedBufferReleaseWithoutDeallocate(SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->ReleaseBuffer(True);
 }
 
 void SharedBufferDeallocate(SharedBufferRef ref) {
     static_cast<SharedBuffer *>(ref)->deallocate();
 }
 
-BufferObjectRef BufferObjectCreate(size_t cap) {
+BufferObjectRef BufferObjectCreate(UInt32 cap) {
     sp<ABuffer> buffer = new Buffer(cap);
     return buffer->RetainObject();
 }
 
-BufferObjectRef BufferObjectCreateWithUrl(const char * url) {
+BufferObjectRef BufferObjectCreateWithUrl(const Char * url) {
     sp<ABuffer> buffer = Content::Create(String(url));
     return buffer->RetainObject();
 }
 
-int64_t BufferObjectGetCapacity(const BufferObjectRef ref) {
+Int64 BufferObjectGetCapacity(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->capacity();
 }
 
-int64_t BufferObjectGetDataLength(const BufferObjectRef ref) {
+Int64 BufferObjectGetDataLength(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->size();
 }
 
-int64_t BufferObjectGetEmptyLength(const BufferObjectRef ref) {
+Int64 BufferObjectGetEmptyLength(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->empty();
 }
 
-int64_t BufferObjectGetOffset(const BufferObjectRef ref) {
+Int64 BufferObjectGetOffset(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->offset();
 }
 
-const char * BufferObjectGetDataPointer(const BufferObjectRef ref) {
+const Char * BufferObjectGetDataPointer(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->data();
 }
 
-size_t BufferObjectGetData(const BufferObjectRef ref, char * data, size_t n) {
+UInt32 BufferObjectGetData(const BufferObjectRef ref, Char * data, UInt32 n) {
     return static_cast<const ABuffer *>(ref)->readBytes(data, n);
 }
 
-BufferObjectRef BufferObjectReadBytes(const BufferObjectRef ref, size_t n) {
+BufferObjectRef BufferObjectReadBytes(const BufferObjectRef ref, UInt32 n) {
     return static_cast<const ABuffer *>(ref)->readBytes(n)->RetainObject();
 }
 
-int64_t BufferObjectSkipBytes(const BufferObjectRef ref, int64_t offset) {
+Int64 BufferObjectSkipBytes(const BufferObjectRef ref, Int64 offset) {
     return static_cast<const ABuffer *>(ref)->skipBytes(offset);
 }
 
@@ -155,11 +155,11 @@ BufferObjectRef BufferObjectCloneBytes(const BufferObjectRef ref) {
     return static_cast<const ABuffer *>(ref)->cloneBytes()->RetainObject();
 }
 
-size_t BufferObjectPutData(BufferObjectRef ref, const char * data, size_t n) {
+UInt32 BufferObjectPutData(BufferObjectRef ref, const Char * data, UInt32 n) {
     return static_cast<ABuffer *>(ref)->writeBytes(data, n);
 }
 
-size_t BufferObjectWriteBytes(BufferObjectRef ref, BufferObjectRef data, size_t n) {
+UInt32 BufferObjectWriteBytes(BufferObjectRef ref, BufferObjectRef data, UInt32 n) {
     return static_cast<ABuffer *>(ref)->writeBytes(data, n);
 }
 
@@ -176,7 +176,7 @@ MessageObjectRef MessageObjectCreate() {
     return (MessageObjectRef)message->RetainObject();
 }
 
-MessageObjectRef MessageObjectCreateWithId(uint32_t id) {
+MessageObjectRef MessageObjectCreateWithId(UInt32 id) {
     sp<Message> message = new Message(id);
     return (MessageObjectRef)message->RetainObject();
 }
@@ -186,19 +186,19 @@ MessageObjectRef MessageObjectCopy(const MessageObjectRef ref) {
     return (MessageObjectRef)copy->RetainObject();
 }
 
-uint32_t MessageObjectGetId(const MessageObjectRef ref) {
+UInt32 MessageObjectGetId(const MessageObjectRef ref) {
     return static_cast<const Message *>(ref)->what();
 }
 
-size_t MessageObjectGetCount(const MessageObjectRef ref) {
+UInt32 MessageObjectGetCount(const MessageObjectRef ref) {
     return static_cast<const Message *>(ref)->countEntries();
 }
 
-bool MessageObjectContains(const MessageObjectRef ref, uint32_t name) {
+Bool MessageObjectContains(const MessageObjectRef ref, UInt32 name) {
     return static_cast<const Message *>(ref)->contains(name);
 }
 
-bool MessageObjectRemove(MessageObjectRef ref, uint32_t name) {
+Bool MessageObjectRemove(MessageObjectRef ref, UInt32 name) {
     return static_cast<Message *>(ref)->remove(name);
 }
 
@@ -207,35 +207,35 @@ void MessageObjectClear(MessageObjectRef ref) {
 }
 
 #define MessageObjectPut(SUFFIX, DATA_TYPE)                                                     \
-    void MessageObjectPut##SUFFIX(MessageObjectRef ref, uint32_t name, DATA_TYPE data) {    \
+    void MessageObjectPut##SUFFIX(MessageObjectRef ref, UInt32 name, DATA_TYPE data) {    \
         static_cast<Message *>(ref)->set##SUFFIX(name, data);                                   \
     }
 
-MessageObjectPut(Int32,     int32_t);
-MessageObjectPut(Int64,     int64_t);
-MessageObjectPut(Float,     float);
-MessageObjectPut(Double,    double);
+MessageObjectPut(Int32,     Int32);
+MessageObjectPut(Int64,     Int64);
+MessageObjectPut(Float,     Float32);
+MessageObjectPut(Double,    Float64);
 MessageObjectPut(Pointer,   void *);
-MessageObjectPut(String,    const char *);
+MessageObjectPut(String,    const Char *);
 
-void MessageObjectPutObject(MessageObjectRef ref, uint32_t name, SharedObjectRef obj) {
+void MessageObjectPutObject(MessageObjectRef ref, UInt32 name, SharedObjectRef obj) {
     sp<Message> message = ref;
     message->setObject(name, static_cast<SharedObject *>(obj));
 }
 
 #define MessageObjectGet(SUFFIX, DATA_TYPE)                                                             \
-    DATA_TYPE MessageObjectGet##SUFFIX(const MessageObjectRef ref, uint32_t name, DATA_TYPE def) {  \
+    DATA_TYPE MessageObjectGet##SUFFIX(const MessageObjectRef ref, UInt32 name, DATA_TYPE def) {  \
         return static_cast<const Message *>(ref)->find##SUFFIX(name, def);                              \
     }
 
-MessageObjectGet(Int32,     int32_t);
-MessageObjectGet(Int64,     int64_t);
-MessageObjectGet(Float,     float);
-MessageObjectGet(Double,    double);
+MessageObjectGet(Int32,     Int32);
+MessageObjectGet(Int64,     Int64);
+MessageObjectGet(Float,     Float32);
+MessageObjectGet(Double,    Float64);
 MessageObjectGet(Pointer,   void *);
-MessageObjectGet(String,    const char *);
+MessageObjectGet(String,    const Char *);
 
-SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, uint32_t name, SharedObjectRef def) {
+SharedObjectRef MessageObjectGetObject(const MessageObjectRef ref, UInt32 name, SharedObjectRef def) {
     return (SharedObjectRef)static_cast<const Message *>(ref)->findObject(name, static_cast<SharedObject *>(def));
 }
 
@@ -261,7 +261,7 @@ JobObjectRef  JobObjectCreateWithLooper(LooperObjectRef lp, UserCallback callbac
     return (Job *)runnable->RetainObject();
 }
 
-size_t JobObjectRun(JobObjectRef ref) {
+UInt32 JobObjectRun(JobObjectRef ref) {
     return static_cast<Job *>(ref)->run();
 }
 
@@ -269,7 +269,7 @@ void JobObjectCancel(JobObjectRef ref) {
     static_cast<Job *>(ref)->cancel();
 }
 
-LooperObjectRef LooperObjectCreate(const char * name) {
+LooperObjectRef LooperObjectCreate(const Char * name) {
     sp<Looper> looper = new Looper(name);
     return (LooperObjectRef)looper->RetainObject();
 }
@@ -278,7 +278,7 @@ void LooperObjectPostJob(LooperObjectRef ref, JobObjectRef job) {
     static_cast<Looper *>(ref)->post(job);
 }
 
-void LooperObjectPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, int64_t delay) {
+void LooperObjectPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, Int64 delay) {
     static_cast<Looper *>(ref)->post(job, delay);
 }
 
@@ -286,7 +286,7 @@ void LooperObjectRemoveJob(LooperObjectRef ref, JobObjectRef job) {
     static_cast<Looper *>(ref)->remove(job);
 }
 
-bool LooperObjectFindJob(LooperObjectRef ref, JobObjectRef job) {
+Bool LooperObjectFindJob(LooperObjectRef ref, JobObjectRef job) {
     return static_cast<Looper *>(ref)->exists(job);
 }
 
@@ -294,4 +294,4 @@ void SharedLooperFlush(LooperObjectRef ref) {
     static_cast<Looper *>(ref)->flush();
 }
 
-__END_DECLS
+END_DECLS

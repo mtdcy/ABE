@@ -45,7 +45,7 @@
 
 USING_NAMESPACE_ABE
 
-static const char * gCurrentDir = NULL;
+static const Char * gCurrentDir = Nil;
 
 struct MyTest : public ::testing::Test {
     MyTest () {
@@ -65,14 +65,14 @@ struct Integer {
     int value;
     Integer() : value(0) { }
     Integer(int i) : value(i) { }
-    bool operator<(const Integer& rhs) const    { return value < rhs.value;     }
-    bool operator==(int i) const                { return value == i;            }
-    bool operator==(const Integer& rhs) const   { return value == rhs.value;    }
+    Bool operator<(const Integer& rhs) const    { return value < rhs.value;     }
+    Bool operator==(int i) const                { return value == i;            }
+    Bool operator==(const Integer& rhs) const   { return value == rhs.value;    }
     Integer& operator++()                       { ++value; return *this;        }   // pre-increment
     Integer  operator++(int)                    { return value++;               }   // post-increment
 };
 
-template <class TYPE> static bool LessCompare(const TYPE* lhs, const TYPE* rhs) {
+template <class TYPE> static Bool LessCompare(const TYPE* lhs, const TYPE* rhs) {
     return *lhs < *rhs;
 }
 
@@ -112,36 +112,36 @@ void testSharedObject() {
 void testAllocator() {
     sp<Allocator> allocator = kAllocatorDefault;
     void * p = allocator->allocate(1024);
-    ASSERT_TRUE(p != NULL);
+    ASSERT_TRUE(p != Nil);
 
     p = allocator->reallocate(p, 2048);
-    ASSERT_TRUE(p != NULL);
+    ASSERT_TRUE(p != Nil);
 
     allocator->deallocate(p);
 }
 
 void testString() {
-    const char * STRING = "abcdefghijklmn";
+    const Char * STRING = "abcdefghijklmn";
     const String s0;
     const String s1 = STRING;
     const String s2 = "ABCDEFGHIJKLMN";
     const String s3 = "abcdefgabcdefg";
     const String s4 = STRING;
-    const size_t n = strlen(STRING);
+    const UInt32 n = strlen(STRING);
 
     // check on empty string
     ASSERT_EQ(s0.size(), 0);
     ASSERT_TRUE(s0.empty());
     //ASSERT_EQ(s0[0], '\0');
-    //ASSERT_TRUE(s0.c_str() != NULL);
+    //ASSERT_TRUE(s0.c_str() != Nil);
     //ASSERT_STREQ(s0.c_str(), "");
 
     // check on non-empty string
     ASSERT_EQ(s1.size(), 14);
     ASSERT_FALSE(s1.empty());
-    ASSERT_TRUE(s1.c_str() != NULL);
+    ASSERT_TRUE(s1.c_str() != Nil);
     ASSERT_STREQ(s1.c_str(), STRING);
-    for (size_t i = 0; i < n; ++i) {
+    for (UInt32 i = 0; i < n; ++i) {
         ASSERT_EQ(s1[i], STRING[i]);
     }
     ASSERT_EQ(s1[n], '\0');
@@ -215,7 +215,7 @@ void testString() {
 }
 
 void testBits() {
-    Bits<uint8_t> bits;
+    Bits<UInt8> bits;
     ASSERT_EQ(bits.value(), 0);
     
     bits.set(1);
@@ -242,14 +242,14 @@ void testBits() {
 
 // at least 66 + 36 = 102 bytes
 void testABuffer(sp<ABuffer> base) {
-    for (size_t i = 0; i < 32; ++i) {
+    for (UInt32 i = 0; i < 32; ++i) {
         base->write(i, i + 1);
     }
     base->flushBytes();
     // 66 bytes
     ASSERT_EQ(base->size(), 66);
     
-    for (size_t i = 0; i < 32; ++i) {
+    for (UInt32 i = 0; i < 32; ++i) {
         ASSERT_EQ(base->read(i + 1), i);
     }
     ASSERT_EQ(base->size(), 0);
@@ -430,7 +430,7 @@ void testMessage() {
     
 #undef TEST_MESSAGE
     
-    const char * string = "abcdefg";
+    const Char * string = "abcdefg";
     message.setString('str ', string);
     ASSERT_TRUE(message.contains('str '));
     ASSERT_STREQ(message.findString('str '), string);
@@ -438,7 +438,7 @@ void testMessage() {
 
 struct ThreadJob : public Job {
     const String name;
-    Atomic<size_t> count;
+    Atomic<UInt32> count;
     ThreadJob(const String& _name) : name(_name), count(0) { }
     virtual void onJob() {
         INFO("ThreadJob %s", name.c_str());
@@ -498,19 +498,19 @@ void testLooper() {
     looper1.clear();
 
     sp<Looper> current = Looper::Current();
-    ASSERT_TRUE(current != NULL);
+    ASSERT_TRUE(current != Nil);
 
     sp<Looper> main = Looper::Main();
     sp<Looper> assist = new Looper("assist");
     assist->post(new MainLooperAssist);
-    ASSERT_TRUE(main != NULL);
+    ASSERT_TRUE(main != Nil);
     
     main->loop();
     
     sp<Looper> lp = new Looper("looper0");
     sp<ThreadJob> job0 = new ThreadJob("job0");
     sp<ThreadJob> job1 = new ThreadJob("job1");
-    for (size_t i = 0; i < 100; i++) {
+    for (UInt32 i = 0; i < 100; i++) {
         switch (i % 10) {
             case 0:
                 lp->post(job1);
@@ -537,7 +537,7 @@ void testLooper() {
 }
 
 struct QueueJob : public Job {
-    size_t count;
+    UInt32 count;
     QueueJob() : count(0) { }
     virtual void onJob() {
         INFO("on dispatch queue job %zu", count++);
@@ -573,7 +573,7 @@ void testDispatchQueue() {
     ASSERT_FALSE(disp1->exists(job));
     
     sp<QueueJob> job0 = new QueueJob;
-    for (size_t i = 0; i < 100; ++i) {
+    for (UInt32 i = 0; i < 100; ++i) {
         disp0->dispatch(job0);
     }
     // disptch queue will wait for jobs complete
@@ -751,54 +751,54 @@ void testVector2() { testVector<Integer>(); }
 template <class TYPE> void testHashTable() {
     const String KEYS = "abcdefghijklmnopqrstuvwxyz";
     HashTable<String, TYPE> table;
-    const size_t tableLength = 8;
+    const UInt32 tableLength = 8;
 
     ASSERT_EQ(table.size(), 0);
     ASSERT_TRUE(table.empty());
 
     // insert two tableLength => force grow
-    for (size_t i = 0; i < tableLength * 2; ++i) {
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
         table.insert(String(KEYS[i]), i);
     }
     ASSERT_EQ(table.size(), tableLength * 2);
     ASSERT_FALSE(table.empty());
 
     // test access each key & value
-    for (size_t i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(table.find(String(KEYS[i])) != NULL);
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
+        ASSERT_TRUE(table.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(table[String(KEYS[i])] == i);
     }
 
     // test const access
     const HashTable<String, TYPE>& ctable = table;
-    for (size_t i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(ctable.find(String(KEYS[i])) != NULL);
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
+        ASSERT_TRUE(ctable.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(ctable[String(KEYS[i])] == i);
     }
 
     // test copy
     HashTable<String, TYPE> copy = table;
-    for (size_t i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(copy.find(String(KEYS[i])) != NULL);
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
+        ASSERT_TRUE(copy.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(copy[String(KEYS[i])] == i);
     }
     
     // test copy operator
     copy = table;
-    for (size_t i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(copy.find(String(KEYS[i])) != NULL);
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
+        ASSERT_TRUE(copy.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(copy[String(KEYS[i])] == i);
     }
 
     // test erase
-    for (size_t i = 0; i < tableLength * 2; ++i) {
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
         ASSERT_EQ(copy.erase(String(KEYS[i])), 1);
     }
     ASSERT_TRUE(copy.empty());
 
     // test original table again
-    for (size_t i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(table.find(String(KEYS[i])) != NULL);
+    for (UInt32 i = 0; i < tableLength * 2; ++i) {
+        ASSERT_TRUE(table.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(table[String(KEYS[i])] == i);
     }
 }
@@ -807,7 +807,7 @@ void testHashTable1() { testHashTable<int>();       }
 void testHashTable2() { testHashTable<Integer>();   }
 
 void testContent() {
-    if (gCurrentDir == NULL) {
+    if (gCurrentDir == Nil) {
         ERROR("skip testContent");
         return;
     }
@@ -819,8 +819,8 @@ void testContent() {
     ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
     
     sp<Buffer> data = pipe->readBytes(256);
-    for (size_t i = 0; i < 256; ++i) {
-        ASSERT_EQ((uint8_t)data->data()[i], (uint8_t)i);
+    for (UInt32 i = 0; i < 256; ++i) {
+        ASSERT_EQ((UInt8)data->data()[i], (UInt8)i);
     }
     ASSERT_EQ(pipe->offset(), 256);
     ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
@@ -874,7 +874,7 @@ TEST_ENTRY(testLooper);
 TEST_ENTRY(testDispatchQueue);
 TEST_ENTRY(testContent);
 
-int main(int argc, char **argv) {
+int main(int argc, Char **argv) {
     testing::InitGoogleTest(&argc, argv);
 
     if (argc > 1)

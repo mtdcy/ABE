@@ -193,10 +193,10 @@ namespace llvm {
  * ResultPtr will point one after the end of the copied string. On failure,
  * ResultPtr will not be changed, and ErrorPtr will be set to the location of
  * the first character which could not be converted.
- * \return true on success.
+ * \return True on success.
  */
-bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
-                       char *&ResultPtr, const UTF8 *&ErrorPtr);
+Bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
+                       Char *&ResultPtr, const UTF8 *&ErrorPtr);
 
 /**
  * Convert an Unicode code point to UTF8 sequence.
@@ -206,9 +206,9 @@ bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
  * \c UNI_MAX_UTF8_BYTES_PER_CODE_POINT bytes.  On success \c ResultPtr is
  * updated one past end of the converted sequence.
  *
- * \returns true on success.
+ * \returns True on success.
  */
-bool ConvertCodePointToUTF8(unsigned Source, char *&ResultPtr);
+Bool ConvertCodePointToUTF8(unsigned Source, Char *&ResultPtr);
 
 /**
  * Convert the first UTF8 sequence in the given source buffer to a UTF32
@@ -238,26 +238,26 @@ static inline ConversionResult convertUTF8Sequence(const UTF8 **source,
 }
 
 /**
- * Returns true if a blob of text starts with a UTF-16 big or little endian byte
+ * Returns True if a blob of text starts with a UTF-16 big or little endian byte
  * order mark.
  */
-bool hasUTF16ByteOrderMark(ArrayRef<char> SrcBytes);
+Bool hasUTF16ByteOrderMark(ArrayRef<Char> SrcBytes);
 
 /**
  * Converts a stream of raw bytes assumed to be UTF16 into a UTF8 std::string.
  *
  * \param [in] SrcBytes A buffer of what is assumed to be UTF-16 encoded text.
  * \param [out] Out Converted UTF-8 is stored here on success.
- * \returns true on success
+ * \returns True on success
  */
-bool convertUTF16ToUTF8String(ArrayRef<char> SrcBytes, std::string &Out);
+Bool convertUTF16ToUTF8String(ArrayRef<Char> SrcBytes, std::string &Out);
 
 /**
  * Converts a UTF-8 string into a UTF-16 string with native endianness.
  *
- * \returns true on success
+ * \returns True on success
  */
-bool convertUTF8ToUTF16String(StringRef SrcUTF8,
+Bool convertUTF8ToUTF16String(StringRef SrcUTF8,
                               SmallVectorImpl<UTF16> &DstUTF16);
 
 } /* end namespace llvm */

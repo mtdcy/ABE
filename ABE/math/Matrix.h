@@ -45,66 +45,66 @@ __BEGIN_NAMESPACE_ABE
  * N x N matrix
  * https://en.wikipedia.org/wiki/Matrix_(mathematics)
  */
-template <typename TYPE, size_t N> struct Matrix : public NonSharedObject {
+template <typename TYPE, UInt32 N> struct Matrix : public StaticObject {
     /**
      * 1 x N row vector, tranpose as operator need
      */
     struct Vector {
         TYPE mEntries[N];
         
-        Vector() { for (size_t i = 0; i < N; ++i) mEntries[i] = 0; }
-        Vector(TYPE v) { for (size_t i = 0; i < N; ++i) mEntries[i] = v; }
-        Vector(const TYPE v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; }
+        Vector() { for (UInt32 i = 0; i < N; ++i) mEntries[i] = 0; }
+        Vector(TYPE v) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v; }
+        Vector(const TYPE v[N]) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v[i]; }
         
-        Vector& operator=(TYPE v) { for (size_t i = 0; i < N; ++i) mEntries[i] = v; return *this; }
-        Vector& operator=(const TYPE v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
+        Vector& operator=(TYPE v) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v; return *this; }
+        Vector& operator=(const TYPE v[N]) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
         
-        ABE_INLINE TYPE& operator[](size_t i) { return mEntries[i]; }
-        ABE_INLINE const TYPE& operator[](size_t i) const { return mEntries[i]; }
+        ABE_INLINE TYPE& operator[](UInt32 i) { return mEntries[i]; }
+        ABE_INLINE const TYPE& operator[](UInt32 i) const { return mEntries[i]; }
         
-        ABE_INLINE bool operator==(const Vector& rhs) const { for (size_t i = 0; i < N; ++i) if (mEntries[i] != rhs[i]) return false; return true; }
-        ABE_INLINE bool operator!=(const Vector& rhs) const { return operator==(rhs) == false; }
+        ABE_INLINE Bool operator==(const Vector& rhs) const { for (UInt32 i = 0; i < N; ++i) if (mEntries[i] != rhs[i]) return False; return True; }
+        ABE_INLINE Bool operator!=(const Vector& rhs) const { return operator==(rhs) == False; }
         
         // per-entry calculation
         ABE_INLINE Vector operator+(const Vector& rhs) const {
             Vector result;
-            for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
+            for (UInt32 i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
             return result;
         }
         
         ABE_INLINE Vector& scale(const Vector& rhs) {
-            for (size_t i = 0; i < N; ++i) mEntries[i] *= rhs[i];
+            for (UInt32 i = 0; i < N; ++i) mEntries[i] *= rhs[i];
             return *this;
         }
         
         // matrix multiplication - dot product
         ABE_INLINE TYPE operator*(const Vector& rhs) const {      // dot product
             TYPE sum = 0;
-            for (size_t i = 0; i < N; ++i) sum += mEntries[i] * rhs[i];
+            for (UInt32 i = 0; i < N; ++i) sum += mEntries[i] * rhs[i];
             return sum;
         }
         
         ABE_INLINE Vector operator*(const Matrix& rhs) const {    // dot product
             Vector result;
-            for (size_t i = 0; i < N; ++i) result[i] = operator*(rhs[i]);
+            for (UInt32 i = 0; i < N; ++i) result[i] = operator*(rhs[i]);
             return result;
         }
     };
     
     Vector mEntries[N];     // rows
-    Matrix() { for (size_t i = 0; i < N; ++i) mEntries[i][i] = 1; }
-    Matrix(const Vector v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; }
-    Matrix(const TYPE v[N*N]) { for (size_t i = 0; i < N; ++i) for (size_t j = 0; j < N; ++j) mEntries[i][j] = v[i * N + j]; }
+    Matrix() { for (UInt32 i = 0; i < N; ++i) mEntries[i][i] = 1; }
+    Matrix(const Vector v[N]) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v[i]; }
+    Matrix(const TYPE v[N*N]) { for (UInt32 i = 0; i < N; ++i) for (UInt32 j = 0; j < N; ++j) mEntries[i][j] = v[i * N + j]; }
     
-    Matrix& operator=(const Vector v[N]) { for (size_t i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
-    Matrix& operator=(const TYPE v[N*N]) { for (size_t i = 0; i < N; ++i) for (size_t j = 0; j < N; ++j) mEntries[i][j] = v[i * N + j]; return *this; }
+    Matrix& operator=(const Vector v[N]) { for (UInt32 i = 0; i < N; ++i) mEntries[i] = v[i]; return *this; }
+    Matrix& operator=(const TYPE v[N*N]) { for (UInt32 i = 0; i < N; ++i) for (UInt32 j = 0; j < N; ++j) mEntries[i][j] = v[i * N + j]; return *this; }
     
-    ABE_INLINE Vector& operator[](size_t i) { return mEntries[i]; }
-    ABE_INLINE const Vector& operator[](size_t i) const { return mEntries[i]; }
+    ABE_INLINE Vector& operator[](UInt32 i) { return mEntries[i]; }
+    ABE_INLINE const Vector& operator[](UInt32 i) const { return mEntries[i]; }
     
     ABE_INLINE Matrix& transpose() {
-        for (size_t i = 0; i < N; ++i) {
-            for (size_t j = i; j < N; ++j) {
+        for (UInt32 i = 0; i < N; ++i) {
+            for (UInt32 j = i; j < N; ++j) {
                 TYPE tmp = mEntries[i][j];
                 mEntries[i][j] = mEntries[j][i];
                 mEntries[j][i] = tmp;
@@ -116,27 +116,27 @@ template <typename TYPE, size_t N> struct Matrix : public NonSharedObject {
     // per-entry calculation
     ABE_INLINE Matrix operator+(const Matrix& rhs) const {
         Matrix result;
-        for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
+        for (UInt32 i = 0; i < N; ++i) result[i] = mEntries[i] + rhs[i];
         return result;
     }
     
     ABE_INLINE Matrix& scale(const Matrix& rhs) {
-        for (size_t i = 0; i < N; ++i) mEntries[i].scale(rhs[i]);
+        for (UInt32 i = 0; i < N; ++i) mEntries[i].scale(rhs[i]);
         return *this;
     }
     
     // matrix . vector
     ABE_INLINE Vector operator*(const Vector& rhs) const {    // dot product
         Vector result;
-        for (size_t i = 0; i < N; ++i) result[i] = mEntries[i] * rhs;
+        for (UInt32 i = 0; i < N; ++i) result[i] = mEntries[i] * rhs;
         return result;
     }
     
     // matrix . matrix
     ABE_INLINE Matrix operator*(const Matrix& rhs) const {    // dot product
         Matrix result;
-        for (size_t i = 0; i < N; ++i)          // row
-            for (size_t j = 0; j < N; ++j)      // column
+        for (UInt32 i = 0; i < N; ++i)          // row
+            for (UInt32 j = 0; j < N; ++j)      // column
                 result[i][j] = mEntries[i] * rhs[j];
         return result;
     }

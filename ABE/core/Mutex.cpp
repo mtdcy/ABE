@@ -40,18 +40,19 @@
 #include "ABE/core/Log.h"
 #include "ABE/core/Mutex.h"
 
+#include <errno.h>
 #include "compat/pthread.h"
 
 __BEGIN_NAMESPACE_ABE
 
-Mutex::Mutex(bool recursive) {
+Mutex::Mutex(Bool recursive) {
     pthread_mutexattr_t attr;
     CHECK_EQ(pthread_mutexattr_init(&attr), 0);
     if (recursive)
         CHECK_EQ(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE), 0);
     else
         CHECK_EQ(pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK), 0);
-    CHECK_EQ(pthread_mutex_init(&mLock, NULL), 0);
+    CHECK_EQ(pthread_mutex_init(&mLock, Nil), 0);
     CHECK_EQ(pthread_mutexattr_destroy(&attr), 0);
 }
 
@@ -67,34 +68,34 @@ void Mutex::unlock() {
     CHECK_EQ(pthread_mutex_unlock(&mLock), 0);
 }
 
-bool Mutex::tryLock() {
+Bool Mutex::tryLock() {
     return pthread_mutex_trylock(&mLock) == 0;
 }
 
 #if 0
 RWLock::RWLock() {
-    CHECK_EQ(pthread_rwlock_init(&mLock, NULL), 0);
+    CHECK_EQ(pthread_rwlock_init(&mLock, Nil), 0);
 }
 
 RWLock::~RWLock() {
     CHECK_EQ(pthread_rwlock_destroy(&mLock), 0);
 }
 
-void RWLock::lock(bool write) {
+void RWLock::lock(Bool write) {
     if (write)
         CHECK_EQ(pthread_rwlock_wrlock(&mLock), 0);
     else
         CHECK_EQ(pthread_rwlock_rdlock(&mLock), 0);
 }
 
-bool RWLock::tryLock(bool write) {
+Bool RWLock::tryLock(Bool write) {
     if (write)
         return pthread_rwlock_trywrlock(&mLock) == 0;
     else
         return pthread_rwlock_tryrdlock(&mLock) == 0;
 }
 
-void RWLock::unlock(bool write) {
+void RWLock::unlock(Bool write) {
     CHECK_EQ(pthread_rwlock_unlock(&mLock), 0);
 }
 #endif
@@ -117,14 +118,14 @@ void Condition::wait(Mutex& lock) {
     CHECK_EQ(pthread_cond_wait(&mWait, &(lock.mLock)), 0);
 }
 
-bool Condition::waitRelative(Mutex& lock, int64_t reltime /* ns */) {
+Bool Condition::waitRelative(Mutex& lock, Int64 reltime /* ns */) {
     struct timespec ts;
     ts.tv_sec  = reltime / 1000000000;
     ts.tv_nsec = reltime % 1000000000;
 #if HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP
     int rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
-    if (rt == ETIMEDOUT)    return true;
-    else                    return false;
+    if (rt == ETIMEDOUT)    return True;
+    else                    return False;
 #else
     struct timespec abs;
     clock_gettime(CLOCK_MONOTONIC, &abs);

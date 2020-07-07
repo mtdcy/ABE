@@ -44,11 +44,11 @@ class ABE_EXPORT LockFreeQueueImpl {
         ~LockFreeQueueImpl();
 
     protected:
-        size_t          push1(const void * what);   // for single producer
-        size_t          pushN(const void * what);   // for multi producer
-        bool            pop1(void * what);          // for single consumer
-        bool            popN(void * what);          // for multi consumer
-        size_t          size() const;
+        UInt32          push1(const void * what);   // for single producer
+        UInt32          pushN(const void * what);   // for multi producer
+        Bool            pop1(void * what);          // for single consumer
+        Bool            popN(void * what);          // for multi consumer
+        UInt32          size() const;
         void            clear();
 
     private:
@@ -59,7 +59,7 @@ class ABE_EXPORT LockFreeQueueImpl {
         TypeHelper          mTypeHelper;
         volatile NodeImpl * mHead;
         volatile NodeImpl * mTail;
-        volatile size_t     mLength;
+        volatile UInt32     mLength;
 
     private:
         DISALLOW_EVILS(LockFreeQueueImpl);
@@ -68,16 +68,16 @@ __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 namespace LockFree {
-    template <class TYPE> class Queue : protected __NAMESPACE_ABE_PRIVATE::LockFreeQueueImpl, public NonSharedObject {
+    template <class TYPE> class Queue : protected __NAMESPACE_PRIVATE::LockFreeQueueImpl, public StaticObject {
         public:
-            ABE_INLINE Queue() : LockFreeQueueImpl(TypeHelperBuilder<TYPE, false, true, true>()) { }
+            ABE_INLINE Queue() : LockFreeQueueImpl(TypeHelperBuilder<TYPE, False, True, True>()) { }
             ABE_INLINE ~Queue() { }
 
-            ABE_INLINE size_t      size() const        { return LockFreeQueueImpl::size();     }
-            ABE_INLINE bool        empty() const       { return size() == 0;                   }
+            ABE_INLINE UInt32      size() const        { return LockFreeQueueImpl::size();     }
+            ABE_INLINE Bool        empty() const       { return size() == 0;                   }
             ABE_INLINE void        clear()             { LockFreeQueueImpl::clear();           }
-            ABE_INLINE size_t      push(const TYPE& v) { return LockFreeQueueImpl::pushN(&v);  }
-            ABE_INLINE bool        pop(TYPE& v)        { return LockFreeQueueImpl::popN(&v);   }
+            ABE_INLINE UInt32      push(const TYPE& v) { return LockFreeQueueImpl::pushN(&v);  }
+            ABE_INLINE Bool        pop(TYPE& v)        { return LockFreeQueueImpl::popN(&v);   }
     };
 };
 __END_NAMESPACE_ABE

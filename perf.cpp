@@ -55,9 +55,9 @@ struct Integer {
     int value;
     Integer() : value(0) { }
     Integer(int i) : value(i) { }
-    bool operator<(const Integer& rhs) const { return value < rhs.value; }
-    bool operator==(const Integer& rhs) const { return value == rhs.value; }
-    bool operator==(int rhs) const { return value == rhs; }
+    Bool operator<(const Integer& rhs) const { return value < rhs.value; }
+    Bool operator==(const Integer& rhs) const { return value == rhs.value; }
+    Bool operator==(int rhs) const { return value == rhs; }
 };
 
 struct QueueSingleConsumer : public Job {
@@ -65,7 +65,7 @@ struct QueueSingleConsumer : public Job {
     int                         mNext;
     QueueSingleConsumer() : mNext(0) { }
     virtual void onJob() {
-        int64_t now = SystemTimeUs();
+        Int64 now = SystemTimeUs();
         for (;;) {
             Integer i;
             if (mQueue.pop(i)) {
@@ -77,8 +77,8 @@ struct QueueSingleConsumer : public Job {
                 //Thread::Sleep(1);    // 1us
             }
         }
-        int64_t delta = SystemTimeUs() - now;
-        INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+        Int64 delta = SystemTimeUs() - now;
+        INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     }
 };
 
@@ -87,25 +87,25 @@ struct QueueProducer : public Job {
     volatile int                mNext;
     QueueProducer() : mNext(0) { }
     virtual void onJob() {
-        int64_t now = SystemTimeUs();
+        Int64 now = SystemTimeUs();
         for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
             mQueue.push(__atomic_fetch_add(&mNext, 1, __ATOMIC_SEQ_CST));
         }
-        int64_t delta = SystemTimeUs() - now;
-        INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+        Int64 delta = SystemTimeUs() - now;
+        INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     }
 };
 
 void QueuePerf() {
     INFO("Queue push() | pop()");
-    int64_t now, delta;
+    Int64 now, delta;
     LockFree::Queue<int> queue;
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
         queue.push(i);
     }
     delta = SystemTimeUs() - now;
-    INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
@@ -114,7 +114,7 @@ void QueuePerf() {
         CHECK_EQ(tmp, i);
     }
     delta = SystemTimeUs() - now;
-    INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     INFO("---");
     
 #if MULTI_THREAD
@@ -128,7 +128,7 @@ void QueuePerf() {
         consumer->mQueue.push(i);
     }
     delta = SystemTimeUs() - now;
-    INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("Queue push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     thread.join();
     INFO("---");
 
@@ -136,8 +136,8 @@ void QueuePerf() {
     INFO("Queue multi producer & single consumer");
     sp<QueueProducer> producer = new QueueProducer;
     Vector<Thread> threads;
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -149,8 +149,8 @@ void QueuePerf() {
         }
     }
     delta = SystemTimeUs() - now;
-    INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) {
+    INFO("Queue pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) {
         threads[i].join();
     }
     threads.clear();
@@ -165,7 +165,7 @@ struct ListConsumer : public Job {
     int             mNext;
     ListConsumer() : mNext(0) { }
     virtual void onJob() {
-        int64_t now = SystemTimeUs();
+        Int64 now = SystemTimeUs();
         for (;;) {
             AutoLock _l(mLock);
             if (mList.size()) {
@@ -179,8 +179,8 @@ struct ListConsumer : public Job {
                 //Thread::Sleep(1);    // 1us
             }
         }
-        int64_t delta = SystemTimeUs() - now;
-        INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+        Int64 delta = SystemTimeUs() - now;
+        INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     }
 };
 
@@ -190,29 +190,29 @@ struct ListProducer : public Job {
     int             mNext;
     ListProducer() : mNext(0) { }
     virtual void onJob() {
-        int64_t now = SystemTimeUs();
+        Int64 now = SystemTimeUs();
         for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
             AutoLock _l(mLock);
             mList.push(mNext++);
         }
-        int64_t delta = SystemTimeUs() - now;
-        INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+        Int64 delta = SystemTimeUs() - now;
+        INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     }
 };
 
 void ListPerf() {
     INFO("List push() | pop()");
-    int64_t now, delta;
+    Int64 now, delta;
     List<int> list;
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { list.push(i); }
     delta = SystemTimeUs() - now;
-    INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     now = SystemTimeUs();
     list.sort();
     delta = SystemTimeUs() - now;
-    INFO("List sort() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("List sort() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
@@ -220,7 +220,7 @@ void ListPerf() {
         list.pop();
     }
     delta = SystemTimeUs() - now;
-    INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     CHECK_TRUE(list.empty());
     for (int i = 0; i <= PERF_TEST_COUNT - i; ++i) {
@@ -230,7 +230,7 @@ void ListPerf() {
     now = SystemTimeUs();
     list.sort();
     delta = SystemTimeUs() - now;
-    INFO("List sort() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("List sort() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     INFO("---");
     
@@ -246,15 +246,15 @@ void ListPerf() {
         consumer->mList.push(i);
     }
     delta = SystemTimeUs() - now;
-    INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("List push() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     thread.join();
     INFO("---");
 
     INFO("List multi producer & single consumer");
     sp<ListProducer> producer = new ListProducer;
     Vector<Thread> threads;
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) threads.push(Thread(producer));
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) threads[i].run();
     
     now = SystemTimeUs();
     for (;;) {
@@ -268,8 +268,8 @@ void ListPerf() {
         }
     }
     delta = SystemTimeUs() - now;
-    INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / (PERF_TEST_COUNT * PERF_PRODUCER));
-    for (size_t i = 0; i < PERF_PRODUCER; ++i) {
+    INFO("List pop() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / (PERF_TEST_COUNT * PERF_PRODUCER));
+    for (UInt32 i = 0; i < PERF_PRODUCER; ++i) {
         threads[i].join();
     }
     threads.clear();
@@ -279,19 +279,19 @@ void ListPerf() {
 
 void STDListPerf() {
     INFO("std::list push() | pop()");
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     list<int> list;
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { list.push_back(i); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::list push() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     list.sort();
     delta = SystemTimeUs() - now;
-    INFO("std::list sort() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("std::list sort() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) {
@@ -299,7 +299,7 @@ void STDListPerf() {
         list.pop_front();
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::list pop() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     CHECK_TRUE(list.empty());
@@ -310,7 +310,7 @@ void STDListPerf() {
     now = SystemTimeUs();
     list.sort();
     delta = SystemTimeUs() - now;
-    INFO("std::list sort() test takes %" PRId64 " us, each %.3f us", delta, (double)delta / PERF_TEST_COUNT);
+    INFO("std::list sort() test takes %" PRId64 " us, each %.3f us", delta, (Float64)delta / PERF_TEST_COUNT);
     INFO("---");
 }
 
@@ -320,32 +320,32 @@ void STDListPerf() {
 // 2. Vector is bad than std::vector
 // 3. Vector::push(const TYPE&) is slower than Vector::push(), at least for builtin type, why???
 template <class TYPE> void VectorPerfInt() {
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     INFO("Vector push() | pop()");
     now = SystemTimeUs();
     Vector<TYPE> vec;
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { vec.push(i); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("Vector push() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     vec.sort();
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("Vector sort() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { CHECK_TRUE(vec[i] == i); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("Vector operator[] test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { vec.pop(); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("Vector pop() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     CHECK_TRUE(vec.empty());
@@ -356,7 +356,7 @@ template <class TYPE> void VectorPerfInt() {
     now = SystemTimeUs();
     vec.sort();
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("Vector sort() test takes %" PRId64 " us, each %.3f us", delta, each);
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { CHECK_TRUE(vec[i] == i); }
 
@@ -371,26 +371,26 @@ void VectorPerf() {
 }
 
 template <class TYPE> void STDVectorPerfInt() {
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     INFO("std::vector push() | pop()");
     now = SystemTimeUs();
     vector<TYPE> vec;
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { vec.push_back(i); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::vector push_back() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { CHECK_TRUE(vec[i] == i); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::vector operator[] test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
     for (int i = 0; i <= PERF_TEST_COUNT; ++i) { vec.pop_back(); }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::vector pop_back() test takes %" PRId64 " us, each %.3f us", delta, each);
     INFO("---");
 }
@@ -403,8 +403,8 @@ void STDVectorPerf() {
 }
 
 void HashTablePerf() {
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     INFO("HashTable insert() | erase()");
     now = SystemTimeUs();
     HashTable<int, int> hashtable;
@@ -412,7 +412,7 @@ void HashTablePerf() {
         hashtable.insert(i, i);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("HashTable insert() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
@@ -420,7 +420,7 @@ void HashTablePerf() {
         CHECK_EQ(hashtable[i], i);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("HashTable operator[] test takes %" PRId64 " us, each %.3f us", delta, each);
 
     now = SystemTimeUs();
@@ -428,15 +428,15 @@ void HashTablePerf() {
         hashtable.erase(i);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("HashTable erase() test takes %" PRId64 " us, each %.3f us", delta, each);
     INFO("---");
 }
 
 #if defined(__APPLE__)
 void STDHashTablePerf() {
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     INFO("std::unordered_map insert() | erase()");
     now = SystemTimeUs();
     unordered_map<int, int> hashtable;
@@ -444,7 +444,7 @@ void STDHashTablePerf() {
         hashtable.insert(std::make_pair(i, i));
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::unordered_map insert() test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
@@ -452,7 +452,7 @@ void STDHashTablePerf() {
         CHECK_EQ(hashtable[i], i);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::unordered_map operator[] test takes %" PRId64 " us, each %.3f us", delta, each);
     
     now = SystemTimeUs();
@@ -460,7 +460,7 @@ void STDHashTablePerf() {
         hashtable.erase(i);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / PERF_TEST_COUNT;
+    each = (Float64)delta / PERF_TEST_COUNT;
     INFO("std::unordered_map erase() test takes %" PRId64 " us, each %.3f us", delta, each);
     INFO("---");
 }
@@ -478,34 +478,34 @@ struct EmptyJob : public Job {
 // performance test shows:
 //  Thread::Sleep is inaccurate at least on macOS with ~30% overhead
 void LooperPerf() {
-    int64_t now, delta;
-    double each;
+    Int64 now, delta;
+    Float64 each;
     now = SystemTimeUs();
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         SleepTimeUs(LOOPER_TEST_SLEEP);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("sleep() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
     now = SystemTimeUs();
     Mutex lock; Condition wait;
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         AutoLock _l(lock);
         wait.waitRelative(lock, LOOPER_TEST_SLEEP * 1000LL);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("Condition.waitRelative() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
 #if 0
     now = SystemTimeUs();
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         sp<Job> r = new EmptyJob;
         r->run();
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("Job::run() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
 #endif
     
@@ -513,35 +513,35 @@ void LooperPerf() {
     sp<EmptyJob> routine = new EmptyJob;
     routine->count = 0;
     now = SystemTimeUs();
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         looper->post(routine);
     }
     looper.clear();     // wait jobs complete
     CHECK_EQ(routine->count, LOOPER_TEST_COUNT);
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("Looper() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
     now = SystemTimeUs();
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         Thread(new EmptyJob).run().join();
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("Thread() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
     sp<DispatchQueue> queue = new DispatchQueue(new Looper("disp"));
     now = SystemTimeUs();
-    for (size_t i = 0; i < LOOPER_TEST_COUNT; ++i) {
+    for (UInt32 i = 0; i < LOOPER_TEST_COUNT; ++i) {
         queue->sync(new EmptyJob);
     }
     delta = SystemTimeUs() - now;
-    each = (double)delta / LOOPER_TEST_COUNT;
+    each = (Float64)delta / LOOPER_TEST_COUNT;
     INFO("DispatchQueue() takes %" PRId64 " us, each %.3f us, overhead %.3f", delta, each, each / LOOPER_TEST_SLEEP - 1);
     
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, Char ** argv) {
 
     QueuePerf();
     ListPerf();

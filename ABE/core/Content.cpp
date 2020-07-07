@@ -42,36 +42,36 @@
 __BEGIN_NAMESPACE_ABE
 
 // prepare cache block before reading data
-void Content::prepareBlock(size_t n) const {
+void Content::prepareBlock(UInt32 n) const {
     if (mReadBlock->size() >= n) return;
     
     // cache in underrun, fetch kBlockLength bytes
     if (n > mReadBlock->empty() || mReadBlock->empty() < mProto->blockLength()) {
-        const size_t times = (n + mReadBlock->size()) / mReadBlock->capacity() + 1;
+        const UInt32 times = (n + mReadBlock->size()) / mReadBlock->capacity() + 1;
         // resize may fail, but DO NOT assert here, let readBytes handle it
-        if (mReadBlock->resize(mReadBlock->capacity() * times) == false) {
+        if (mReadBlock->resize(mReadBlock->capacity() * times) == False) {
             ERROR("Block resize failed %zu -> %zu",
-                  (size_t)mReadBlock->capacity(),
-                  (size_t)mReadBlock->capacity() * times);
+                  (UInt32)mReadBlock->capacity(),
+                  (UInt32)mReadBlock->capacity() * times);
         }
     }
     DEBUG("prepare %zu bytes with block capacity %zu(%zu) bytes @ %" PRId64,
-          n, (size_t)mReadBlock->capacity(), (size_t)mReadBlock->size(), offset());
+          n, (UInt32)mReadBlock->capacity(), (UInt32)mReadBlock->size(), offset());
     
-    size_t read = mProto->readBytes(mReadBlock);
+    UInt32 read = mProto->readBytes(mReadBlock);
     mReadPosition += read;
     DEBUG("prepare read %zu bytes, current block size %zu, current @ %" PRId64,
           read, mReadBlock->size(), offset());
 }
 
-void Content::writeBlockBack(bool force) {
+void Content::writeBlockBack(Bool force) {
     if (mWriteBlock->size() == 0) return;
     
     // write block when it is full
     if (!force && mWriteBlock->empty() > 0) return;
     
-    const size_t size = mWriteBlock->size();
-    size_t n = mProto->writeBytes(mWriteBlock);
+    const UInt32 size = mWriteBlock->size();
+    UInt32 n = mProto->writeBytes(mWriteBlock);
     if (n == 0) {
         ERROR("No more space ?");
         return;
@@ -101,9 +101,9 @@ sp<Content> Content::Create(const String& url, eMode mode) {
         proto = CreateFile(url, mode);
     }
 
-    if (proto.isNIL()) {
+    if (proto.isNil()) {
         ERROR("unsupported url %s", url.c_str());
-        return NULL;
+        return Nil;
     }
 
     return Content::Create(proto);
@@ -116,10 +116,10 @@ sp<Content> Content::Create(const sp<Protocol>& proto) {
 // read mode: read - read - read
 // write mode: write - write - write
 // read & write mode: read - write - write - ... - writeBack
-Content::Content(const sp<Protocol>& proto, size_t blockLength) :
+Content::Content(const sp<Protocol>& proto, UInt32 blockLength) :
     ABuffer(), mProto(proto),
-    mReadPosition(0), mReadBlock(NULL),
-    mWritePosition(0), mWriteBlock(NULL) {
+    mReadPosition(0), mReadBlock(Nil),
+    mWritePosition(0), mWriteBlock(Nil) {
     if (mProto->mode() & Read) {
         mReadBlock = new Buffer(blockLength, Buffer::Ring);
     }
@@ -129,14 +129,14 @@ Content::Content(const sp<Protocol>& proto, size_t blockLength) :
 }
 
 Content::~Content() {
-    if (!mWriteBlock.isNIL()) writeBlockBack(true);
+    if (!mWriteBlock.isNil()) writeBlockBack(True);
 }
 
-int64_t Content::capacity() const {
+Int64 Content::capacity() const {
     return mProto->totalBytes();
 }
 
-int64_t Content::size() const {
+Int64 Content::size() const {
     if (capacity() <= 0) {
         prepareBlock(1);
         return mReadBlock->size();
@@ -144,7 +144,7 @@ int64_t Content::size() const {
     return capacity() - offset();
 }
 
-int64_t Content::empty() const {
+Int64 Content::empty() const {
     if (capacity() <= 0) {
         // THIS IS TRUE
         // for stream media, file size maybe unknown
@@ -153,40 +153,40 @@ int64_t Content::empty() const {
     return capacity() - size();
 }
 
-int64_t Content::offset() const {
+Int64 Content::offset() const {
     return mReadPosition - mReadBlock->size();
 }
 
-const char * Content::data() const {
+const Char * Content::data() const {
     ABuffer::reset();
     prepareBlock(1);
     return mReadBlock->data();
 }
 
-sp<ABuffer> Content::readBytes(size_t n) const {
+sp<ABuffer> Content::readBytes(UInt32 n) const {
     DEBUG("read %zu bytes @ %" PRId64, n, offset());
     ABuffer::reset();
     prepareBlock(n);
     if (mReadBlock->size() == 0) {
         INFO("End Of File");
-        return NULL;
+        return Nil;
     }
     sp<Buffer> data = mReadBlock->readBytes(n);
     DEBUG("read return %zu bytes, end @ %" PRId64, data->size(), offset());
     return data;
 }
 
-size_t Content::readBytes(char * buffer, size_t n) const {
+UInt32 Content::readBytes(Char * buffer, UInt32 n) const {
     ABuffer::reset();
     prepareBlock(n);
     if (mReadBlock->size() == 0) {
         INFO("End Of File");
-        return NULL;
+        return Nil;
     }
     return mReadBlock->readBytes(buffer, n);
 }
 
-int64_t Content::skipBytes(int64_t delta) const {
+Int64 Content::skipBytes(Int64 delta) const {
     DEBUG("skip %" PRId64 " bytes @ %" PRId64,
           delta, offset());
     ABuffer::reset();
@@ -211,15 +211,15 @@ int64_t Content::skipBytes(int64_t delta) const {
 
 sp<ABuffer> Content::cloneBytes() const {
     ERROR("TODO: clone bytes in content bytes");
-    return NULL;
+    return Nil;
 }
 
-size_t Content::writeBytes(const char * data, size_t n) {
+UInt32 Content::writeBytes(const Char * data, UInt32 n) {
     ABuffer::flush();
-    size_t bytesWritten = 0;
+    UInt32 bytesWritten = 0;
     while (bytesWritten < n) {
         writeBlockBack();
-        size_t m = mWriteBlock->writeBytes(data, n - bytesWritten);
+        UInt32 m = mWriteBlock->writeBytes(data, n - bytesWritten);
         if (m == 0) break;
         data += m;
         bytesWritten += m;
@@ -227,23 +227,23 @@ size_t Content::writeBytes(const char * data, size_t n) {
     return bytesWritten;
 }
 
-size_t Content::writeBytes(const sp<ABuffer>& buffer, size_t n) {
+UInt32 Content::writeBytes(const sp<ABuffer>& buffer, UInt32 n) {
     ABuffer::flush();
     while (buffer->size()) {
         writeBlockBack();
-        size_t m = mWriteBlock->writeBytes(buffer);
+        UInt32 m = mWriteBlock->writeBytes(buffer);
         if (m == 0) break;
         buffer->skipBytes(m);
     }
     return n - buffer->size();
 }
 
-size_t Content::writeBytes(int c, size_t n) {
+UInt32 Content::writeBytes(int c, UInt32 n) {
     ABuffer::flush();
-    size_t bytesWritten = 0;
+    UInt32 bytesWritten = 0;
     while (bytesWritten < n) {
         writeBlockBack();
-        size_t m = mWriteBlock->writeBytes(c, n - bytesWritten);
+        UInt32 m = mWriteBlock->writeBytes(c, n - bytesWritten);
         if (m == 0) break;
         bytesWritten += m;
     }
@@ -271,19 +271,19 @@ void Content::resetBytes() const {
 
 void Content::flushBytes() {
     ABuffer::flush();
-    writeBlockBack(true);
+    writeBlockBack(True);
 }
 
 void Content::clearBytes() {
     // TODO
 }
 
-uint8_t Content::readByte() const {
+UInt8 Content::readByte() const {
     prepareBlock(1);
     return mReadBlock->r8();
 }
 
-void Content::writeByte(uint8_t x) {
+void Content::writeByte(UInt8 x) {
     if (mWriteBlock->empty() == 0)
         writeBlockBack();
     mWriteBlock->w8(x);

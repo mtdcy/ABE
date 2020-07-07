@@ -44,7 +44,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 class ABE_EXPORT VectorImpl {
     public:
         VectorImpl(const sp<Allocator>& allocator,
-                size_t capacity, const TypeHelper& helper);
+                UInt32 capacity, const TypeHelper& helper);
 
         VectorImpl(const VectorImpl& rhs);
 
@@ -56,32 +56,32 @@ class ABE_EXPORT VectorImpl {
         void        clear();
         void        shrink();
 
-        ABE_INLINE size_t      size() const        { return mItemCount; }
-        ABE_INLINE size_t      capacity() const    { return mCapacity; }
+        ABE_INLINE UInt32      size() const        { return mItemCount; }
+        ABE_INLINE UInt32      capacity() const    { return mCapacity; }
 
     protected:
-        const void* access  (size_t index) const;
-        void *      access  (size_t index);
+        const void* access  (UInt32 index) const;
+        void *      access  (UInt32 index);
 
-        void *      emplace (size_t pos, type_construct_t ctor);
-        void        insert  (size_t pos, const void * what);
-        void        erase   (size_t pos);
-        void        erase   (size_t first, size_t last);
+        void *      emplace (UInt32 pos, type_construct_t ctor);
+        void        insert  (UInt32 pos, const void * what);
+        void        erase   (UInt32 pos);
+        void        erase   (UInt32 first, UInt32 last);
 
         void        sort    (type_compare_t);
 
     private:
-        char *      _grow   (size_t pos, size_t amount);
-        void        _remove (size_t pos, size_t amount);
+        Char *      _grow   (UInt32 pos, UInt32 amount);
+        void        _remove (UInt32 pos, UInt32 amount);
         void        _edit   ();
-        void        _release(SharedBuffer *, size_t, bool moved = false);
+        void        _release(SharedBuffer *, UInt32, Bool moved = False);
 
     private:
         TypeHelper          mTypeHelper;
         sp<Allocator>   mAllocator;
         SharedBuffer *      mStorage;
-        size_t              mCapacity;
-        size_t              mItemCount;
+        UInt32              mCapacity;
+        UInt32              mItemCount;
 };
 __END_NAMESPACE_ABE_PRIVATE
 
@@ -89,30 +89,30 @@ __BEGIN_NAMESPACE_ABE
 // Note:
 // 1. No interator for Vector because it's random access has constant time.
 // 2. No auto memory shrink
-template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::VectorImpl, public NonSharedObject {
+template <typename TYPE> class Vector : protected __NAMESPACE_PRIVATE::VectorImpl, public StaticObject {
     public:
-        ABE_INLINE Vector(size_t capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
-            VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, false, true, true>()) { }
+        ABE_INLINE Vector(UInt32 capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
+            VectorImpl(allocator, capacity, TypeHelperBuilder<TYPE, False, True, True>()) { }
 
         ABE_INLINE ~Vector() { }
 
     public:
         ABE_INLINE void        clear()             { VectorImpl::clear();              }
         ABE_INLINE void        shrink()            { VectorImpl::shrink();             }
-        ABE_INLINE size_t      size() const        { return VectorImpl::size();        }
-        ABE_INLINE bool        empty() const       { return size() == 0;               }
-        ABE_INLINE size_t      capacity() const    { return VectorImpl::capacity();    }
+        ABE_INLINE UInt32      size() const        { return VectorImpl::size();        }
+        ABE_INLINE Bool        empty() const       { return size() == 0;               }
+        ABE_INLINE UInt32      capacity() const    { return VectorImpl::capacity();    }
 
     public:
         // stable sort, uses operator<
         ABE_INLINE void        sort()              { VectorImpl::sort(type_compare_less<TYPE>);                }
-        typedef     bool compare_t (const TYPE *lhs, const TYPE *rhs);
+        typedef     Bool compare_t (const TYPE *lhs, const TYPE *rhs);
         ABE_INLINE void        sort(compare_t cmp) { VectorImpl::sort(reinterpret_cast<type_compare_t>(cmp));  }
 
     public:
         // element access with range check which is not like std::vector::operator[]
-        ABE_INLINE TYPE&       operator[](size_t index)        { return *static_cast<TYPE*>(access(index));        }
-        ABE_INLINE const TYPE& operator[](size_t index) const  { return *static_cast<const TYPE*>(access(index));  }
+        ABE_INLINE TYPE&       operator[](UInt32 index)        { return *static_cast<TYPE*>(access(index));        }
+        ABE_INLINE const TYPE& operator[](UInt32 index) const  { return *static_cast<const TYPE*>(access(index));  }
 
     public:
         ABE_INLINE TYPE&       front()             { return *static_cast<TYPE*>(VectorImpl::access(0));                }
@@ -126,10 +126,10 @@ template <typename TYPE> class Vector : protected __NAMESPACE_ABE_PRIVATE::Vecto
         ABE_INLINE void        pop()               { VectorImpl::erase(size()-1);                                                      }
 
     public:
-        ABE_INLINE void        erase(size_t index)                 { VectorImpl::erase(index);                                 }
-        ABE_INLINE void        erase(size_t first, size_t last)    { VectorImpl::erase(first, last);                           }
-        ABE_INLINE void        insert(size_t index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
-        ABE_INLINE TYPE&       insert(size_t index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
+        ABE_INLINE void        erase(UInt32 index)                 { VectorImpl::erase(index);                                 }
+        ABE_INLINE void        erase(UInt32 first, UInt32 last)    { VectorImpl::erase(first, last);                           }
+        ABE_INLINE void        insert(UInt32 index, const TYPE& v) { VectorImpl::insert(index, &v);                            }
+        ABE_INLINE TYPE&       insert(UInt32 index)                { return *static_cast<TYPE*>(VectorImpl::emplace(index, type_construct<TYPE>));  }
 };
 
 __END_NAMESPACE_ABE

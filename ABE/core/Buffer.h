@@ -65,20 +65,20 @@ class ABE_EXPORT ABuffer : public SharedObject {
          * read buffer properties
          * @note abstract interface for inherited class
          */
-        virtual int64_t     capacity() const = 0;   ///< return buffer capacity
-        virtual int64_t     size() const = 0;       ///< return data size in bytes in buffer
-        virtual int64_t     empty() const = 0;      ///< return empty bytes in buffer
-        virtual int64_t     offset() const = 0;     ///< return current read position
-        virtual const char* data() const = 0;
+        virtual Int64     capacity() const = 0;   ///< return buffer capacity
+        virtual Int64     size() const = 0;       ///< return data size in bytes in buffer
+        virtual Int64     empty() const = 0;      ///< return empty bytes in buffer
+        virtual Int64     offset() const = 0;     ///< return current read position
+        virtual const Char* data() const = 0;
     
     public:
         /**
          * read bytes from buffer
          * @note bytes operator will reset reader bits reservoir
          */
-        virtual sp<ABuffer> readBytes(size_t) const = 0;        ///< read n bytes as a new buffer
-        virtual size_t      readBytes(char *, size_t) const = 0;///< read n bytes into certain memory
-        virtual int64_t     skipBytes(int64_t) const = 0;       ///< skip read n bytes, [-offset(), size()]
+        virtual sp<ABuffer> readBytes(UInt32) const = 0;        ///< read n bytes as a new buffer
+        virtual UInt32      readBytes(Char *, UInt32) const = 0;///< read n bytes into certain memory
+        virtual Int64     skipBytes(Int64) const = 0;       ///< skip read n bytes, [-offset(), size()]
         virtual void        resetBytes() const = 0;             ///< reset bytes reader
         virtual sp<ABuffer> cloneBytes() const = 0;             ///< clone all bytes
         
@@ -86,53 +86,53 @@ class ABE_EXPORT ABuffer : public SharedObject {
          * write bytes into buffer
          * @note bytes writer will flush writer bits reservoir
          */
-        virtual size_t      writeBytes(const char *, size_t n = 0) = 0;         ///< write n bytes into this buffer
-        virtual size_t      writeBytes(const sp<ABuffer>& b, size_t n = 0) = 0; ///< write a buffer into this buffer
-        virtual size_t      writeBytes(int c, size_t n) = 0;    ///< write n bytes of c
+        virtual UInt32      writeBytes(const Char *, UInt32 n = 0) = 0;         ///< write n bytes into this buffer
+        virtual UInt32      writeBytes(const sp<ABuffer>& b, UInt32 n = 0) = 0; ///< write a buffer into this buffer
+        virtual UInt32      writeBytes(int c, UInt32 n) = 0;    ///< write n bytes of c
         virtual void        flushBytes() = 0;                   ///< flush bytes writer
         virtual void        clearBytes() = 0;                   ///< clear bytes in buffer
 
     protected:
         // basic operators for bit reader & writer
-        virtual uint8_t     readByte() const = 0;               ///< read one byte
-        virtual void        writeByte(uint8_t) = 0;             ///< write one byte
+        virtual UInt8     readByte() const = 0;               ///< read one byte
+        virtual void        writeByte(UInt8) = 0;             ///< write one byte
 
     public:
         /**
          * bit reader operators
          * @note client have to do sanity check on bits left for read
          */
-        void                skip(size_t) const;         ///< skip n bits
+        void                skip(UInt32) const;         ///< skip n bits
         void                skip() const;               ///< skip current byte tail bits
-        uint32_t            read(size_t) const;         ///< read n bits
-        uint32_t            show(size_t) const;         ///< show n bits
-        uint8_t             r8() const;                 ///< read 8 bits
-        uint16_t            rl16() const;               ///< read 16 bits as little endian
-        uint16_t            rb16() const;               ///< read 16 bits as big endian
-        uint32_t            rl24() const;               ///< read 24 bits as little endian
-        uint32_t            rb24() const;               ///< read 24 bits as big endian
-        uint32_t            rl32() const;               ///< read 32 bits as little endian
-        uint32_t            rb32() const;               ///< read 32 bits as big endian
-        uint64_t            rl64() const;               ///< read 64 bits as little endian
-        uint64_t            rb64() const;               ///< read 64 bits as big endian
-        String              rs(size_t) const;           ///< read n char as string
+        UInt32            read(UInt32) const;         ///< read n bits
+        UInt32            show(UInt32) const;         ///< show n bits
+        UInt8             r8() const;                 ///< read 8 bits
+        UInt16            rl16() const;               ///< read 16 bits as little endian
+        UInt16            rb16() const;               ///< read 16 bits as big endian
+        UInt32            rl24() const;               ///< read 24 bits as little endian
+        UInt32            rb24() const;               ///< read 24 bits as big endian
+        UInt32            rl32() const;               ///< read 32 bits as little endian
+        UInt32            rb32() const;               ///< read 32 bits as big endian
+        UInt64            rl64() const;               ///< read 64 bits as little endian
+        UInt64            rb64() const;               ///< read 64 bits as big endian
+        String              rs(UInt32) const;           ///< read n Char as string
 
         /**
          * bit writer operators
          * @note client have to do sanity check on bits left for write
          */
-        void                write(uint32_t, size_t);    ///< write value x as n bits
+        void                write(UInt32, UInt32);    ///< write value x as n bits
         void                write();                    ///< write bits 0 to byte boundary
-        void                w8(uint8_t);                ///< write 8 bits
-        void                wl16(uint16_t);             ///< write 16 bits as little endian
-        void                wb16(uint16_t);             ///< write 16 bits as big endian
-        void                wl24(uint32_t);             ///< write 24 bits as little endian
-        void                wb24(uint32_t);             ///< write 24 bits as big endian
-        void                wl32(uint32_t);             ///< write 32 bits as little endian
-        void                wb32(uint32_t);             ///< write 32 bits as big endian
-        void                wl64(uint64_t);             ///< write 64 bits as little endian
-        void                wb64(uint64_t);             ///< write 64 bits as big endian
-        void                ws(const String&, size_t n = 0);    ///< write n byte string
+        void                w8(UInt8);                ///< write 8 bits
+        void                wl16(UInt16);             ///< write 16 bits as little endian
+        void                wb16(UInt16);             ///< write 16 bits as big endian
+        void                wl24(UInt32);             ///< write 24 bits as little endian
+        void                wb24(UInt32);             ///< write 24 bits as big endian
+        void                wl32(UInt32);             ///< write 32 bits as little endian
+        void                wb32(UInt32);             ///< write 32 bits as big endian
+        void                wl64(UInt64);             ///< write 64 bits as little endian
+        void                wb64(UInt64);             ///< write 64 bits as big endian
+        void                ws(const String&, UInt32 n = 0);    ///< write n byte string
 
         /**
          * set default byte order and read based on byte order
@@ -140,14 +140,14 @@ class ABE_EXPORT ABuffer : public SharedObject {
          */
         ABE_INLINE eByteOrder byteOrder() const { return mByteOrder; }
         ABE_INLINE void     setByteOrder(eByteOrder order) const { mByteOrder = order; }
-        ABE_INLINE uint16_t r16() const     { return mByteOrder == Big ? rb16() : rl16(); }
-        ABE_INLINE uint32_t r24() const     { return mByteOrder == Big ? rb24() : rl24(); }
-        ABE_INLINE uint32_t r32() const     { return mByteOrder == Big ? rb32() : rl32(); }
-        ABE_INLINE uint64_t r64() const     { return mByteOrder == Big ? rb64() : rl64(); }
-        ABE_INLINE void     w16(uint16_t x) { mByteOrder == Big ? wb16(x) : wl16(x); }
-        ABE_INLINE void     w24(uint32_t x) { mByteOrder == Big ? wb24(x) : wl24(x); }
-        ABE_INLINE void     w32(uint32_t x) { mByteOrder == Big ? wb32(x) : wl32(x); }
-        ABE_INLINE void     w64(uint64_t x) { mByteOrder == Big ? wb64(x) : wl64(x); }
+        ABE_INLINE UInt16 r16() const     { return mByteOrder == Big ? rb16() : rl16(); }
+        ABE_INLINE UInt32 r24() const     { return mByteOrder == Big ? rb24() : rl24(); }
+        ABE_INLINE UInt32 r32() const     { return mByteOrder == Big ? rb32() : rl32(); }
+        ABE_INLINE UInt64 r64() const     { return mByteOrder == Big ? rb64() : rl64(); }
+        ABE_INLINE void     w16(UInt16 x) { mByteOrder == Big ? wb16(x) : wl16(x); }
+        ABE_INLINE void     w24(UInt32 x) { mByteOrder == Big ? wb24(x) : wl24(x); }
+        ABE_INLINE void     w32(UInt32 x) { mByteOrder == Big ? wb32(x) : wl32(x); }
+        ABE_INLINE void     w64(UInt64 x) { mByteOrder == Big ? wb64(x) : wl64(x); }
 
     protected:
         ABuffer() : mByteOrder(Little) {
@@ -161,8 +161,8 @@ class ABE_EXPORT ABuffer : public SharedObject {
     private:
         mutable eByteOrder mByteOrder;
         struct Reservoir {
-            uint64_t    mBits;
-            size_t      mLength;
+            UInt64    mBits;
+            UInt32      mLength;
         };
         mutable Reservoir mReadReservoir;
         Reservoir mWriteReservoir;
@@ -181,8 +181,8 @@ class ABE_EXPORT Buffer : public ABuffer {
          * @param capacity  initial capacity of this buffer
          * @param type      type of this buffer, @see eBufferType
          */
-        Buffer(size_t capacity, const sp<Allocator>& allocator = kAllocatorDefault);
-        Buffer(size_t capacity, eBufferType type, const sp<Allocator>& allocator = kAllocatorDefault);
+        Buffer(UInt32 capacity, const sp<Allocator>& allocator = kAllocatorDefault);
+        Buffer(UInt32 capacity, eBufferType type, const sp<Allocator>& allocator = kAllocatorDefault);
 
         /**
          * alloc a buffer by duplicate a null-terminated string
@@ -190,7 +190,7 @@ class ABE_EXPORT Buffer : public ABuffer {
          * @param n     length to duplicate
          * @param type  type of this buffer, @see eBufferType
          */
-        Buffer(const char *, size_t n = 0, eBufferType type = Default,
+        Buffer(const Char *, UInt32 n = 0, eBufferType type = Default,
                 const sp<Allocator>& allocator = kAllocatorDefault);
 
         virtual ~Buffer();
@@ -204,71 +204,71 @@ class ABE_EXPORT Buffer : public ABuffer {
         /**
          * resize this buffer's backend memory
          * @param cap   new capacity of the backend memory
-         * @return return true on success
+         * @return return True on success
          */
-        bool                resize(size_t cap);
+        Bool                resize(UInt32 cap);
 
         //! DEBUGGING
-        String      string(bool hex = false) const;
+        String      string(Bool hex = False) const;
     
     public:
-        virtual int64_t     capacity() const { return mCapacity; }
-        virtual int64_t     size() const { return mWritePos - mReadPos; }
-        virtual int64_t     empty() const;
-        virtual int64_t     offset() const;
+        virtual Int64     capacity() const { return mCapacity; }
+        virtual Int64     size() const { return mWritePos - mReadPos; }
+        virtual Int64     empty() const;
+        virtual Int64     offset() const;
     
     public:
-        virtual sp<ABuffer> readBytes(size_t) const;
-        virtual size_t      readBytes(char *, size_t) const;
-        virtual int64_t     skipBytes(int64_t) const;
+        virtual sp<ABuffer> readBytes(UInt32) const;
+        virtual UInt32      readBytes(Char *, UInt32) const;
+        virtual Int64     skipBytes(Int64) const;
         virtual void        resetBytes() const;
         virtual sp<ABuffer> cloneBytes() const;
     
-        virtual size_t      writeBytes(const char *, size_t n = 0);
-        virtual size_t      writeBytes(const sp<ABuffer>&, size_t n = 0);
-        virtual size_t      writeBytes(int c, size_t n);
+        virtual UInt32      writeBytes(const Char *, UInt32 n = 0);
+        virtual UInt32      writeBytes(const sp<ABuffer>&, UInt32 n = 0);
+        virtual UInt32      writeBytes(int c, UInt32 n);
         virtual void        flushBytes();
         virtual void        clearBytes();
     
     public:
         // access bytes directly. UNSAFE!
         // MUST avoid using these routines
-        const char *        base() const { return mData->data() + mOffset; }
-        virtual const char* data() const { return base() + mReadPos; }
-        char *              base();
-        char *              data() { return base() + mReadPos; }
+        const Char *        base() const { return mData->data() + mOffset; }
+        virtual const Char* data() const { return base() + mReadPos; }
+        Char *              base();
+        Char *              data() { return base() + mReadPos; }
         /**
          * move read pointer forword by n bytes
          * @note after write directly @ data()
          */
-        size_t              stepBytes(size_t n);
+        UInt32              stepBytes(UInt32 n);
         /**
          * set buffer range, read pos @ offset with n bytes data
          * @note after write directly @ base()
          */
-        void                setBytesRange(size_t offset, size_t n);
+        void                setBytesRange(UInt32 offset, UInt32 n);
 
     protected:
-        virtual uint8_t     readByte() const;
-        virtual void        writeByte(uint8_t);
+        virtual UInt8     readByte() const;
+        virtual void        writeByte(UInt8);
 
     private:
         void                edit();
-        void                rewind(size_t);
+        void                rewind(UInt32);
         SharedBuffer *      alloc();
     
     protected:
         // for creating cow buffer
-        Buffer(const Buffer *, size_t, size_t);
+        Buffer(const Buffer *, UInt32, UInt32);
     
         // backend memory provider
         sp<Allocator>       mAllocator;
         SharedBuffer *      mData;
-        size_t              mOffset;    // for cow buffer
-        size_t              mCapacity;
+        UInt32              mOffset;    // for cow buffer
+        UInt32              mCapacity;
         const eBufferType   mType;
-        mutable size_t      mReadPos;
-        size_t              mWritePos;
+        mutable UInt32      mReadPos;
+        UInt32              mWritePos;
     
         DISALLOW_EVILS(Buffer);
 };

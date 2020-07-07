@@ -24,7 +24,7 @@ void testBuffer() {
     malloc_finalize();
 }
 
-int main (int argc, char ** argv) {
+int main (int argc, Char ** argv) {
     
     testBuffer();
     

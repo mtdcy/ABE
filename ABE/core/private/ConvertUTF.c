@@ -68,8 +68,8 @@ static const UTF32 halfMask = 0x3FFUL;
 #define UNI_SUR_HIGH_END    (UTF32)0xDBFF
 #define UNI_SUR_LOW_START   (UTF32)0xDC00
 #define UNI_SUR_LOW_END     (UTF32)0xDFFF
-#define false      0
-#define true        1
+//#define false      0
+//#define true        1
 
 /* --------------------------------------------------------------------- */
 
@@ -80,7 +80,7 @@ static const UTF32 halfMask = 0x3FFUL;
  * left as-is for anyone who may want to do such conversion, which was
  * allowed in earlier algorithms.
  */
-static const char trailingBytesForUTF8[256] = {
+static const Char trailingBytesForUTF8[256] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -354,7 +354,7 @@ ConversionResult ConvertUTF32toUTF8 (
  *  length = trailingBytesForUTF8[*source]+1;
  * and the sequence is illegal right away if there aren't that many bytes
  * available.
- * If presented with a length > 4, this returns false.  The Unicode
+ * If presented with a length > 4, this returns False.  The Unicode
  * definition of UTF-8 goes up to 4-byte sequences.
  */
 
@@ -362,25 +362,25 @@ static Boolean isLegalUTF8(const UTF8 *source, int length) {
     UTF8 a;
     const UTF8 *srcptr = source+length;
     switch (length) {
-    default: return false;
-        /* Everything else falls through when "true"... */
-    case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return false;
-    case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return false;
-    case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return false;
+    default: return False;
+        /* Everything else falls through when "True"... */
+    case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return False;
+    case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return False;
+    case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return False;
 
         switch (*source) {
             /* no fall-through in this inner switch */
-            case 0xE0: if (a < 0xA0) return false; break;
-            case 0xED: if (a > 0x9F) return false; break;
-            case 0xF0: if (a < 0x90) return false; break;
-            case 0xF4: if (a > 0x8F) return false; break;
-            default:   if (a < 0x80) return false;
+            case 0xE0: if (a < 0xA0) return False; break;
+            case 0xED: if (a > 0x9F) return False; break;
+            case 0xF0: if (a < 0x90) return False; break;
+            case 0xF4: if (a > 0x8F) return False; break;
+            default:   if (a < 0x80) return False;
         }
 
-    case 1: if (*source >= 0x80 && *source < 0xC2) return false;
+    case 1: if (*source >= 0x80 && *source < 0xC2) return False;
     }
-    if (*source > 0xF4) return false;
-    return true;
+    if (*source > 0xF4) return False;
+    return True;
 }
 
 /* --------------------------------------------------------------------- */
@@ -392,7 +392,7 @@ static Boolean isLegalUTF8(const UTF8 *source, int length) {
 Boolean isLegalUTF8Sequence(const UTF8 *source, const UTF8 *sourceEnd) {
     int length = trailingBytesForUTF8[*source]+1;
     if (length > sourceEnd - source) {
-        return false;
+        return False;
     }
     return isLegalUTF8(source, length);
 }
@@ -510,10 +510,10 @@ Boolean isLegalUTF8String(const UTF8 **source, const UTF8 *sourceEnd) {
     while (*source != sourceEnd) {
         int length = trailingBytesForUTF8[**source] + 1;
         if (length > sourceEnd - *source || !isLegalUTF8(*source, length))
-            return false;
+            return False;
         *source += length;
     }
-    return true;
+    return True;
 }
 
 /* --------------------------------------------------------------------- */
@@ -684,14 +684,14 @@ ConversionResult ConvertUTF8toUTF32Partial(const UTF8 **sourceStart,
                                            UTF32 *targetEnd,
                                            ConversionFlags flags) {
   return ConvertUTF8toUTF32Impl(sourceStart, sourceEnd, targetStart, targetEnd,
-                                flags, /*InputIsPartial=*/true);
+                                flags, /*InputIsPartial=*/True);
 }
 
 ConversionResult ConvertUTF8toUTF32(const UTF8 **sourceStart,
                                     const UTF8 *sourceEnd, UTF32 **targetStart,
                                     UTF32 *targetEnd, ConversionFlags flags) {
   return ConvertUTF8toUTF32Impl(sourceStart, sourceEnd, targetStart, targetEnd,
-                                flags, /*InputIsPartial=*/false);
+                                flags, /*InputIsPartial=*/False);
 }
 
 /* ---------------------------------------------------------------------

@@ -37,23 +37,23 @@
 
 #include <ABE/core/Types.h>
 
-__BEGIN_DECLS
+BEGIN_DECLS
 
 typedef uintptr_t   bt_stack_t;
 
 // save current call stack
-size_t backtrace_stack(bt_stack_t array[], size_t max);
+UInt32 backtrace_stack(bt_stack_t array[], UInt32 max);
 
 // print this call stack
-void backtrace_symbols(const bt_stack_t array[], size_t size);
+void backtrace_symbols(const bt_stack_t array[], UInt32 size);
 
 // print backtrace directly into log system.
 #define BACKTRACE() do {                                \
     bt_stack_t stack[32];                               \
-    size_t n = backtrace_stack(stack, 32);              \
+    UInt32 n = backtrace_stack(stack, 32);              \
     backtrace_symbols(stack, n);                        \
 } while(0)
 
-__END_DECLS
+END_DECLS
 
 #endif // __toolkit_backtrace_h

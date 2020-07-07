@@ -39,33 +39,26 @@
 
 __BEGIN_NAMESPACE_ABE
 
-template <typename T, typename U> struct is_same    { enum { value = false }; };
-template <typename T> struct is_same<T, T>          { enum { value = true  }; };
+template <typename T, typename U> struct is_same    { enum { value = False }; };
+template <typename T> struct is_same<T, T>          { enum { value = True  }; };
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> struct is_pointer          { enum { value = false }; };
-template <typename TYPE> struct is_pointer<TYPE *>  { enum { value = true  }; };
+template <typename TYPE> struct is_pointer          { enum { value = False }; };
+template <typename TYPE> struct is_pointer<TYPE *>  { enum { value = True  }; };
 
 template <typename TYPE> struct is_builtin          { enum { value = is_pointer<TYPE>::value }; };
-template <> struct is_builtin< void     >           { enum { value = true  }; };
-template <> struct is_builtin< bool     >           { enum { value = true  }; };
-template <> struct is_builtin< char     >           { enum { value = true  }; };
-template <> struct is_builtin< int8_t   >           { enum { value = true  }; };
-template <> struct is_builtin< uint8_t  >           { enum { value = true  }; };
-template <> struct is_builtin< int16_t  >           { enum { value = true  }; };
-template <> struct is_builtin< uint16_t >           { enum { value = true  }; };
-template <> struct is_builtin< int32_t  >           { enum { value = true  }; };
-template <> struct is_builtin< uint32_t >           { enum { value = true  }; };
-template <> struct is_builtin< int64_t  >           { enum { value = true  }; };
-template <> struct is_builtin< uint64_t >           { enum { value = true  }; };
-template <> struct is_builtin< float    >           { enum { value = true  }; };
-template <> struct is_builtin< double   >           { enum { value = true  }; };
-#if defined(__clang__)
-template <> struct is_builtin< size_t   >           { enum { value = true  }; };
-#endif
-#if defined(__clang__)
-template <> struct is_builtin< ssize_t  >           { enum { value = true  }; };
-#endif
+template <> struct is_builtin< void     >           { enum { value = True  }; };
+template <> struct is_builtin< Char     >           { enum { value = True  }; };
+template <> struct is_builtin< Int8   >             { enum { value = True  }; };
+template <> struct is_builtin< UInt8  >             { enum { value = True  }; };
+template <> struct is_builtin< Int16  >             { enum { value = True  }; };
+template <> struct is_builtin< UInt16 >             { enum { value = True  }; };
+template <> struct is_builtin< Int32  >             { enum { value = True  }; };
+template <> struct is_builtin< UInt32 >             { enum { value = True  }; };
+template <> struct is_builtin< Int64  >             { enum { value = True  }; };
+template <> struct is_builtin< UInt64 >             { enum { value = True  }; };
+template <> struct is_builtin< Float32    >           { enum { value = True  }; };
+template <> struct is_builtin< Float64   >           { enum { value = True  }; };
 
 template <typename TYPE> struct is_trivial_ctor     { enum { value = is_builtin<TYPE>::value }; };
 template <typename TYPE> struct is_trivial_dtor     { enum { value = is_builtin<TYPE>::value }; };
@@ -73,11 +66,11 @@ template <typename TYPE> struct is_trivial_copy     { enum { value = is_builtin<
 template <typename TYPE> struct is_trivial_move     { enum { value = is_builtin<TYPE>::value }; };
 
 #ifdef ABE_HEADERS_SHARED_BUFFER_H
-template <typename T> struct is_trivial_move<sp<T> >    { enum { value = true }; };
+template <typename T> struct is_trivial_move<sp<T> >    { enum { value = True }; };
 #endif
 
 #ifdef ABE_HEADERS_STRING_H    // String.h
-template <> struct is_trivial_move<String>              { enum { value = true }; };
+template <> struct is_trivial_move<String>              { enum { value = True }; };
 #endif
 
 __END_NAMESPACE_ABE

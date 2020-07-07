@@ -60,8 +60,8 @@
 // borrow from android:bionic
 struct stack_crawl_state_t {
     bt_stack_t*     frames;
-    size_t          frame_count;
-    size_t          cur_frame;
+    UInt32          frame_count;
+    UInt32          cur_frame;
 };
 
 static _Unwind_Reason_Code trace_function(struct _Unwind_Context* context, void* arg) {
@@ -85,7 +85,7 @@ static _Unwind_Reason_Code trace_function(struct _Unwind_Context* context, void*
             //  b11110
             //  b11111
             // Otherwise, this is a 16 bit instruction.
-            uint16_t value = (*(uint16_t*)(ip - 2)) >> 11;
+            UInt16 value = (*(UInt16*)(ip - 2)) >> 11;
             if (value == 0x1f || value == 0x1e || value == 0x1d) {
                 ip -= 4;
             } else {
@@ -116,7 +116,7 @@ static _Unwind_Reason_Code trace_function(struct _Unwind_Context* context, void*
 #endif
 
 // save current call stack
-size_t backtrace_stack(bt_stack_t array[], size_t max) {
+UInt32 backtrace_stack(bt_stack_t array[], UInt32 max) {
 #ifdef USE_UNWIND
     bt_stack_t stack[MAX_STACK];
     struct stack_crawl_state_t state;
@@ -124,7 +124,7 @@ size_t backtrace_stack(bt_stack_t array[], size_t max) {
     state.frame_count = MAX_STACK;
     state.cur_frame   = 0;
     _Unwind_Backtrace(trace_function, &state);
-    for (size_t i = 1; i < state.cur_frame && i - 1 < max; ++i) {
+    for (UInt32 i = 1; i < state.cur_frame && i - 1 < max; ++i) {
         array[i - 1] = stack[i];
     }
     // remove only first pc
@@ -133,8 +133,8 @@ size_t backtrace_stack(bt_stack_t array[], size_t max) {
     return 0;
 #else
     bt_stack_t stack[MAX_STACK];
-    size_t n = backtrace(stack, MAX_STACK);
-    for (size_t i = 1; i < n - 1 && i - 1 < max; ++i) {
+    UInt32 n = backtrace(stack, MAX_STACK);
+    for (UInt32 i = 1; i < n - 1 && i - 1 < max; ++i) {
         array[i-1]  = stack[i];
     }
     // remove first ip and last pc
@@ -149,9 +149,9 @@ size_t backtrace_stack(bt_stack_t array[], size_t max) {
 #endif
 
 // print this call stack
-void backtrace_symbols(const bt_stack_t array[], size_t size) {
+void backtrace_symbols(const bt_stack_t array[], UInt32 size) {
 #ifdef USE_UNWIND
-    for (size_t i = 0; i < size; ++i) {
+    for (UInt32 i = 0; i < size; ++i) {
         const void *addr = (const void *)array[i];
 
         // dladdr can only see functions exported in the dynamic symbol table
@@ -160,7 +160,7 @@ void backtrace_symbols(const bt_stack_t array[], size_t size) {
         if (dladdr(addr, &info) && info.dli_fname) {
             if (info.dli_sname) {
 #ifdef __APPLE__
-                char cmd[1024];
+                Char cmd[1024];
                 snprintf(cmd, 1024, "atos -o %s -l %p %p",
                          info.dli_fname, info.dli_fbase, addr);
                 system(cmd);
@@ -193,8 +193,8 @@ void backtrace_symbols(const bt_stack_t array[], size_t size) {
 #else
     // backtrace_symbols uses malloc, if malloc and free been overrided,
     // it is a problem.
-    char **lines = backtrace_symbols(array, size);
-    for (size_t i = 0; i < size; ++i) {
+    Char **lines = backtrace_symbols(array, size);
+    for (UInt32 i = 0; i < size; ++i) {
         INFO("%s", lines[i]);
     }
     free(lines);

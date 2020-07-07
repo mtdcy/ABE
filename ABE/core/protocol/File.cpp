@@ -66,19 +66,19 @@ struct File : public Content::Protocol {
     Content::eMode  mMode;  // read | write
     
     int             mFd;
-    int64_t         mOffset;
-    int64_t         mLength;
-    mutable int64_t mPosition;
-    const size_t    kBlockLength;
-    mutable char *  mBlock;
+    Int64         mOffset;
+    Int64         mLength;
+    mutable Int64 mPosition;
+    const UInt32    kBlockLength;
+    mutable Char *  mBlock;
     
     File(const String& url, Content::eMode mode) : Content::Protocol(),
     mUrl(url), mMode(mode), mFd(-1), mOffset(0), mLength(0), mPosition(0),
-    kBlockLength(4096), mBlock((char *)malloc(kBlockLength))
+    kBlockLength(4096), mBlock((Char *)malloc(kBlockLength))
     {
         CHECK_NULL(mBlock);
         if (url.startsWithIgnoreCase("pipe://")) {
-            int64_t offset, length;
+            Int64 offset, length;
             
             int index0 = url.indexOf(7, "+");
             if (index0 < 7) return; // "+" not found.
@@ -98,7 +98,7 @@ struct File : public Content::Protocol {
             
             mLength += mOffset;
             
-            int64_t realLength = lseek64(mFd, 0, SEEK_END);
+            Int64 realLength = lseek64(mFd, 0, SEEK_END);
             if (realLength > 0 && mLength > realLength) {
                 mLength = realLength;
             }
@@ -119,7 +119,7 @@ struct File : public Content::Protocol {
                 //flags |= O_TRUNC; // it's better to let client do this.
             }
             
-            const char *pathname = url.c_str();
+            const Char *pathname = url.c_str();
             if (url.startsWithIgnoreCase("file://"))    pathname += 6;
             
             if (flags & O_CREAT)
@@ -151,15 +151,15 @@ struct File : public Content::Protocol {
         return mMode;
     }
     
-    virtual size_t readBytes(sp<Buffer>& buffer) const {
+    virtual UInt32 readBytes(sp<Buffer>& buffer) const {
         CHECK_GE(buffer->empty(), kBlockLength);
         
-        int64_t i = 0;
+        Int64 i = 0;
         for (;;) {
-            size_t bytes = MIN(kBlockLength, (mLength - mPosition));
+            UInt32 bytes = MIN(kBlockLength, (mLength - mPosition));
             if (bytes > buffer->empty()) break;
             
-            ssize_t bytesRead = ::read(mFd, mBlock, bytes);
+            Int bytesRead = ::read(mFd, mBlock, bytes);
             if (bytesRead == 0) {
                 INFO("End Of File");
                 break;
@@ -168,16 +168,16 @@ struct File : public Content::Protocol {
                       errno, strerror(errno), bytesRead, bytes);
                 break;
             }
-            buffer->writeBytes(mBlock, (size_t)bytesRead);
-            i += (size_t)bytesRead;
-            mPosition += (int64_t)bytesRead;
+            buffer->writeBytes(mBlock, (UInt32)bytesRead);
+            i += (UInt32)bytesRead;
+            mPosition += (Int64)bytesRead;
         }
-        return (size_t)i;
+        return (UInt32)i;
     }
     
-    virtual size_t writeBytes(const sp<Buffer>& buffer) {
+    virtual UInt32 writeBytes(const sp<Buffer>& buffer) {
         
-        ssize_t bytesWritten = ::write(mFd, buffer->data(), buffer->size());
+        Int bytesWritten = ::write(mFd, buffer->data(), buffer->size());
         
         if (bytesWritten < 0) {
             ERROR("write return error %d. errno = %d %s", bytesWritten,
@@ -186,7 +186,7 @@ struct File : public Content::Protocol {
         }
         
         buffer->skipBytes(bytesWritten);
-        mPosition += (int64_t)bytesWritten;
+        mPosition += (Int64)bytesWritten;
         
         // we append more data.
         if (mPosition > mLength) {
@@ -194,10 +194,10 @@ struct File : public Content::Protocol {
         }
         // else. we are writting in middle of file
         
-        return (size_t)bytesWritten;
+        return (UInt32)bytesWritten;
     }
     
-    virtual int64_t seekBytes(int64_t offset) const {
+    virtual Int64 seekBytes(Int64 offset) const {
         offset += mOffset;
         
         if (offset > mLength) {
@@ -213,18 +213,18 @@ struct File : public Content::Protocol {
         return mPosition - mOffset;
     }
     
-    virtual int64_t totalBytes() const {
+    virtual Int64 totalBytes() const {
         return mLength - mOffset;;
     }
 
-    virtual size_t blockLength() const {
+    virtual UInt32 blockLength() const {
         return 4096;
     }
 };
 
 sp<Content::Protocol> CreateFile(const String& url, Content::eMode mode) {
     sp<File> file = new File(url, mode);
-    if (file->mFd < 0) return NULL;
+    if (file->mFd < 0) return Nil;
     return file;
 }
 __END_NAMESPACE_ABE

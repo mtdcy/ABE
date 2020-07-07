@@ -37,7 +37,7 @@
 
 #include <ABE/core/Types.h>
 
-__BEGIN_DECLS
+BEGIN_DECLS
 enum eLogLevel {
     LOG_FATAL,
     LOG_ERROR,
@@ -50,14 +50,14 @@ enum eLogLevel {
  * print log message
  */
 ABE_EXPORT void SystemLogPrint(
-        const char *    tag,        ///< @see LOG_TAG
+        const Char *    tag,        ///< @see LOG_TAG
         enum eLogLevel  lvl,        ///< @see eLogLevel
-        const char *    func,       ///< @see __FUNCTION__
-        size_t          line,       ///< @see __LINE__
-        const char *    format,     ///< @see man(3) printf
+        const Char *    func,       ///< @see __FUNCTION__
+        UInt32          line,       ///< @see __LINE__
+        const Char *    format,     ///< @see man(3) printf
         ...);
 
-ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
+ABE_EXPORT void LogSetCallback(void (*callback)(const Char *));
 
 #ifndef LOG_TAG
 #define LOG_TAG   __FILE__
@@ -102,7 +102,7 @@ ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
 } while(0)
 
 #define CHECK_NULL(ptr, ...) do {                                       \
-    if (__builtin_expect(!(ptr != NULL), 0)) {                          \
+    if (__builtin_expect(!(ptr != Nil), 0)) {                          \
         if (__VA_NARGS(__VA_ARGS__) > 0)                                \
         FATAL(" CHECK_NULL(" #ptr ") failed. => " __VA_ARGS__);         \
         else                                                            \
@@ -110,7 +110,7 @@ ABE_EXPORT void LogSetCallback(void (*callback)(const char *));
     }                                                                   \
 } while(0)
 
-__END_DECLS
+END_DECLS
 
 #ifdef __cplusplus
 #include <ABE/core/String.h>
@@ -132,7 +132,7 @@ __END_NAMESPACE_ABE_PRIVATE
 #define _CHECK2(a, b, op, ...) do {                                         \
     if (__builtin_expect(!((a) op (b)), 0)) {                               \
         using __NAMESPACE_ABE::String;                                      \
-        String __res = __NAMESPACE_ABE_PRIVATE::__MAKE_CHECK_STRING(a, b);  \
+        String __res = __NAMESPACE_PRIVATE::__MAKE_CHECK_STRING(a, b);  \
         if (__VA_NARGS(__VA_ARGS__) > 0)                                    \
         FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)                      \
                 " CHECK(" #a " " #op " " #b ") failed. "                    \

@@ -48,14 +48,14 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-bool ListNodeImpl::orphan() const {
-    return mNext == NULL && mPrev == NULL;
+Bool ListNodeImpl::orphan() const {
+    return mNext == Nil && mPrev == Nil;
 }
 
 void ListNodeImpl::unlink() {
     if (mNext) mNext->mPrev = mPrev;
     if (mPrev) mPrev->mNext = mNext;
-    mNext = mPrev   = NULL;
+    mNext = mPrev   = Nil;
 }
 
 ListNodeImpl * ListNodeImpl::link(ListNodeImpl *next) {
@@ -86,7 +86,7 @@ ListNodeImpl * ListNodeImpl::append(ListNodeImpl * prev) {
 
 ListImpl::ListImpl(const sp<Allocator>& allocator, const TypeHelper& helper) :
     mTypeHelper(helper),
-    mAllocator(allocator), mStorage(NULL),
+    mAllocator(allocator), mStorage(Nil),
     mListLength(0)
 {
     DEBUG("constructor");
@@ -119,14 +119,14 @@ ListImpl& ListImpl::operator=(const ListImpl& rhs) {
 }
 
 ListNodeImpl* ListImpl::allocateNode() {
-    const size_t headLength     = (sizeof(ListNodeImpl) + 15) & ~15;
-    const size_t totalLength    = headLength + mTypeHelper.size();
+    const UInt32 headLength     = (sizeof(ListNodeImpl) + 15) & ~15;
+    const UInt32 totalLength    = headLength + mTypeHelper.size();
 
     ListNodeImpl *node  = static_cast<ListNodeImpl*>(mAllocator->allocate(totalLength));
     CHECK_NULL(node);
     //DEBUG("allocate new list node %p", node);
     new (node) ListNodeImpl();
-    node->mData     = (char*)node + headLength;
+    node->mData     = (Char*)node + headLength;
     return node;
 }
 
@@ -161,7 +161,7 @@ ListNodeImpl* ListImpl::_edit() {
         }
 
         // free old nodes when it is onlyOwnByUs
-        if (old->ReleaseBuffer(true) == 0) {
+        if (old->ReleaseBuffer(True) == 0) {
             ListNodeImpl* node = list0->mNext;
             while (node != list0) {
                 ListNodeImpl * next = node->mNext;
@@ -178,7 +178,7 @@ ListNodeImpl* ListImpl::_edit() {
 }
 
 void ListImpl::_clear() {
-    if (mStorage->ReleaseBuffer(true) == 0) {
+    if (mStorage->ReleaseBuffer(True) == 0) {
         ListNodeImpl * list = (ListNodeImpl *)mStorage->data();
         ListNodeImpl * node = list->mNext;
         while (node != list) {
@@ -192,7 +192,7 @@ void ListImpl::_clear() {
         }
         mStorage->deallocate();
     }
-    mStorage = NULL;
+    mStorage = Nil;
     mListLength = 0;
 }
 
@@ -250,13 +250,13 @@ void ListImpl::sort(type_compare_t cmp) {
         return;
     }
 
-    const size_t buckLength = (mListLength + 1) / 2;
+    const UInt32 buckLength = (mListLength + 1) / 2;
     // optimize: using buck to speed up
     //  TODO: optimize the size
     ListNodeImpl * buck = (ListNodeImpl*)mAllocator->allocate(sizeof(ListNodeImpl) * buckLength);
     ListNodeImpl * node = list->mNext;
     // step 1: merge neighbor node
-    for (size_t i = 0; i < buckLength; ++i) {
+    for (UInt32 i = 0; i < buckLength; ++i) {
         ListNodeImpl * next = node->mNext;
 
         BUILD_LIST(&buck[i]);
@@ -282,9 +282,9 @@ void ListImpl::sort(type_compare_t cmp) {
     }
 
     // step 2: merge neighbor buck
-    for (size_t seg = 1; seg < buckLength; seg += seg) {
+    for (UInt32 seg = 1; seg < buckLength; seg += seg) {
         DEBUG("seg = %zu", seg);
-        for (size_t i = 0; i < buckLength; i += 2 * seg) {
+        for (UInt32 i = 0; i < buckLength; i += 2 * seg) {
             if (i + seg >= buckLength) {
                 // last buck
                 break;

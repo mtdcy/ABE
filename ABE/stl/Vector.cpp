@@ -47,13 +47,13 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-static const size_t kDefaultCapacity = 4;
+static const UInt32 kDefaultCapacity = 4;
 
 VectorImpl::VectorImpl(const sp<Allocator>& allocator,
-        size_t capacity,
+        UInt32 capacity,
         const TypeHelper& helper) :
     mTypeHelper(helper),
-    mAllocator(allocator), mStorage(NULL),
+    mAllocator(allocator), mStorage(Nil),
     mCapacity(capacity), mItemCount(0)
 {
     CHECK_GT(capacity, 0);
@@ -72,7 +72,7 @@ VectorImpl::VectorImpl(const VectorImpl& rhs) :
 VectorImpl::~VectorImpl() {
     DEBUG("destructor");
     _release(mStorage, mItemCount);
-    mStorage = NULL;
+    mStorage = Nil;
 }
 
 VectorImpl& VectorImpl::operator=(const VectorImpl& rhs) {
@@ -87,13 +87,13 @@ VectorImpl& VectorImpl::operator=(const VectorImpl& rhs) {
     return *this;
 }
 
-void* VectorImpl::access(size_t index) {
+void* VectorImpl::access(UInt32 index) {
     CHECK_LT(index, mItemCount);
     _edit();
     return (void *)(mStorage->data() + index * mTypeHelper.size());
 }
 
-const void* VectorImpl::access(size_t index) const {
+const void* VectorImpl::access(UInt32 index) const {
     CHECK_LT(index, mItemCount);
     return (void *)(mStorage->data() + index * mTypeHelper.size());
 }
@@ -121,25 +121,25 @@ void VectorImpl::shrink() {
             mTypeHelper.do_move(mStorage->data(),
                     old->data(),
                     mItemCount);
-            _release(old, mItemCount, true);
+            _release(old, mItemCount, True);
         } else {
             mTypeHelper.do_copy(mStorage->data(),
                     old->data(),
                     mItemCount);
-            _release(old, mItemCount, false);
+            _release(old, mItemCount, False);
         }
     }
 }
 
 // grow storage without construct items
-char * VectorImpl::_grow(size_t pos, size_t amount) {
+Char * VectorImpl::_grow(UInt32 pos, UInt32 amount) {
     CHECK_LE(pos, mItemCount);
-    const size_t count  = mItemCount + amount;
-    const size_t move   = mItemCount - pos;
+    const UInt32 count  = mItemCount + amount;
+    const UInt32 move   = mItemCount - pos;
 
     // not shared, and no grow
     if (mStorage->IsBufferNotShared() && count <= capacity()) {
-        char * where = mStorage->data() + pos * mTypeHelper.size();
+        Char * where = mStorage->data() + pos * mTypeHelper.size();
         if (move) {
             mTypeHelper.do_move(where + amount * mTypeHelper.size(),
                     where,
@@ -150,7 +150,7 @@ char * VectorImpl::_grow(size_t pos, size_t amount) {
         return where;
     }
 
-    // grow by double capacity ?
+    // grow by Float64 capacity ?
     while (mCapacity < count)   mCapacity *= 2;
 
     // optimize for push() with grow
@@ -184,13 +184,13 @@ char * VectorImpl::_grow(size_t pos, size_t amount) {
 }
 
 // no auto memory shrink
-void VectorImpl::_remove(size_t pos, size_t amount) {
+void VectorImpl::_remove(UInt32 pos, UInt32 amount) {
     CHECK_LE(pos + amount, mItemCount);
-    const size_t count  = mItemCount - amount;
-    const size_t move   = mItemCount - (pos + amount);
+    const UInt32 count  = mItemCount - amount;
+    const UInt32 move   = mItemCount - (pos + amount);
 
     if (mStorage->IsBufferNotShared()) {
-        char * storage = mStorage->data() + mTypeHelper.size() * pos;
+        Char * storage = mStorage->data() + mTypeHelper.size() * pos;
 
         // NO need to move item before pos
 
@@ -224,36 +224,36 @@ void VectorImpl::_remove(size_t pos, size_t amount) {
     mItemCount = count;
 }
 
-void VectorImpl::insert(size_t pos, const void* what) {
+void VectorImpl::insert(UInt32 pos, const void* what) {
     CHECK_LE(pos, mItemCount);
 
-    char * where = _grow(pos, 1);
+    Char * where = _grow(pos, 1);
     mTypeHelper.do_copy(where, what, 1);
 }
 
-void * VectorImpl::emplace(size_t pos, type_construct_t ctor) {
+void * VectorImpl::emplace(UInt32 pos, type_construct_t ctor) {
     CHECK_LE(pos, mItemCount);
 
-    char * where = _grow(pos, 1);
+    Char * where = _grow(pos, 1);
     if (ctor) ctor(where, 1);
 
     return where;
 }
 
-void VectorImpl::erase(size_t pos) {
+void VectorImpl::erase(UInt32 pos) {
     CHECK_LT(pos, mItemCount);
     _remove(pos, 1);
 }
 
-void VectorImpl::erase(size_t first, size_t last) {
+void VectorImpl::erase(UInt32 first, UInt32 last) {
     CHECK_LT(first, last);
     CHECK_LT(last, mItemCount);
 
     _remove(first, last - first + 1);
 }
 
-void VectorImpl::_release(SharedBuffer *sb, size_t count, bool moved) {
-    if (sb->ReleaseBuffer(true) == 0) {
+void VectorImpl::_release(SharedBuffer *sb, UInt32 count, Bool moved) {
+    if (sb->ReleaseBuffer(True) == 0) {
         if (count && !moved) {
             mTypeHelper.do_destruct(sb->data(), count);
         }
@@ -282,24 +282,24 @@ void VectorImpl::sort(type_compare_t cmp) {
 
     // moving value is very heavily
     // optimize: do NOT move value until sort done.
-    size_t * index = (size_t *)mAllocator->allocate(mItemCount * sizeof(size_t));
-    for (size_t i = 0; i < mItemCount; ++i) index[i] = i;
+    UInt32 * index = (UInt32 *)mAllocator->allocate(mItemCount * sizeof(UInt32));
+    for (UInt32 i = 0; i < mItemCount; ++i) index[i] = i;
 
-    char * item = mStorage->data();
+    Char * item = mStorage->data();
 #define ITEM(n)     (item + index[n] * mTypeHelper.size())
 
-    bool reorder = false;
-#define SET_FLAG(x) do { if (__builtin_expect(x == false, false)) x = true; } while(0)
+    Bool reorder = False;
+#define SET_FLAG(x) do { if (__builtin_expect(x == False, False)) x = True; } while(0)
 
-    size_t * index2 = (size_t *)mAllocator->allocate(mItemCount * sizeof(size_t));
-    for (size_t seg = 1; seg < mItemCount; seg += seg) {
-        for (size_t i = 0; i < mItemCount; i += 2 * seg) {
+    UInt32 * index2 = (UInt32 *)mAllocator->allocate(mItemCount * sizeof(UInt32));
+    for (UInt32 seg = 1; seg < mItemCount; seg += seg) {
+        for (UInt32 i = 0; i < mItemCount; i += 2 * seg) {
             DEBUG("merge buck %zu & %zu", i, i + seg);
-            size_t a        = i;
-            size_t b        = MIN(a + seg, mItemCount);;
-            const size_t e1 = b;
-            const size_t e2 = MIN(b + seg, mItemCount);
-            size_t k = a;
+            UInt32 a        = i;
+            UInt32 b        = MIN(a + seg, mItemCount);;
+            const UInt32 e1 = b;
+            const UInt32 e2 = MIN(b + seg, mItemCount);
+            UInt32 k = a;
             CHECK_LT(a, e1);
             CHECK_LE(b, e2);
 
@@ -308,7 +308,7 @@ void VectorImpl::sort(type_compare_t cmp) {
             if (e1 > a && e2 > b && cmp(ITEM(e1 - 1), ITEM(b))) {   // a ... < b[0]
 #if 1
                 // optimize: using memcpy instead of loop
-                memcpy(index2 + k, index + a, (e2 - a) * sizeof(size_t));
+                memcpy(index2 + k, index + a, (e2 - a) * sizeof(UInt32));
                 k += (e2 - a);
 #else
                 while (a < e1)  index2[k++] = index[a++];
@@ -316,9 +316,9 @@ void VectorImpl::sort(type_compare_t cmp) {
 #endif
             } else if (e2 > b && cmp(ITEM(e2 - 1), ITEM(a))) {  // b ... < a[0]
 #if 1
-                memcpy(index2 + k, index + b, (e2 - b) * sizeof(size_t));
+                memcpy(index2 + k, index + b, (e2 - b) * sizeof(UInt32));
                 k += (e2 - b);
-                memcpy(index2 + k, index + a, (e1 - a) * sizeof(size_t));
+                memcpy(index2 + k, index + a, (e1 - a) * sizeof(UInt32));
                 k += (e1 - a);
 #else
                 while (b < e2)  index2[k++] = index[b++];
@@ -337,12 +337,12 @@ void VectorImpl::sort(type_compare_t cmp) {
                 }
 #if 1
                 if (a < e1) {
-                    memcpy(index2 + k, index + a, (e1 - a) * sizeof(size_t));
+                    memcpy(index2 + k, index + a, (e1 - a) * sizeof(UInt32));
                     k += e1 - a;
                 }
 
                 if (b < e2) {
-                    memcpy(index2 + k, index + b, (e2 - b) * sizeof(size_t));
+                    memcpy(index2 + k, index + b, (e2 - b) * sizeof(UInt32));
                     k += e2 - b;
                 }
 #else
@@ -352,14 +352,14 @@ void VectorImpl::sort(type_compare_t cmp) {
             }
         }
 
-        size_t * temp   = index;
+        UInt32 * temp   = index;
         index           = index2;
         index2          = temp;
     }
     mAllocator->deallocate(index2);
 
     // optimize for no reorder
-    if (reorder == false) {
+    if (reorder == False) {
         DEBUG("no reorder");
         if (mStorage->IsBufferNotShared()) {
             // NOTHING
@@ -377,8 +377,8 @@ void VectorImpl::sort(type_compare_t cmp) {
         SharedBuffer * old = mStorage;
         mStorage = SharedBuffer::allocate(mAllocator, mTypeHelper.size() * capacity());
 
-        char * dest = mStorage->data();
-        for (size_t i = 0; i < mItemCount; ++i) {
+        Char * dest = mStorage->data();
+        for (UInt32 i = 0; i < mItemCount; ++i) {
             DEBUG("%zu => %zu", index[i], i);
             mTypeHelper.do_copy(dest, ITEM(i), 1);
             dest += mTypeHelper.size();

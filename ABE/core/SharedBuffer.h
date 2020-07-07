@@ -51,7 +51,7 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
         /**
          * create a cow buffer with given size and backend allocator
          */
-        static SharedBuffer *       allocate(const sp<Allocator>&, size_t);
+        static SharedBuffer *       allocate(const sp<Allocator>&, UInt32);
         /**
          * manually release backend memory
          */
@@ -65,31 +65,31 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
         ABE_INLINE SharedBuffer *   RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
         /**
          * release this cow buffer
-         * @param keep  if keep == false & this is the last ref, backend memory will be released
-         *              if keep == true & this is the last ref, manually release backend memory using deallocate
+         * @param keep  if keep == False & this is the last ref, backend memory will be released
+         *              if keep == True & this is the last ref, manually release backend memory using deallocate
          *
          * @note release is thread safe, can perform at any time
-         * @note if client have to do extra destruction work on this cow buffer, please always using keep = true
+         * @note if client have to do extra destruction work on this cow buffer, please always using keep = True
          */
-        size_t                      ReleaseBuffer(bool keep = false);
+        UInt32                      ReleaseBuffer(Bool keep = False);
     
         /**
          * get this cow buffer's ref count
          */
-        ABE_INLINE size_t           GetRetainCount() const      { return SharedObject::GetRetainCount();    }
+        ABE_INLINE UInt32           GetRetainCount() const      { return SharedObject::GetRetainCount();    }
     
         /**
          * is this cow buffer shared with others
-         * @note if IsBufferNotShared() == true, it is safe to do anything later
-         * @note if IsBufferShared() == true, you may have to test again later
+         * @note if IsBufferNotShared() == True, it is safe to do anything later
+         * @note if IsBufferShared() == True, you may have to test again later
          */
-        ABE_INLINE bool             IsBufferShared() const      { return SharedObject::IsObjectShared();    }
-        ABE_INLINE bool             IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
+        ABE_INLINE Bool             IsBufferShared() const      { return SharedObject::IsObjectShared();    }
+        ABE_INLINE Bool             IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
 
     public:
-        ABE_INLINE char *           data()                      { return mData;                             }
-        ABE_INLINE const char *     data() const                { return mData;                             }
-        ABE_INLINE size_t           size() const                { return mSize;                             }
+        ABE_INLINE Char *           data()                      { return mData;                             }
+        ABE_INLINE const Char *     data() const                { return mData;                             }
+        ABE_INLINE UInt32           size() const                { return mSize;                             }
 
     public:
         /**
@@ -99,12 +99,12 @@ struct ABE_EXPORT SharedBuffer : protected SharedObject {
          * @note edit with new size will assert on failure
          */
         SharedBuffer *              edit();
-        SharedBuffer *              edit(size_t);
+        SharedBuffer *              edit(UInt32);
 
     private:
         sp<Allocator>   mAllocator;
-        char *          mData;
-        size_t          mSize;
+        Char *          mData;
+        UInt32          mSize;
     
     DISALLOW_EVILS(SharedBuffer);
 };

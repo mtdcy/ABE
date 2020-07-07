@@ -50,9 +50,11 @@
 
 #include "compat/pthread.h"
 
+#define LOOPER_OBJECT_ID    FOURCC('lper')
+
 __BEGIN_NAMESPACE_ABE
 
-static ABE_INLINE const char * signame(int signo) {
+static ABE_INLINE const Char * signame(int signo) {
 #ifdef __APPLE__
     return sys_signame[signo];
 #elif defined(_WIN32) || defined(__MINGW32__)
@@ -74,38 +76,38 @@ static ABE_INLINE const char * signame(int signo) {
 struct Task {
     Condition *     mWait;
     sp<Job>         mJob;
-    int64_t         mWhen;
+    Int64         mWhen;
 
-    Task() : mWait(NULL), mJob(NULL), mWhen(0) { }
+    Task() : mWait(Nil), mJob(Nil), mWhen(0) { }
     
-    Task(const sp<Job>& job, int64_t delay) : mWait(NULL), mJob(job),
+    Task(const sp<Job>& job, Int64 delay) : mWait(Nil), mJob(job),
     mWhen(SystemTimeUs() + (delay < 0 ? 0 : delay)) { }
 
-    bool operator<(const Task& rhs) const {
+    Bool operator<(const Task& rhs) const {
         return mWhen < rhs.mWhen;
     }
 };
 
 struct Stat {
-    int64_t     start_time;
-    int64_t     sleep_time;
-    int64_t     exec_time;
-    int64_t     last_sleep;
-    int64_t     last_exec;
-    size_t      num_job;
-    size_t      num_job_late;
-    size_t      num_job_early;
-    int64_t     job_late_time;
-    int64_t     job_early_time;
-    bool        profile_enabled;
-    int64_t     profile_interval;
-    int64_t     last_profile_time;
+    Int64     start_time;
+    Int64     sleep_time;
+    Int64     exec_time;
+    Int64     last_sleep;
+    Int64     last_exec;
+    UInt32      num_job;
+    UInt32      num_job_late;
+    UInt32      num_job_early;
+    Int64     job_late_time;
+    Int64     job_early_time;
+    Bool        profile_enabled;
+    Int64     profile_interval;
+    Int64     last_profile_time;
 
     ABE_INLINE Stat() {
         start_time = sleep_time = exec_time = 0;
         num_job = num_job_late = num_job_early = 0;
         job_late_time = job_early_time = 0;
-        profile_enabled = false;
+        profile_enabled = False;
     }
 
     ABE_INLINE void start() {
@@ -115,8 +117,8 @@ struct Stat {
     ABE_INLINE void stop() {
     }
 
-    ABE_INLINE void profile(int64_t interval) {
-        profile_enabled = true;
+    ABE_INLINE void profile(Int64 interval) {
+        profile_enabled = True;
         profile_interval = interval;
         last_profile_time = SystemTimeUs();
     }
@@ -134,13 +136,13 @@ struct Stat {
     }
 
     ABE_INLINE void end_profile(const Task& job) {
-        const int64_t now = SystemTimeUs();
+        const Int64 now = SystemTimeUs();
         exec_time += now - last_exec;
 
         if (profile_enabled && now > last_profile_time + profile_interval) {
-            int64_t total_time = now - start_time;
-            double usage = 1 - (double)sleep_time / total_time;         // wakeup time
-            double overhead = usage - (double)exec_time / total_time;   // wakeup time - exec time
+            Int64 total_time = now - start_time;
+            Float64 usage = 1 - (Float64)sleep_time / total_time;         // wakeup time
+            Float64 overhead = usage - (Float64)exec_time / total_time;   // wakeup time - exec time
             INFO("looper: %zu jobs, usage %.2f%%, overhead %.2f%%, each job %" PRId64 " us, late by %" PRId64 " us",
                     num_job, 100 * usage, 100 * overhead,
                     exec_time / num_job, job_late_time / num_job);
@@ -154,7 +156,7 @@ struct Stat {
     }
 
     ABE_INLINE void wakeup() {
-        const int64_t ns = SystemTimeUs() - last_sleep;
+        const Int64 ns = SystemTimeUs() - last_sleep;
         sleep_time += ns;
     }
 };
@@ -176,7 +178,7 @@ struct JobDispatcher : public Job {
     JobDispatcher(const String& name) :
         Job(), mName(name), mHacker(TIMED) { }
     
-    virtual bool queue(const sp<Job>& job, Condition* wait) {
+    virtual Bool queue(const sp<Job>& job, Condition* wait) {
         Task task(job, 0);
         task.mWait = wait;
         mTasks.push(task);
@@ -184,8 +186,8 @@ struct JobDispatcher : public Job {
         return mTasks.size() == 1;
     }
 
-    // queue a job, return true if it is the first one
-    virtual bool queue(const sp<Job>& job, int64_t delay = 0) {
+    // queue a job, return True if it is the first one
+    virtual Bool queue(const sp<Job>& job, Int64 delay = 0) {
         Task task(job, delay);
         
         // using lockfree queue to speed up queue()
@@ -206,15 +208,15 @@ struct JobDispatcher : public Job {
         }
 
         // insert() will change begin()
-        bool first = it == mTimedTasks.begin();
+        Bool first = it == mTimedTasks.begin();
         mTimedTasks.insert(it, task);
         mHacker.store(TIMED);
         return mTasks.empty() && first;
     }
 
-    // return true when pop success with a job, otherwise set
+    // return True when pop success with a job, otherwise set
     // next: set to -1 if no job exists, or next job time in us
-    bool pop(Task& job, int64_t * next) {
+    Bool pop(Task& job, Int64 * next) {
         AutoLock _l(mTaskLock);
 
         *next = -1;     // job not exists
@@ -223,13 +225,13 @@ struct JobDispatcher : public Job {
             if (mTasks.pop(job)) {
                 mHacker.store(TIMED);
                 next = 0;
-                return true;
+                return True;
             }
         }
 
         if (mTimedTasks.size()) {
             Task& head = mTimedTasks.front();
-            const int64_t now = SystemTimeUs();
+            const Int64 now = SystemTimeUs();
             // with 1ms jitter:
             // our SleepForInterval and waitRelative based on ns,
             // but os backend implementation can not guarentee it
@@ -238,7 +240,7 @@ struct JobDispatcher : public Job {
                 job = head;
                 mTimedTasks.pop();
                 next = 0;
-                return true;
+                return True;
             }
 
             *next = head.mWhen - now;
@@ -246,18 +248,18 @@ struct JobDispatcher : public Job {
 
         if (mTasks.pop(job)) {
             next = 0;
-            return true;
+            return True;
         } else {
-            return false;
+            return False;
         }
     }
     
     // return positive when next exists, otherwise return -1
-    int64_t next() const {
+    Int64 next() const {
         AutoLock _l(mTaskLock);
         if (mTimedTasks.size()) {
             Task& head = mTimedTasks.front();
-            const int64_t now = SystemTimeUs();
+            const Int64 now = SystemTimeUs();
             if (head.mWhen <= now + 1000LL) {
                 return 0;
             }
@@ -277,17 +279,17 @@ struct JobDispatcher : public Job {
         }
     }
 
-    // remove a job, return true if it is at head
-    virtual bool remove(const sp<Job>& job) {
+    // remove a job, return True if it is at head
+    virtual Bool remove(const sp<Job>& job) {
         AutoLock _l(mTaskLock);
         merge_l();
         
-        bool head = false;
+        Bool head = False;
         List<Task>::iterator it = mTimedTasks.begin();
         while (it != mTimedTasks.end()) {
             if ((*it).mJob == job) {
                 it = mTimedTasks.erase(it);
-                if (it == mTimedTasks.begin()) head = true;
+                if (it == mTimedTasks.begin()) head = True;
             } else {
                 ++it;
             }
@@ -296,17 +298,17 @@ struct JobDispatcher : public Job {
         return head;
     }
 
-    bool exists(const sp<Job>& job) const {
+    Bool exists(const sp<Job>& job) const {
         AutoLock _l(mTaskLock);
         merge_l();
 
         List<Task>::const_iterator it = mTimedTasks.cbegin();
         for (; it != mTimedTasks.cend(); ++it) {
             if ((*it).mJob == job) {
-                return true;
+                return True;
             }
         }
-        return false;
+        return False;
     }
 
     void flush() {
@@ -316,8 +318,8 @@ struct JobDispatcher : public Job {
     }
 };
 
-static __thread Looper * lpCurrent = NULL;
-static Looper * lpMain = NULL;
+static __thread Looper * lpCurrent = Nil;
+static Looper * lpMain = Nil;
 struct LooperDispatcher : public JobDispatcher {
     Stat                            mStat;  // only used inside dispacher
     // internal context
@@ -327,18 +329,18 @@ struct LooperDispatcher : public JobDispatcher {
     Mutex                           mLock;
     mutable Condition               mWait;
     
-    bool                            mTerminated;
-    bool                            mRequestExit;
+    Bool                            mTerminated;
+    Bool                            mRequestExit;
 
     LooperDispatcher(Looper *lp, const String& name, eThreadType type = kThreadDefault) :
         JobDispatcher(name), mThread(this, type),
-        mLooper(lp), mTerminated(false), mRequestExit(false) {
+        mLooper(lp), mTerminated(False), mRequestExit(False) {
             mThread.setName(mName).run();
         }
     
     // for main looper
     LooperDispatcher(Looper *lp) : JobDispatcher("main"), mThread(Thread::Main()),
-    mLooper(lp), mTerminated(false), mRequestExit(false) {
+    mLooper(lp), mTerminated(False), mRequestExit(False) {
         CHECK_TRUE(pthread_main(), "main Looper must init in main thread");
         // install signal handlers
         // XXX: make sure main looper can terminate by ctrl-c
@@ -348,7 +350,7 @@ struct LooperDispatcher : public JobDispatcher {
         act.sa_flags = SA_RESTART | SA_SIGINFO;
         act.sa_sigaction = sigaction_exit;
 
-        CHECK_EQ(sigaction(SIGINT, &act, NULL), 0);
+        CHECK_EQ(sigaction(SIGINT, &act, Nil), 0);
     }
 
     static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
@@ -357,36 +359,36 @@ struct LooperDispatcher : public JobDispatcher {
         INFO("main: exit...");
     }
     
-    virtual bool queue(const sp<Job>& job, int64_t us = 0) {
+    virtual Bool queue(const sp<Job>& job, Int64 us = 0) {
 #if 0
         // requestExit will wait for current jobs to complete
         // but no more new jobs
         AutoLock _l(mLock);
         if (mTerminated || mRequestExit) {
             INFO("post after terminated");
-            return false;
+            return False;
         }
 #endif
         
         if (JobDispatcher::queue(job, us)) {
             AutoLock _l(mLock);
             mWait.signal();
-            return true;
+            return True;
         }
-        return false;
+        return False;
     }
     
-    virtual bool remove(const sp<Job>& job) {
+    virtual Bool remove(const sp<Job>& job) {
         if (JobDispatcher::remove(job)) {
             AutoLock _l (mLock);
             mWait.signal();
-            return true;
+            return True;
         }
-        return false;
+        return False;
     }
     
-    void requestExit_l(bool wait = true) {
-        mRequestExit    = true;
+    void requestExit_l(Bool wait = True) {
+        mRequestExit    = True;
         if (!wait) flush();
         mWait.signal();
     }
@@ -415,7 +417,7 @@ struct LooperDispatcher : public JobDispatcher {
 
         for (;;) {
             AutoLock _l(mLock);
-            int64_t next = 0;
+            Int64 next = 0;
             Task job;
             if (pop(job, &next)) {
                 mStat.start_profile(job);
@@ -443,11 +445,11 @@ struct LooperDispatcher : public JobDispatcher {
         }
 
         AutoLock _l(mLock);
-        mTerminated = true;
+        mTerminated = True;
         mWait.broadcast();
         mStat.stop();
-        if (lpCurrent == lpMain) lpMain = NULL;
-        lpCurrent = NULL;
+        if (lpCurrent == lpMain) lpMain = Nil;
+        lpCurrent = Nil;
     }
 
     // for main looper only
@@ -464,16 +466,16 @@ struct LooperDispatcher : public JobDispatcher {
         if (pthread_main()) {
             // terminate in main thread
             // DO NOT wait for jobs complete
-            requestExit_l(false);
+            requestExit_l(False);
             return;
         } else {
-            requestExit_l(true);
+            requestExit_l(True);
             mWait.broadcast();
             while (!mTerminated) mWait.wait(mLock);
         }
     }
 
-    void profile(int64_t interval = 5 * 1000000LL) {
+    void profile(Int64 interval = 5 * 1000000LL) {
         mStat.profile(interval);
     }
 };
@@ -482,7 +484,7 @@ struct LooperDispatcher : public JobDispatcher {
 // main looper without backend thread
 // auto clear __main on last ref release
 sp<Looper> Looper::Main() {
-    if (lpMain == NULL) {
+    if (lpMain == Nil) {
         INFO("init main looper");
         lpMain = new Looper;
         lpMain->mJobDisp = new LooperDispatcher(lpMain);
@@ -495,7 +497,7 @@ sp<Looper> Looper::Current() {
     return lpCurrent ? lpCurrent : Main();
 }
 
-Looper::Looper(const String& name, const eThreadType& type) : SharedObject(OBJECT_ID_LOOPER), 
+Looper::Looper(const String& name, const eThreadType& type) : SharedObject(LOOPER_OBJECT_ID), 
     mJobDisp(new LooperDispatcher(this, name, type)) {
     }
 
@@ -524,12 +526,12 @@ Thread& Looper::thread() {
     return disp->mThread;
 }
 
-void Looper::profile(int64_t interval) {
+void Looper::profile(Int64 interval) {
     sp<LooperDispatcher> disp = mJobDisp;
     disp->profile(interval);
 }
 
-void Looper::post(const sp<Job>& job, int64_t delayUs) {
+void Looper::post(const sp<Job>& job, Int64 delayUs) {
     mJobDisp->queue(job, delayUs);
 }
 
@@ -537,7 +539,7 @@ void Looper::remove(const sp<Job>& job) {
     mJobDisp->remove(job);
 }
 
-bool Looper::exists(const sp<Job>& job) const {
+Bool Looper::exists(const sp<Job>& job) const {
     return mJobDisp->exists(job);
 }
 
@@ -546,7 +548,7 @@ void Looper::flush() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-static Atomic<int64_t> QueueID = 0;
+static Atomic<Int64> QueueID = 0;
 static String MakeQueueName() {
     return String::format("queue-%" PRId64, QueueID++);
 }
@@ -554,7 +556,7 @@ static String MakeQueueName() {
 struct QueueDispatcher : public JobDispatcher {
     Mutex           mLock;
     Condition       mWait;
-    Atomic<size_t>  mSched; // +1 every time post dispatcher into looper
+    Atomic<UInt32>  mSched; // +1 every time post dispatcher into looper
     
     QueueDispatcher() : JobDispatcher(MakeQueueName()), mSched(0) {
         
@@ -566,7 +568,7 @@ struct QueueDispatcher : public JobDispatcher {
         AutoLock _l(mLock);
         --mSched;
         Task job;
-        int64_t next = 0;
+        Int64 next = 0;
         // execute current job
         if (pop(job, &next)) {
             mLock.unlock();
@@ -636,7 +638,7 @@ void DispatchQueue::sync(const sp<Job>& job) {
     wait.wait(disp->mLock);
 }
 
-void DispatchQueue::dispatch(const sp<Job>& job, int64_t us) {
+void DispatchQueue::dispatch(const sp<Job>& job, Int64 us) {
     sp<QueueDispatcher> disp = mDispatcher;
     AutoLock _l(disp->mLock);
     DEBUG("dispatch job @ %.3f(s)", us / 1E6);
@@ -648,7 +650,7 @@ void DispatchQueue::dispatch(const sp<Job>& job, int64_t us) {
     }
 }
 
-bool DispatchQueue::exists(const sp<Job>& job) const {
+Bool DispatchQueue::exists(const sp<Job>& job) const {
     sp<QueueDispatcher> disp = mDispatcher;
     //AutoLock _l(disp->mLock);
     return mDispatcher->exists(job);

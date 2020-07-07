@@ -97,14 +97,14 @@ static inline int pthread_cond_signal(pthread_cond_t *cond) {
 #else
 
 #include <pthread.h>
+#include <sys/types.h>
 
 #if defined(__linux__)
 #include <unistd.h>
 #include <sys/syscall.h>
-#include <sys/types.h>
 #endif
 
-static ABE_INLINE void pthread_setname(const char * name) {
+static ABE_INLINE void pthread_setname(const Char * name) {
 #if HAVE_PTHREAD_SETNAME_NP
 #if defined(__APPLE__)
     pthread_setname_np(name);
@@ -119,7 +119,7 @@ static ABE_INLINE void pthread_setname(const char * name) {
 /**
  * on Linux, the name len >= 16, or it will fail
  */
-static ABE_INLINE void pthread_getname(char * name, size_t len) {
+static ABE_INLINE void pthread_getname(Char * name, UInt32 len) {
 #if HAVE_PTHREAD_GETNAME_NP
     pthread_getname_np(pthread_self(), name, len);
 #else
@@ -131,7 +131,7 @@ static ABE_INLINE pid_t pthread_gettid() {
 #if HAVE_GETTID
     return gettid();
 #elif defined(__APPLE__)
-    uint64_t id;
+    UInt64 id;
     pthread_threadid_np(pthread_self(), &id);
     return id;
 #else
@@ -139,7 +139,7 @@ static ABE_INLINE pid_t pthread_gettid() {
 #endif
 }
 
-static ABE_INLINE bool pthread_main() {
+static ABE_INLINE Bool pthread_main() {
 #if HAVE_PTHREAD_MAIN_NP
     return pthread_main_np() != 0;
 #else

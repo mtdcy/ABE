@@ -49,54 +49,54 @@
 #define PRIpid_t    "d"
 #endif
 
-__BEGIN_DECLS
+BEGIN_DECLS
 
 // NOTE:
 //  1. should avoid having dependency to others as possible as you can
 //  2. must avoid calling others which uses Log.
 
-static bool __init = false;
+static Bool __init = False;
 static ABE_INLINE void _init() {
 #if defined(_WIN32) || defined(__MINGW32__)
     setvbuf(stdout, 0, _IOLBF, 2048);
 #endif
-    __init = true;
+    __init = True;
 }
 
-typedef void (*Callback_t)(const char *);
-static Callback_t   __callback = NULL;
+typedef void (*Callback_t)(const Char *);
+static Callback_t   __callback = Nil;
 
 void LogSetCallback(Callback_t cb) { __callback = cb; }
 
-void SystemLogPrint(const char *      tag,
+void SystemLogPrint(const Char *      tag,
         enum eLogLevel    level,
-        const char *      func,
-        size_t            line,
-        const char *      format,
+        const Char *      func,
+        UInt32            line,
+        const Char *      format,
         ...) {
 
-    if (__builtin_expect(__init == false, false)) _init();
+    if (__builtin_expect(__init == False, False)) _init();
 
     va_list ap;
-    char buf0[1024];
-    char buf1[1024];
+    Char buf0[1024];
+    Char buf1[1024];
 
     va_start(ap, format);
     vsnprintf(buf0, 1024, format, ap);
     va_end(ap);
 
-    static const char * LEVELS[] = {
+    static const Char * LEVELS[] = {
         "F",
         "E",
         "W",
         "I",
         "D",
-        NULL
+        Nil
     };
 
-    int64_t ts = SystemTimeEpoch();
+    Int64 ts = SystemTimeEpoch();
     
-    char name[16];
+    Char name[16];
     pthread_getname(name, 16);
 
     snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
@@ -123,4 +123,4 @@ void SystemLogPrint(const char *      tag,
     }
 }
 
-__END_DECLS
+END_DECLS

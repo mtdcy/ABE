@@ -49,15 +49,15 @@ typedef CONDITION_VARIABLE      pthread_cond_t;
 __BEGIN_NAMESPACE_ABE
 
 class Condition;
-class ABE_EXPORT Mutex : public NonSharedObject {
+class ABE_EXPORT Mutex : public StaticObject {
     public:
-        Mutex(bool recursive = false);
+        Mutex(Bool recursive = False);
         ~Mutex();
 
     public:
         void    lock();
         void    unlock();
-        bool    tryLock();      ///< return true on success
+        Bool    tryLock();      ///< return True on success
 
     private:
         friend class    Condition;
@@ -67,7 +67,7 @@ class ABE_EXPORT Mutex : public NonSharedObject {
     DISALLOW_EVILS(Mutex);
 };
 
-class ABE_EXPORT AutoLock : public NonSharedObject {
+class ABE_EXPORT AutoLock : public StaticObject {
     public:
         ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
         ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
@@ -79,16 +79,16 @@ class ABE_EXPORT AutoLock : public NonSharedObject {
     DISALLOW_EVILS(AutoLock);
 };
 
-class ABE_EXPORT Condition : public NonSharedObject {
+class ABE_EXPORT Condition : public StaticObject {
     public:
         Condition();
         ~Condition();
         void    wait(Mutex& lock);
         /**
          * @param nsecs relative time to wait
-         * @return return true on timeout, other wise return false
+         * @return return True on timeout, other wise return False
          */
-        bool    waitRelative(Mutex& lock, int64_t nsecs);
+        Bool    waitRelative(Mutex& lock, Int64 nsecs);
         void    signal();
         void    broadcast();
 
@@ -99,14 +99,14 @@ class ABE_EXPORT Condition : public NonSharedObject {
 };
 
 #if 0
-class ABE_EXPORT RWLock : public NonSharedObject {
+class ABE_EXPORT RWLock : public StaticObject {
     public:
         RWLock();
         ~RWLock();
 
-        void    lock(bool write = false);
-        void    unlock(bool write = false);
-        bool    tryLock(bool write = false);
+        void    lock(Bool write = False);
+        void    unlock(Bool write = False);
+        Bool    tryLock(Bool write = False);
 
     private:
         pthread_rwlock_t    mLock;

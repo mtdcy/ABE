@@ -40,20 +40,20 @@
 __BEGIN_NAMESPACE_ABE
 
 struct ABE_EXPORT Allocator : public SharedObject {
-    ABE_INLINE Allocator() : SharedObject(OBJECT_ID_ALLOCATOR) { }
+    ABE_INLINE Allocator() : SharedObject() { }
     ABE_INLINE virtual ~Allocator() { }
     /**
      * allocate n bytes memory
-     * @return return NULL on OOM otherwise it must be success
+     * @return return Nil on OOM otherwise it must be success
      * @note alignment depends on the implementation
      */
-    virtual void *  allocate(size_t n) = 0;
+    virtual void *  allocate(UInt32 n) = 0;
     /**
      * reallocate n bytes memory
-     * @return return NULL on OOM otherwise it must be success
+     * @return return Nil on OOM otherwise it must be success
      * @note data will be kept
      */
-    virtual void *  reallocate(void * ptr, size_t size) = 0;
+    virtual void *  reallocate(void * ptr, UInt32 size) = 0;
     /**
      * free the memory
      */
@@ -61,7 +61,7 @@ struct ABE_EXPORT Allocator : public SharedObject {
 };
 
 ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
-ABE_EXPORT sp<Allocator> GetAlignedAllocator(size_t alignment);
+ABE_EXPORT sp<Allocator> GetAlignedAllocator(UInt32 alignment);
 
 __END_NAMESPACE_ABE
 
