@@ -39,7 +39,7 @@
 
 __BEGIN_NAMESPACE_ABE
 
-Job::Job() : SharedObject(), mLooper(), mTicks(0) { }
+Job::Job() : SharedObject(FOURCC('!job')), mLooper(), mTicks(0) { }
 
 Job::Job(const sp<Looper>& lp) : SharedObject(),
 mLooper(lp), mTicks(0) { }

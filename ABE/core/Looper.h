@@ -40,6 +40,7 @@
 
 #include <pthread.h>
 
+__BEGIN_DECLS
 /**
  * thread type
  * combine of nice, priority and sched policy
@@ -63,91 +64,22 @@ enum eThreadType {
     kThreadDefault          = kThreadNormal,
 };
 
-#ifdef __cplusplus
-__BEGIN_NAMESPACE_ABE
+enum eThreadStatus {
+    kThreadOK           = OK,
+    kThreadXXX,
+};
 
 /**
- * Java style thread, easy use of thread, no need to worry about thread control
- * Thread(new MyJob()).run();
- * @note we prefer looper instead of thread, so keep thread simple
+ * create an anonymous thread and start execution immediately
+ * @note the new thread will be in detach state.
+ * @note set thread properties using pthread routines or other similar apis in ThreadEntry
  */
-class Job;
-class ABE_EXPORT Thread : public StaticObject {
-    public:
-        /**
-         * get current thread reference
-         * if current thread is main thread return its ref
-         */
-        static Thread& Current();
-    
-        /**
-         * no interface available for main thread except native_thread_handle
-         */
-        static Thread& Main();
-        
-    public:
-        /**
-         * create a suspend thread with runnable
-         * @param runnable  reference to runnable object
-         * @note thread is joinable until join() or detach()
-         */
-        Thread(const sp<Job>& runnable, const eThreadType type = kThreadDefault);
-        Thread(const Thread& rhs) : mNative(rhs.mNative) { }
+ABE_EXPORT eThreadStatus CreateThread(eThreadType, void (*ThreadEntry)(void *), void *);
 
-        /**
-         * set thread name before run
-         * @note only available before run(), else undefined
-         */
-        Thread& setName(const String& name);
+__END_DECLS
 
-        /**
-         * set thread type before run
-         * @note only available before run(), else undefined
-         */
-        Thread& setType(const eThreadType type);
-
-        /**
-         * get thread name
-         */
-        const String& name() const;
-
-        /**
-         * get thread priority
-         */
-        eThreadType type() const;
-
-        /**
-         * start thread execution
-         * @note unavailable for main thread
-         */
-        Thread& run();
-
-        /**
-         * wait for this thread to terminate
-         * @note only join once for a thread.
-         * @note unavailable for main thread.
-         */
-        void join();
-
-    public:
-        /**
-         * get the native thread handle
-         * to enable extra control through native apis
-         * @return return native thread handle
-         */
-        pthread_t native_thread_handle() const;
-    
-    public:
-        Bool operator==(const Thread& rhs) const { return mNative == rhs.mNative; }
-        Bool operator!=(const Thread& rhs) const { return mNative != rhs.mNative; }
-
-    private:
-        struct NativeContext;
-        sp<NativeContext> mNative;
-
-    private:
-        Thread() : mNative(Nil) { }
-};
+#ifdef __cplusplus
+__BEGIN_NAMESPACE_ABE
 
 // two methods to use Job
 // 1. post a Job to Looper directly
@@ -204,13 +136,6 @@ class ABE_EXPORT Looper : public SharedObject {
          * create a looper
          */
         Looper(const String& name, const eThreadType& type = kThreadNormal);
-
-    public:
-        /**
-         * get backend thread
-         * @note no backend thread for main looper, return Thread::Null for main looper
-         */
-        Thread&     thread();
 
     public:
         /**

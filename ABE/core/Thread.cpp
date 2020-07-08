@@ -33,7 +33,7 @@
 //
 
 #define LOG_TAG   "Thread"
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #include "Log.h"
 
 #include "stl/List.h"
@@ -51,19 +51,9 @@
 
 #define JOINABLE 1
 
-__BEGIN_NAMESPACE_ABE
+USING_NAMESPACE_ABE
 
-static __thread Thread * thCurrent = Nil;
-static Thread * thMain = Nil;
-
-enum eThreadState {
-    kThreadNew,
-    kThreadReady,
-    kThreadReadyToRun,   // set by client when ready to run
-    kThreadRunning,
-    kThreadTerminating,  // set by client during terminating
-    kThreadTerminated,
-};
+__BEGIN_DECLS
 
 static const Char * NAMES[] = {
     "Lowest",
@@ -77,21 +67,16 @@ static const Char * NAMES[] = {
     "Highest"
 };
 
-static Atomic<int> g_thread_id = 0;
-static String MakeThreadName() {
-    return String::format("thread-%zu", ++g_thread_id);
-}
-
 // interpret thread type to nice & priority
 // kThreadLowest - kThreadForegroud :   SCHED_OTHER
 // kThreadSystem - kThreadKernel:       SCHED_FIFO
 // kThreadRealtime - kThreadHighest:    SCHED_RR
-static void SetThreadType(const String& name, eThreadType type) {
+static void SetThreadType(eThreadType type) {
     sched_param old;
     sched_param par;
     int policy;
     pthread_getschedparam(pthread_self(), &policy, &old);
-    DEBUG("%s: policy %d, sched_priority %d", name.c_str(), policy, old.sched_priority);
+    DEBUG("policy %d, sched_priority %d", policy, old.sched_priority);
     if (type < kThreadSystem) {
         policy = SCHED_OTHER;
         int min = sched_get_priority_min(SCHED_OTHER);
@@ -116,268 +101,76 @@ static void SetThreadType(const String& name, eThreadType type) {
     int err = pthread_setschedparam(pthread_self(), policy, &par);
     switch (err) {
         case 0:
-            DEBUG("%s: %s => policy %d, sched_priority %d",
-                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            DEBUG("%s => policy %d, sched_priority %d",
+                    NAMES[type/16], policy, par.sched_priority);
             break;
         case EINVAL:
-            ERROR("%s: %s => %d %d failed, Invalid value for policy.",
-                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            ERROR("%s => %d %d failed, Invalid value for policy.",
+                    NAMES[type/16], policy, par.sched_priority);
             break;
         case ENOTSUP:
-            ERROR("%s: %s => %d %d failed, Invalid value for scheduling parameters.",
-                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            ERROR("%s => %d %d failed, Invalid value for scheduling parameters.",
+                    NAMES[type/16], policy, par.sched_priority);
             break;
         case ESRCH:
-            ERROR("%s: %s => %d %d failed, Non-existent thread thread.",
-                    name.c_str(), NAMES[type/16], policy, par.sched_priority);
+            ERROR("%s => %d %d failed, Non-existent thread thread.",
+                    NAMES[type/16], policy, par.sched_priority);
             break;
         default:
-            ERROR("%s: %s => %d %d failed, pthread_setschedparam failed, err %d|%s",
-                    name.c_str(), NAMES[type/16], policy, par.sched_priority, err, strerror(err));
+            ERROR("%s => %d %d failed, pthread_setschedparam failed, err %d|%s",
+                    NAMES[type/16], policy, par.sched_priority, err, strerror(err));
             break;
     }
 }
 
-struct Thread::NativeContext : public SharedObject {
-    // static context, only writable during kThreadInitial
-    eThreadType             mType;
-    String                  mName;
-    pthread_t               mNativeHandler;     // no initial value to pthread_t
-
-    // mutable context, access with lock
-    mutable Mutex           mLock;
-    Condition               mWait;
-    Thread *                mThread;
-    sp<Job>                 mJob;
-    eThreadState            mState;
-
-    NativeContext(const String& name, const eThreadType type, Thread* p, const sp<Job>& job) :
-        SharedObject(), mType(type), mName(name), mNativeHandler(0),
-        mThread(p), mJob(job), mState(kThreadNew) { }
-
-    virtual ~NativeContext() {
-        CHECK_EQ(mState, kThreadTerminated);
-    }
-
-    ABE_INLINE Bool wouldBlock() {
-        return pthread_equal(mNativeHandler, pthread_self());
-    }
-
-    ABE_INLINE void setState_l(eThreadState state) {
-        mState = state;
-        mWait.signal();
-    }
-
-    // client have to retain this object before start()
-    virtual void start() {
-        CHECK_FALSE(wouldBlock());
-
-        AutoLock _l(mLock);
-        CHECK_EQ(mState, kThreadNew);
-
-        // create new thread
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        // use joinable thread.
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-        switch (pthread_create(&mNativeHandler, &attr, ThreadEntry, this)) {
-            case EAGAIN:
-                FATAL("%s: Insufficient resources to create another thread.", mName.c_str());
-                break;
-            case EINVAL:
-                FATAL("%s: Invalid settings in attr.", mName.c_str());
-                break;
-            default:
-                FATAL("%s: pthread_create failed", mName.c_str());
-                break;
-            case 0:
-                break;
-        }
-
-        // wait until thread is ready
-        while (mState < kThreadReady) {
-            mWait.wait(mLock);
-        }
-        pthread_attr_destroy(&attr);
-    }
-
-    virtual void run() {
-        AutoLock _l(mLock);
-        CHECK_LE(mState, kThreadReady);
-        setState_l(kThreadReadyToRun);
-
-        // wait until thread leaving ready state
-        while (mState < kThreadRunning) {
-            mWait.wait(mLock);
-        }
-    }
-
-    // wait this thread's job done and join it
-    virtual void join() {
-        AutoLock _l(mLock);
-        CHECK_TRUE(mState >= kThreadReady && mState < kThreadTerminating);
-        setState_l(kThreadTerminating);
-
-        mLock.unlock();
-        // pthread_join without lock
-        if (wouldBlock()) {
-            INFO("%s: join inside thread", mName.c_str());
-            pthread_detach(mNativeHandler);
-        } else {
-            switch (pthread_join(mNativeHandler, Nil)) {
-                case EDEADLK:
-                    FATAL("%s: A deadlock was detected", mName.c_str());
-                    break;
-                case EINVAL:
-                    ERROR("%s: not a joinable thread.", mName.c_str());
-                    break;
-                case ESRCH:
-                    ERROR("%s: thread could not be found.", mName.c_str());
-                    break;
-                default:
-                    ERROR("%s: pthread_detach failed.", mName.c_str());
-                    break;
-                case 0:
-                    break;
-            }
-        }
-
-        mLock.lock();
-        while (mState != kThreadTerminated) mWait.wait(mLock);
-    }
-
-    virtual void detach() {
-        mLock.lock();
-        setState_l(kThreadTerminating);
-        mLock.unlock();
-
-        // detach without lock
-        switch (pthread_detach(mNativeHandler)) {
-            case EINVAL:
-                ERROR("%s: not a joinable thread.", mName.c_str());
-                break;
-            case ESRCH:
-                ERROR("%s: thread could not be found.", mName.c_str());
-                break;
-            default:
-                ERROR("%s: pthread_detach failed.", mName.c_str());
-                break;
-            case 0:
-                break;
-        }
-    }
-
-    static void* ThreadEntry(void * user) {
-        NativeContext * thiz = static_cast<NativeContext*>(user);
-        // retain object
-        thiz->RetainObject();
-        thCurrent = thiz->mThread;
-
-        // execution
-        thiz->execution();
-
-        thCurrent = Nil;
-        thiz->ReleaseObject();
-
-        pthread_exit(Nil);
-        return Nil;    // just fix build warnings
-    }
-
-    ABE_INLINE void execution() {
-        // local setup
-        AutoLock _l(mLock);
-
-        // simulate pthread_create_suspended_np()
-        CHECK_EQ(mState, kThreadNew);
-        setState_l(kThreadReady);
-        while (mState == kThreadReady) mWait.wait(mLock);    // wait until client is ready
-
-        if (mState == kThreadReadyToRun) {                   // in case join() or detach() without run
-            // set thread properties
-            pthread_setname(mName.c_str());
-            SetThreadType(mName, mType);
-
-            setState_l(kThreadRunning);
-
-            mLock.unlock();
-            pthread_yield();            // give client chance to hold lock
-
-            mJob->execution();
-            mLock.lock();
-        }
-
-        // local cleanup
-        while (mState != kThreadTerminating) {
-            mWait.wait(mLock);
-        }
-        setState_l(kThreadTerminated);
-        DEBUG("%s: end...", mName.c_str());
-    }
+struct ThreadContext : public SharedObject {
+    void *      mUser;
+    void        (*mUserEntry)(void *);
+    eThreadType mType;
 };
 
-Thread::Thread(const sp<Job>& job, const eThreadType type) {
-    mNative = new NativeContext(MakeThreadName(), type, this, job);
-    mNative->start();
-    // execute when run()
+static void * ThreadEntry(void * p) {
+    ThreadContext * context = static_cast<ThreadContext *>(p);
+    DEBUG("enter ThreadEntry");
+    
+    SetThreadType(context->mType);
+    
+    context->mUserEntry(context->mUser);
+    
+    DEBUG("exit ThreadEntry");
+    context->ReleaseObject();
+    pthread_exit(Nil);
+    return Nil;    // just fix build warnings
 }
 
-Thread& Thread::setName(const String& name) {
-    CHECK_NE(this, thMain);
-    AutoLock _l(mNative->mLock);
-    CHECK_TRUE(mNative->mState <= kThreadReady, "setName() can only be called before run()");
-    mNative->mName = name;
-    return *this;
-}
+eThreadStatus CreateThread(eThreadType type, void (*userEntry)(void *), void * user) {
+    DEBUG("create thread of %s", NAMES[type/16]);
+    // create new thread
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    // use joinable thread.
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-const String& Thread::name() const {
-    CHECK_NE(this, thMain);
-    AutoLock _l(mNative->mLock);
-    return mNative->mName;
-}
-
-Thread& Thread::setType(const eThreadType type) {
-    CHECK_NE(this, thMain);
-    AutoLock _l(mNative->mLock);
-    CHECK_TRUE(mNative->mState <= kThreadReady, "setType() can only be called before run()");
-    mNative->mType = type;
-    return *this;
-}
-
-eThreadType Thread::type() const {
-    CHECK_NE(this, thMain);
-    AutoLock _l(mNative->mLock);
-    return mNative->mType;
-}
-
-Thread& Thread::run() {
-    CHECK_NE(this, thMain);
-    mNative->run();
-    return *this;
-}
-
-void Thread::join() {
-    CHECK_NE(this, thMain);
-    mNative->join();
-}
-
-pthread_t Thread::native_thread_handle() const {
-    if (mNative.isNil()) return pthread_self();
-    return mNative->mNativeHandler;
-}
-
-Thread& Thread::Current() {
-    return thCurrent ? *thCurrent : Main();
-}
-
-Thread& Thread::Main() {
-    if (thMain == Nil) {
-        CHECK_TRUE(pthread_main(), "init main thread outside...");
-        static Thread thread;
-        pthread_setname("main");
-        thCurrent = thMain = &thread;
+    ThreadContext * context = new ThreadContext;
+    context->mUser          = user;
+    context->mUserEntry     = userEntry;
+    context->mType          = type;
+    
+    pthread_t thread;
+    switch (pthread_create(&thread, &attr, ThreadEntry, context->RetainObject())) {
+        case EAGAIN:
+            FATAL("Insufficient resources to create another thread.");
+            break;
+        case EINVAL:
+            FATAL("Invalid settings in attr.");
+            break;
+        default:
+            FATAL("pthread_create failed");
+            break;
+        case 0:
+            break;
     }
-    return *thMain;
-}
 
-__END_NAMESPACE_ABE
+    return kThreadOK;
+}
+__END_DECLS
