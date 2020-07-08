@@ -163,6 +163,9 @@ remove_definitions(-Werror=non-virtual-dtor)
 add_subdirectory(gtest-1.7.0 EXCLUDE_FROM_ALL)
 include_directories(BEFORE ${gtest_SOURCE_DIR}/include)
 
+add_executable (object EXCLUDE_FROM_ALL object.cpp)
+target_link_libraries(object ${LIBNAME}_shared)
+
 add_executable (test test.cpp)
 target_link_libraries(test ${LIBNAME}_static)
 target_link_libraries(test gtest gtest_main)
