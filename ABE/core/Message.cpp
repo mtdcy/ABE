@@ -91,7 +91,7 @@ void Message::clear() {
                 free(e.u.ptr);
                 break;
             case kTypeObject:
-                e.u.obj->RetainObject();
+                e.u.obj->ReleaseObject();
                 break;
             case kTypePointer:
             default:
