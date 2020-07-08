@@ -93,12 +93,57 @@ void testAtomic() {
 }
 
 void testSharedObject() {
+    // api test for template
+    {
+        // default constructor
+        sp<SharedObject> sp0;
+        sp0 = Nil;
+    }
+    
+    { // sp<T>
+        // constructor
+        sp<SharedObject> sp0 = new MySharedObject;  // sp<T>(SharedObject *)
+        sp<SharedObject> sp1 = sp0;                 // sp<T>(const sp<T>&)
+        sp<MySharedObject> sp2 = sp1;               // sp<T>(const sp<U>&)
+        
+        // copy assignment
+        sp0 = new MySharedObject;                   // implicit convert MySharedObject * -> sp<SharedObject>)
+        sp1 = sp0;                                  // sp<T>& operator=(const sp<T>&)
+        sp2 = sp1;                                  // sp<T>& operator(const sp<U>&)
+    }
+    
+    {
+        // default constructor
+        wp<SharedObject> wp0;
+        wp0 = Nil;
+    }
+    { // wp<T>
+        // constructor
+        MySharedObject * object = new MySharedObject;
+        sp<SharedObject> sp0 = object;
+        wp<SharedObject> wp0 = object;          // wp<T>(SharedObject *)
+        wp<SharedObject> wp1 = wp0;             // wp<T>(const wp<T>&)
+        wp<SharedObject> wp2 = sp0;             // wp<T>(const sp<T>&)
+        wp<MySharedObject> wp3 = wp2;           // wp<T>(const wp<U>&)
+        wp<MySharedObject> wp4 = sp0;           // wp<T>(const sp<U>&)
+        
+        // copy assignment
+        wp0 = object;                           // implicit convert MySharedObject * -> wp<SharedObject>
+        wp1 = wp0;                              // wp<T>& operator=(const wp<T>&)
+        wp2 = sp0;                              // wp<T>& operator=(const sp<T>&)
+        wp3 = wp2;                              // wp<T>& operator=(const wp<U>&)
+        wp4 = sp0;                              // wp<T>& operator=(const sp<U>&)
+    }
+    
+    // logic test
     SharedObject * object = new MySharedObject;
     ASSERT_EQ(object->GetRetainCount(), 0);
 
     sp<SharedObject> sp1 = object;
+    ASSERT_FALSE(sp1.isNil());
     ASSERT_EQ(object->GetRetainCount(), 1);
     ASSERT_EQ(sp1.refsCount(), 1);
+    ASSERT_TRUE(sp1.get() != Nil);
 
     sp<SharedObject> sp2 = sp1;
     ASSERT_EQ(object->GetRetainCount(), 2);
@@ -108,13 +153,19 @@ void testSharedObject() {
     ASSERT_EQ(wp1.refsCount(), 3);
     ASSERT_EQ(sp1.refsCount(), 2);
     ASSERT_TRUE(wp1.retain() != Nil);
+    wp<SharedObject> wp2 = wp1;
+    ASSERT_EQ(wp2.refsCount(), 4);
+    ASSERT_EQ(sp1.refsCount(), 2);
 
     sp2.clear();
+    ASSERT_TRUE(sp2.isNil());
     ASSERT_EQ(object->GetRetainCount(), 1);
-    sp1.clear();
+    ASSERT_EQ(sp1.refsCount(), 1);
+    ASSERT_TRUE(sp2.get() == Nil);
     
-    ASSERT_EQ(wp1.refsCount(), 1);
-    ASSERT_TRUE(wp1.retain() == Nil);
+    wp1.clear();
+    ASSERT_TRUE(wp1.isNil());
+    ASSERT_EQ(wp2.refsCount(), 2);
 }
 
 void testAllocator() {
@@ -200,6 +251,7 @@ void testString() {
     {
         String tmp;
         tmp.set(STRING);
+        CHECK_EQ(tmp, s1);
         ASSERT_TRUE(tmp == s1);
         tmp.clear();
         ASSERT_TRUE(tmp == s0);
@@ -442,6 +494,8 @@ void testMessage() {
     message.setString('str ', string);
     ASSERT_TRUE(message.contains('str '));
     ASSERT_STREQ(message.findString('str '), string);
+    
+    message.clear();
 }
 
 struct ThreadJob : public Job {
@@ -453,33 +507,6 @@ struct ThreadJob : public Job {
         ++count;
     }
 };
-
-void testThread() {
-    // easy way
-    Thread(new ThreadJob("Thread 0")).join();      // join without run
-    Thread(new ThreadJob("Thread 2")).run().join();
-    
-    // thread type
-    Thread(new ThreadJob("Lowest Thread"), kThreadLowest).run().join();
-    Thread(new ThreadJob("Backgroud Thread"), kThreadBackgroud).run().join();
-    Thread(new ThreadJob("Normal Thread"), kThreadNormal).run().join();
-    Thread(new ThreadJob("Foregroud Thread"), kThreadForegroud).run().join();
-    Thread(new ThreadJob("System Thread"), kThreadSystem).run().join();
-    Thread(new ThreadJob("Kernel Thread"), kThreadKernel).run().join();
-    Thread(new ThreadJob("Realtime Thread"), kThreadRealtime).run().join();
-    Thread(new ThreadJob("Highest Thread"), kThreadHighest).run().join();
-
-    
-    // hard way
-    Thread thread(new ThreadJob("Thread 3"));
-    thread.setName("Thread 3").setType(kThreadNormal);
-    ASSERT_STREQ("Thread 3", thread.name().c_str());
-    ASSERT_EQ(kThreadNormal, thread.type());
-    
-    // static members
-    Thread& current = Thread::Current();
-    ASSERT_TRUE(current == Thread::Main());
-}
 
 struct MainLooperAssist : public Job {
     virtual void onJob() {
@@ -607,7 +634,7 @@ void testDispatchQueue() {
 template <class TYPE> struct QueueConsumer : public Job {
     LockFree::Queue<TYPE> mQueue;
     const int kCount;
-    QueueConsumer() : Job(), kCount(10000) { }
+    QueueConsumer(const sp<Looper>& lp) : Job(lp), kCount(10000) { }
     
     virtual void onJob() {
         int next = 0;
@@ -648,16 +675,15 @@ template <class TYPE> void testQueue() {
     ASSERT_EQ(queue.size(), 0);
 
     // single producer & single consumer test
-    sp<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>();
-    Thread thread(consumer);
-    thread.run();
+    sp<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>(new Looper("QueueConsumer"));
+    consumer->run();
     
     // producer
     for (TYPE i = 0; i < consumer->kCount; ++i) {
         consumer->mQueue.push(i);
     }
     
-    thread.join();
+    SleepTimeMs(500);
     ASSERT_TRUE(consumer->mQueue.empty());
 }
 
@@ -862,6 +888,13 @@ void testContent() {
 TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
 TEST_ENTRY(testAllocator);
+TEST_ENTRY(testString);
+TEST_ENTRY(testBits);
+TEST_ENTRY(testBuffer);
+TEST_ENTRY(testMessage);
+TEST_ENTRY(testLooper);
+TEST_ENTRY(testDispatchQueue);
+TEST_ENTRY(testContent);
 TEST_ENTRY(testQueue1);
 TEST_ENTRY(testQueue2);
 TEST_ENTRY(testList1);
@@ -870,14 +903,6 @@ TEST_ENTRY(testVector1);
 TEST_ENTRY(testVector2);
 TEST_ENTRY(testHashTable1);
 TEST_ENTRY(testHashTable2);
-TEST_ENTRY(testString);
-TEST_ENTRY(testBits);
-TEST_ENTRY(testBuffer);
-TEST_ENTRY(testMessage);
-TEST_ENTRY(testThread);
-TEST_ENTRY(testLooper);
-TEST_ENTRY(testDispatchQueue);
-TEST_ENTRY(testContent);
 
 int main(int argc, Char **argv) {
     testing::InitGoogleTest(&argc, argv);
