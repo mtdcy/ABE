@@ -3,12 +3,12 @@
 
 #include <string.h>
 
-extern void malloc_prepare();
-extern void malloc_bypass();
-extern void malloc_finalize();
+extern void MemoryAnalyzerPrepare();
+extern void MemoryAnalyzerBypass();
+extern void MemoryAnalyzerFinalize();
 
 void testBuffer() {
-    malloc_prepare();
+    MemoryAnalyzerPrepare();
     
     // create a shared buffer
     SharedBufferRef shared = SharedBufferCreate(AllocatorGetDefault(), 1024);
@@ -21,7 +21,7 @@ void testBuffer() {
     CHECK_EQ(SharedObjectGetRetainCount(shared), 1);
     SharedBufferRelease(shared);
     
-    malloc_finalize();
+    MemoryAnalyzerFinalize();
 }
 
 int main (int argc, Char ** argv) {

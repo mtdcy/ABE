@@ -72,6 +72,24 @@ ABE_EXPORT void SleepForIntervalWithoutInterrupt(Int64 ns);
 #define SleepTimeUs(us)     SleepForIntervalWithoutInterrupt(us * 1000LL)
 #define SleepTimeMs(ms)     SleepForIntervalWithoutInterrupt(ms * 1000000LL)
 
+/**
+ * memory analyzer.
+ * @note current only support memory leak detect.
+ * @note memory analyzer is in bypass mode by default.
+ */
+ABE_EXPORT void MemoryAnalyzerPrepare();
+ABE_EXPORT void MemoryAnalyzerFinalize();
+ABE_EXPORT void MemoryAnalyzerBypass();
+
 END_DECLS
+
+#ifdef __cplusplus
+__BEGIN_NAMESPACE_ABE
+struct ABE_EXPORT MemoryAnalyzer : public StaticObject {
+    ABE_INLINE MemoryAnalyzer()     { MemoryAnalyzerPrepare();  }
+    ABE_INLINE ~MemoryAnalyzer()    { MemoryAnalyzerFinalize;   }
+};
+__END_NAMESPACE_ABE
+#endif
 
 #endif // ABE_HEADERS_SYSTEM_H

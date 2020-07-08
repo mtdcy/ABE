@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 2.8)
 
+# malloc.cpp is ready only in APPLE
+option (DEBUG_MALLOC    "DEBUG MALLOC"  OFF)
+
 project (ABE)
 
 set (LIBNAME ${PROJECT_NAME}    CACHE STRING    "Library Name")
@@ -8,6 +11,9 @@ set (CMAKE_C_STANDARD   99)     # c99
 set (CMAKE_C_EXTENSIONS OFF)    # no gnu extensions
 set (CMAKE_CXX_STANDARD 98)     # c++98
 set (CMAKE_CXX_EXTENSIONS OFF)  # no gnu extensions
+
+add_definitions(-fno-rtti)
+add_definitions(-fno-exceptions)
 
 # https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#Warning-Options
 add_definitions(-Wall)
@@ -37,7 +43,7 @@ endif()
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
-if (CMAKE_BUILD_TYPE MATCHES Debug AND APPLE)   # malloc.cpp is ready only in APPLE
+if (DEBUG_MALLOC)
     add_definitions(-DDEBUG_MALLOC)
 endif()
 

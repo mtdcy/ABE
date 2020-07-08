@@ -49,6 +49,7 @@
 #include "core/Log.h"
 
 #include "core/Types.h"
+#include "core/System.h"
 
 #include "backtrace.h"
 #define MALLOC_CALLSTACK
@@ -151,14 +152,14 @@ struct RealAllocator : public Allocator {
 };
 
 struct MallocBlock {
-    UInt32        magic;
+    UInt32          magic;
     UInt32          n;
-    UInt32        flags;
+    UInt32          flags;
 #ifdef MALLOC_CALLSTACK
-    UInt32        stack_size;
+    UInt32          stack_size;
     bt_stack_t      stack[32];
 #else
-    UInt32        dummy1;
+    UInt32          dummy1;
 #endif
     void *          real;
     void *          dummy2;
@@ -183,6 +184,11 @@ static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static HashTable<void *, MallocBlock *> g_blocks(8192, new RealAllocator);
 
 static ABE_INLINE void printBlocks() {
+    pthread_mutex_lock(&g_lock);
+    if (g_blocks.empty()) {
+        pthread_mutex_unlock(&g_lock);
+        return;
+    }
     UInt32 n = 0;
     UInt32 total = 0;
     HashTable<void *, MallocBlock*>::const_iterator it = g_blocks.cbegin();
@@ -197,8 +203,9 @@ static ABE_INLINE void printBlocks() {
         ++n;
         total += block->n;
     }
-    INFO("== total %zu bytes(%zu)", total, n);
+    INFO("== total %u bytes(%u)", total, n);
     INFO("===============================================================");
+    pthread_mutex_unlock(&g_lock);
 }
 
 static ABE_INLINE MallocBlock* validateBlock(void *p) {
@@ -220,12 +227,12 @@ static ABE_INLINE MallocBlock* validateBlock(void *p) {
 //////////////////////////////////////////////////////////////////////////////
 static void* malloc_impl_malloc_bypass(UInt32 n);
 static void* malloc_impl_malloc_body(UInt32 n);
-static void malloc_impl_free_bypass(void *p);
+static void  malloc_impl_free_bypass(void *p);
 static void  malloc_impl_free_body(void *p);
 static void* malloc_impl_realloc_bypass(void *p, UInt32 n);
 static void* malloc_impl_realloc_body(void *p, UInt32 n);
-static int malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n);
-static int malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n);
+static int   malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n);
+static int   malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n);
 
 // default: always bypass, wait intialization finished
 static real_malloc_t g_malloc_impl_malloc = malloc_impl_malloc_bypass;
@@ -359,13 +366,13 @@ static int malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt
 //////////////////////////////////////////////////////////////////////////////
 BEGIN_DECLS
 
-ABE_EXPORT void* malloc(UInt32 n) {
+ABE_EXPORT void* malloc(size_t n) {
     DEBUG("malloc %zu", n);
     //BTRACE();
     return g_malloc_impl_malloc(n);
 }
 
-ABE_EXPORT void* calloc(UInt32 count, UInt32 n) {
+ABE_EXPORT void* calloc(size_t count, size_t n) {
     void *p = malloc(count * n);
     CHECK_NULL(p);
     memset(p, 0, count * n);
@@ -376,16 +383,16 @@ ABE_EXPORT void free(void *p) {
     g_malloc_impl_free(p);
 }
 
-ABE_EXPORT void* realloc(void *p, UInt32 n) {
+ABE_EXPORT void* realloc(void *p, size_t n) {
     return g_malloc_impl_realloc(p, n);
 }
 
-ABE_EXPORT int posix_memalign(void **memptr, UInt32 alignment, UInt32 n) {
+ABE_EXPORT int posix_memalign(void **memptr, size_t alignment, size_t n) {
     return g_malloc_impl_posix_memalign(memptr, alignment, n);
 }
 
 #if 1
-ABE_EXPORT Char* strndup(const Char *s, UInt32 n) {
+ABE_EXPORT Char* strndup(const Char *s, size_t n) {
     Char *p = (Char *)malloc(n + 1);
     strncpy(p, s, n);
     ((Char*)(p))[n] = '\0';
@@ -398,53 +405,58 @@ ABE_EXPORT Char* strdup(const Char *s) {
 }
 #endif
 
-#if 0
-void * operator new(UInt32 n) throw(std::bad_alloc) {
-    return g_malloc_impl_malloc(n);
-}
-
-void * operator new[](UInt32 n) throw(std::bad_alloc) {
-    return g_malloc_impl_malloc(n);
-}
-
-void operator delete(void* ptr) throw() {
-    return g_malloc_impl_free(ptr);
-}
-
-void operator delete[](void* ptr) throw() {
-    return g_malloc_impl_free(ptr);
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////////////
-ABE_EXPORT void malloc_prepare() {
+void MemoryAnalyzerPrepare() {
     g_malloc_impl_malloc            = malloc_impl_malloc_body;
     g_malloc_impl_free              = malloc_impl_free_body;
     g_malloc_impl_realloc           = malloc_impl_realloc_body;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_body;
 }
 
-ABE_EXPORT void malloc_bypass() {
+void MemoryAnalyzerBypass() {
     g_malloc_impl_malloc            = malloc_impl_malloc_bypass;
     g_malloc_impl_free              = malloc_impl_free_bypass;
     g_malloc_impl_realloc           = malloc_impl_realloc_bypass;
     g_malloc_impl_posix_memalign    = malloc_impl_posix_memalign_bypass;
 }
 
-ABE_EXPORT void malloc_finalize() {
-    if (g_blocks.size()) printBlocks();
-    malloc_bypass();
+void MemoryAnalyzerFinalize() {
+    printBlocks();
+    MemoryAnalyzerBypass();
 }
 
 END_DECLS
 
+void * operator new(size_t n) {
+    return g_malloc_impl_malloc(n);
+}
+
+void * operator new[](size_t n) {
+    return g_malloc_impl_malloc(n);
+}
+
+void operator delete(void* ptr) {
+    return g_malloc_impl_free(ptr);
+}
+
+void operator delete[](void* ptr) {
+    return g_malloc_impl_free(ptr);
+}
+
 #else
 
 #include "core/Types.h"
+#include "core/System.h"
 BEGIN_DECLS
-ABE_EXPORT void malloc_prepare() { }
-ABE_EXPORT void malloc_bypass() { }
-ABE_EXPORT void malloc_finalize() { }
+void MemoryAnalyzerPrepare() {
+    //ERROR("PLEASE ENABLE MALLOC DEBUG");
+}
+void MemoryAnalyzerFinalize() {
+    //ERROR("PLEASE ENABLE MALLOC DEBUG");
+}
+void MemoryAnalyzerBypass() {
+    //ERROR("PLEASE ENABLE MALLOC DEBUG");
+}
 END_DECLS
 
 #endif

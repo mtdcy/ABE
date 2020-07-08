@@ -140,10 +140,11 @@ HASH_BASIC_TYPES    (Float64);
 #undef HASH_BASIC_TYPES64
 
 template <typename TYPE> ABE_INLINE UInt32 hash(TYPE * const& p) {
-    return hash<uintptr_t>(uintptr_t(p));
+    return hash<UInt64>(UInt64(p));
 };
 
-template <typename KEY, typename VALUE> class HashTable : private __NAMESPACE_PRIVATE::HashTableImpl, public StaticObject {
+template <typename KEY, typename VALUE>
+class HashTable : private __NAMESPACE_PRIVATE::HashTableImpl, public StaticObject {
     private:
         // increment only iterator
         template <class TABLE_TYPE, class VALUE_TYPE, class ELEM_TYPE> class Iterator {

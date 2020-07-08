@@ -850,15 +850,12 @@ void testContent() {
     ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
 }
 
-extern "C" void malloc_prepare();
-extern "C" void malloc_bypass();
-extern "C" void malloc_finalize();
 #define TEST_ENTRY(FUNC)                    \
     TEST_F(MyTest, FUNC) {                  \
         INFO("Begin Test MyTest."#FUNC);    \
-        malloc_prepare(); {                 \
+        MemoryAnalyzerPrepare(); {                 \
             FUNC();                         \
-        } malloc_finalize();                \
+        } MemoryAnalyzerFinalize();                \
         INFO("End Test MyTest."#FUNC);      \
     }
 
