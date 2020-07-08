@@ -56,7 +56,7 @@ HashTableImpl::HashTableImpl(const sp<Allocator>& allocator,
     mTableLength(POW_2(tableLength)), mNumElements(0)
 {
     const UInt32 allocLength = sizeof(Element *) * mTableLength;
-    mStorage = SharedBuffer::allocate(mAllocator, allocLength);
+    mStorage = SharedBuffer::Create(mAllocator, allocLength);
     memset(mStorage->data(), 0, allocLength);
 }
 
@@ -117,7 +117,7 @@ void HashTableImpl::_release(SharedBuffer * storage) {
             }
             buck[index] = Nil;
         }
-        storage->deallocate();
+        storage->DeleteBuffer();
     }
 }
 
@@ -129,7 +129,7 @@ HashTableImpl::Element ** HashTableImpl::_edit() {
         Element ** buck0    = (Element **)old->data();
 
         const UInt32 allocLength = sizeof(Element *) * mTableLength;
-        mStorage = SharedBuffer::allocate(mAllocator, allocLength);
+        mStorage = SharedBuffer::Create(mAllocator, allocLength);
         Element ** buck     = (Element **)mStorage->data();
         memset(buck, 0, allocLength);
 
@@ -205,7 +205,7 @@ void HashTableImpl::grow() {
 
         const UInt32 tableLength = mTableLength * 2;    // Float64 table length
         const UInt32 allocLength = sizeof(Element *) * tableLength;
-        mStorage = SharedBuffer::allocate(mAllocator, allocLength);
+        mStorage = SharedBuffer::Create(mAllocator, allocLength);
         Element ** buck = (Element **)mStorage->data();
         memset(buck, 0, allocLength);
 

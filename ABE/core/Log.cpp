@@ -99,7 +99,7 @@ void SystemLogPrint(const Char *      tag,
     Char name[16];
     pthread_getname(name, 16);
 
-    snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%zu] : %s\n",
+    snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%u] : %s\n",
             ts / 1E9,
             name,
             tag,

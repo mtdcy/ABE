@@ -69,8 +69,8 @@ void AllocatorDeallocate(AllocatorRef ref, void * p) {
     static_cast<Allocator *>(ref)->deallocate(p);
 }
 
-SharedBufferRef SharedBufferCreate(AllocatorRef _allocator, UInt32 sz) {
-    return SharedBuffer::allocate(_allocator, sz);
+SharedBufferRef SharedBufferCreate(AllocatorRef allocator, UInt32 sz) {
+    return SharedBuffer::Create(static_cast<Allocator*>(allocator), sz);
 }
 
 void SharedBufferRelease(SharedBufferRef ref) {
@@ -97,12 +97,12 @@ SharedBufferRef SharedBufferEditWithSize(SharedBufferRef ref, UInt32 sz) {
     return static_cast<SharedBuffer *>(ref)->edit(sz);
 }
 
-UInt32 SharedBufferReleaseWithoutDeallocate(SharedBufferRef ref) {
+UInt32 SharedBufferReleaseWithoutDelete(SharedBufferRef ref) {
     return static_cast<SharedBuffer *>(ref)->ReleaseBuffer(True);
 }
 
-void SharedBufferDeallocate(SharedBufferRef ref) {
-    static_cast<SharedBuffer *>(ref)->deallocate();
+void SharedBufferDelete(SharedBufferRef ref) {
+    static_cast<SharedBuffer *>(ref)->DeleteBuffer();
 }
 
 BufferObjectRef BufferObjectCreate(UInt32 cap) {
@@ -160,7 +160,7 @@ UInt32 BufferObjectPutData(BufferObjectRef ref, const Char * data, UInt32 n) {
 }
 
 UInt32 BufferObjectWriteBytes(BufferObjectRef ref, BufferObjectRef data, UInt32 n) {
-    return static_cast<ABuffer *>(ref)->writeBytes(data, n);
+    return static_cast<ABuffer *>(ref)->writeBytes(static_cast<ABuffer*>(data), n);
 }
 
 void BufferObjectFlushBytes(BufferObjectRef ref) {
@@ -219,7 +219,7 @@ MessageObjectPut(Pointer,   void *);
 MessageObjectPut(String,    const Char *);
 
 void MessageObjectPutObject(MessageObjectRef ref, UInt32 name, SharedObjectRef obj) {
-    sp<Message> message = ref;
+    sp<Message> message = static_cast<Message *>(ref);
     message->setObject(name, static_cast<SharedObject *>(obj));
 }
 
@@ -275,19 +275,19 @@ LooperObjectRef LooperObjectCreate(const Char * name) {
 }
 
 void LooperObjectPostJob(LooperObjectRef ref, JobObjectRef job) {
-    static_cast<Looper *>(ref)->post(job);
+    static_cast<Looper *>(ref)->post(static_cast<Job *>(job));
 }
 
 void LooperObjectPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, Int64 delay) {
-    static_cast<Looper *>(ref)->post(job, delay);
+    static_cast<Looper *>(ref)->post(static_cast<Job *>(job), delay);
 }
 
 void LooperObjectRemoveJob(LooperObjectRef ref, JobObjectRef job) {
-    static_cast<Looper *>(ref)->remove(job);
+    static_cast<Looper *>(ref)->remove(static_cast<Job *>(job));
 }
 
 Bool LooperObjectFindJob(LooperObjectRef ref, JobObjectRef job) {
-    return static_cast<Looper *>(ref)->exists(job);
+    return static_cast<Looper *>(ref)->exists(static_cast<Job *>(job));
 }
 
 void SharedLooperFlush(LooperObjectRef ref) {

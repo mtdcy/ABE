@@ -58,7 +58,7 @@ VectorImpl::VectorImpl(const sp<Allocator>& allocator,
 {
     CHECK_GT(capacity, 0);
     DEBUG("constructor 1");
-    mStorage = SharedBuffer::allocate(mAllocator, mTypeHelper.size() * mCapacity);
+    mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * mCapacity);
 }
 
 VectorImpl::VectorImpl(const VectorImpl& rhs) :
@@ -115,7 +115,7 @@ void VectorImpl::shrink() {
     } else {
         DEBUG("shrink heavily");
         SharedBuffer *old = mStorage;
-        mStorage = SharedBuffer::allocate(mAllocator, mItemCount * mTypeHelper.size());
+        mStorage = SharedBuffer::Create(mAllocator, mItemCount * mTypeHelper.size());
 
         if (old->IsBufferNotShared()) {
             mTypeHelper.do_move(mStorage->data(),
@@ -162,7 +162,7 @@ Char * VectorImpl::_grow(UInt32 pos, UInt32 amount) {
     } else {
         DEBUG("grow heavily");
         SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::allocate(mAllocator, mCapacity * mTypeHelper.size());
+        mStorage = SharedBuffer::Create(mAllocator, mCapacity * mTypeHelper.size());
 
         // copy item before pos
         if (pos) {
@@ -203,7 +203,7 @@ void VectorImpl::_remove(UInt32 pos, UInt32 amount) {
         }
     } else {
         SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::allocate(mAllocator, mCapacity * mTypeHelper.size());
+        mStorage = SharedBuffer::Create(mAllocator, mCapacity * mTypeHelper.size());
 
         // copy item before pos
         mTypeHelper.do_copy(mStorage->data(),
@@ -257,7 +257,7 @@ void VectorImpl::_release(SharedBuffer *sb, UInt32 count, Bool moved) {
         if (count && !moved) {
             mTypeHelper.do_destruct(sb->data(), count);
         }
-        sb->deallocate();
+        sb->DeleteBuffer();
     }
 }
 
@@ -266,7 +266,7 @@ void VectorImpl::_edit() {
 
     DEBUG("edit heavily");
     SharedBuffer* old = mStorage;
-    mStorage = SharedBuffer::allocate(mAllocator, capacity() * mTypeHelper.size());
+    mStorage = SharedBuffer::Create(mAllocator, capacity() * mTypeHelper.size());
 
     mTypeHelper.do_copy(mStorage->data(),
             old->data(),
@@ -365,7 +365,7 @@ void VectorImpl::sort(type_compare_t cmp) {
             // NOTHING
         } else {
             SharedBuffer * old = mStorage;
-            mStorage = SharedBuffer::allocate(mAllocator, mTypeHelper.size() * capacity());
+            mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * capacity());
 
             mTypeHelper.do_copy(mStorage->data(),
                     old->data(),
@@ -375,7 +375,7 @@ void VectorImpl::sort(type_compare_t cmp) {
         }
     } else {
         SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::allocate(mAllocator, mTypeHelper.size() * capacity());
+        mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * capacity());
 
         Char * dest = mStorage->data();
         for (UInt32 i = 0; i < mItemCount; ++i) {

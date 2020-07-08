@@ -462,7 +462,7 @@ void Buffer::writeByte(UInt8 x) {
 SharedBuffer * Buffer::alloc() {
     UInt32 allocLength = mCapacity;
     if (mType == Ring) allocLength <<= 1;
-    SharedBuffer * data = SharedBuffer::allocate(mAllocator, allocLength);
+    SharedBuffer * data = SharedBuffer::Create(mAllocator, allocLength);
     CHECK_NULL(data);
     return data;
 }

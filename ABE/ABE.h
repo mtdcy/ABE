@@ -95,8 +95,8 @@ ABE_EXPORT const Char *         SharedBufferGetConstDataPointer(const SharedBuff
 ABE_EXPORT UInt32               SharedBufferGetDataLength(const SharedBufferRef);
 ABE_EXPORT SharedBufferRef      SharedBufferEdit(SharedBufferRef);
 ABE_EXPORT SharedBufferRef      SharedBufferEditWithSize(SharedBufferRef, UInt32);
-ABE_EXPORT UInt32               SharedBufferReleaseWithoutDeallocate(SharedBufferRef);
-ABE_EXPORT void                 SharedBufferDeallocate(SharedBufferRef);
+ABE_EXPORT UInt32               SharedBufferReleaseWithoutDelete(SharedBufferRef);
+ABE_EXPORT void                 SharedBufferDelete(SharedBufferRef);
 
 typedef SharedObjectRef         BufferObjectRef;
 ABE_EXPORT BufferObjectRef      BufferObjectCreate(UInt32);                     // sp<Buffer>

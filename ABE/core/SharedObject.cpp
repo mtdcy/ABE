@@ -56,25 +56,50 @@
 #define FATAL_CHECK_GT(a, b)    FATAL_CHECK(a, b, >)
 
 __BEGIN_NAMESPACE_ABE
-#define INITIAL_VALUE   (0x10000)
-SharedObject::Refs::Refs(SharedObject * p) : mObject(p), mRefs(INITIAL_VALUE), mWeakRefs(0) {
-}
+// about SharedObject:
+// 1. sp<T> tracks SharedObject and Refs.
+// 2. wp<T> only tracks Refs.
+//
+// Cases:
+// case 1: only strong refs
+//      strong refs MUST delete object & Refs.
+// case 2: both strong refs & weak refs
+//      strong refs only delete object.
+//      weak refs only delete Refs.
+// case 3: only weak refs
+//      weak refs MUST delete object & Refs.
+// case 4: no strong or weak refs
+//      object MUST delete self and Refs.
+//
+// Issues:
+// 1. if someone acquire weak refs before incRefs and
+//  JUST release it before we are able to acquire
+//  strong ref, it will be a problem. this happens
+//  when acquiring weak refs to self in constructor or
+//  client do it by mistake.
+
+// implement case 3/4 with an initial value
+#define INITIAL_VALUE   UINT32_MAX
+SharedObject::Refs::Refs(SharedObject * p) : mObject(p),
+mRefs(INITIAL_VALUE), mWeakRefs(INITIAL_VALUE) { }
 
 SharedObject::Refs::~Refs() {
 }
 
 UInt32 SharedObject::Refs::incRefs() {
-    // if someone acquire weak refs before incRefs and
-    // JUST release it before we are able to acquire
-    // strong ref, it will be a problem. this happens
-    // when acquiring weak refs to self in constructor.
-    mRefs.cas(INITIAL_VALUE, 0);
-    UInt32 refs = ++mRefs;
-    if (refs == 1) {
+    UInt32 refs = INITIAL_VALUE;
+    if (mRefs.cas(refs, 1)) {
         mObject->onFirstRetain();
+        incWeakRefs();
+        return 1;
+    } else {
+        UInt32 refs = ++mRefs;
+        if (refs == 1) {
+            mObject->onFirstRetain();;
+        }
+        incWeakRefs();
+        return refs;
     }
-    ++mWeakRefs;
-    return refs;
 }
 
 UInt32 SharedObject::Refs::decRefs(Bool keep) {
@@ -92,10 +117,7 @@ UInt32 SharedObject::Refs::decRefs(Bool keep) {
             delete mObject;
         }
     }
-    // no others acquired weak refs, release self.
-    if (--mWeakRefs == 0) {
-        delete this;
-    }
+    decWeakRefs();
     return refs;
 }
 
@@ -110,141 +132,137 @@ UInt32 SharedObject::Refs::weakRefCount() const {
 }
 
 UInt32 SharedObject::Refs::incWeakRefs() {
-    UInt32 refs = ++mWeakRefs;
-    return refs;
+    UInt32 refs = INITIAL_VALUE;
+    if (mWeakRefs.cas(refs, 1)) {
+        return 1;
+    } else {
+        UInt32 refs = ++mWeakRefs;
+        return refs;
+    }
 }
 
 UInt32 SharedObject::Refs::decWeakRefs() {
-    // if someone acquire weak refs before strong refs and release
-    // it before others have a chance to acquire strong refs, it
-    // will be a problem. this happens when acquiring weak refs
-    // to self in constructor.
     UInt32 refs = --mWeakRefs;
-    if (refs == 0 && mRefs.load() != INITIAL_VALUE) {
+    if (refs == 0) {
+        // case 3
+        if (mRefs.load() == INITIAL_VALUE) {
+            delete mObject;
+        }
+        // case 2
         delete this;
     }
     return refs;
 }
 
-Bool SharedObject::Refs::retain() {
-    // easy test, no strong refs exists.
+SharedObject * SharedObject::Refs::retain() {
+    // easy case, all strong refs are gone.
     if (mRefs.load() == 0) {
-        return False;
+        return Nil;
     }
-    // hard test:
-    // the strong refs may gone after the first test, so
-    // we have to test again after acquire the strong refs here.
-    UInt32 refs = ++mRefs;
+    
+    // hard case
+    UInt32 refs = INITIAL_VALUE;
+    if (mRefs.cas(refs, 1)) {
+        // case 3
+        // retain success
+        mObject->onFirstRetain();
+        incWeakRefs();
+        return mObject;
+    }
+    
+    // the strong refs may gone after the first test.
+    // so acquire and test here again.
+    refs = ++mRefs;
     if (refs == 1) {
-        // strong refs gone when we are acquring.
-        // drop the strong refs.
         --mRefs;
-        return False;
+        return Nil;
     }
-    ++mWeakRefs;
-    return True;
+    incWeakRefs();
+    return mObject;
+}
+
+SharedObject::~SharedObject() {
+    // case 4
+    // object be deleted by client
+    if (mRefs->mWeakRefs.load() == INITIAL_VALUE) {
+        delete mRefs;
+    }
 }
 __END_NAMESPACE_ABE
 
-const UInt32 kBufferObjectID = FOURCC('sbuf');
+__BEGIN_NAMESPACE_ABE
 const UInt32 kBufferMagicStart  = FOURCC('sbf0');
 const UInt32 kBufferMagicEnd    = FOURCC('sbf1');
-__BEGIN_NAMESPACE_ABE
 
-SharedBuffer::SharedBuffer() : SharedObject(kBufferObjectID),
-mAllocator(Nil), mData(Nil), mSize(0) {
-}
-
-SharedBuffer * SharedBuffer::allocate(const sp<Allocator> & _allocator, UInt32 sz) {
-    // FIXME: if allocator is aligned, make sure data is also aligned
-    const UInt32 allocLength = sizeof(SharedBuffer) + sz + sizeof(UInt32) * 2;
+// no new or delete inside SharedBuffer, as new/delete
+// will bypass Allocator.
+SharedBuffer * SharedBuffer::Create(const sp<Allocator> & _allocator, UInt32 sz) {
+    const UInt32 allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(UInt32);
     
     // keep a strong ref local
     sp<Allocator> allocator = _allocator;
-    SharedBuffer * shared = (SharedBuffer *)allocator->allocate(allocLength);
-    //memset((void*)shared, 0, sizeof(SharedBuffer));
-    new (shared) SharedBuffer();
+    SharedBuffer * sb = (SharedBuffer *)allocator->allocate(allocLength);
+    new (sb) SharedBuffer();
     
-    shared->mAllocator  = allocator;
-    shared->mSize       = sz;
+    sb->mAllocator          = allocator;
+    sb->mSize               = sz;
     
+    Char * data             = (Char *)&sb[1];
     // put magic guard before and after data
-    Char * data = (Char *)&shared[1];
-    *(UInt32 *)data           = kBufferMagicStart;
-    data                        += sizeof(UInt32);
-    *(UInt32 *)(data + sz)    = kBufferMagicEnd;
-    shared->mData               = data;
+    *(UInt32 *)data         = kBufferMagicStart;
+    data                    += sizeof(UInt32);
+    *(UInt32 *)(data + sz)  = kBufferMagicEnd;
+    sb->mData               = data;
     
-    shared->RetainObject();
-    return shared;
+    ++sb->mRefs;
+    return sb;
 }
 
-void SharedBuffer::deallocate() {
-    FATAL_CHECK_EQ(GetObjectID(), kBufferObjectID);
+SharedBuffer::~SharedBuffer() {
+}
+
+void SharedBuffer::DeleteBuffer() {
     FATAL_CHECK_EQ(((UInt32 *)mData)[-1], kBufferMagicStart);
     FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), kBufferMagicEnd);
-
-    // keep a strong ref local
+    
+    // keep a ref to mAllocator
     sp<Allocator> allocator = mAllocator;
     this->~SharedBuffer();
     allocator->deallocate(this);
 }
 
+SharedBuffer * SharedBuffer::RetainBuffer() {
+    ++mRefs;
+    return this;
+}
+
 UInt32 SharedBuffer::ReleaseBuffer(Bool keep) {
-    FATAL_CHECK_EQ(GetObjectID(), kBufferObjectID);
     FATAL_CHECK_EQ(((UInt32 *)mData)[-1], kBufferMagicStart);
     FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), kBufferMagicEnd);
-
-    UInt32 refs = SharedObject::ReleaseObject(True);
+    
+    UInt32 refs = --mRefs;
     if (refs == 0 && !keep) {
-        deallocate();
+        DeleteBuffer();
     }
     return refs;
 }
 
-SharedBuffer * SharedBuffer::edit() {
-    FATAL_CHECK_EQ(GetObjectID(), kBufferObjectID);
-    FATAL_CHECK_EQ(((UInt32 *)mData)[-1], kBufferMagicStart);
-    FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), kBufferMagicEnd);
-    if (IsBufferNotShared()) return this;
-
-    SharedBuffer * copy = SharedBuffer::allocate(mAllocator, mSize);
-    memcpy(copy->mData, mData, mSize);
-
-    ReleaseBuffer();
-    return copy;
-}
-
 SharedBuffer * SharedBuffer::edit(UInt32 sz) {
-    FATAL_CHECK_EQ(GetObjectID(), kBufferObjectID);
     FATAL_CHECK_EQ(((UInt32 *)mData)[-1], kBufferMagicStart);
     FATAL_CHECK_EQ(*(UInt32 *)(mData + mSize), kBufferMagicEnd);
-
+    
+    if (!sz) sz = mSize;
     if (IsBufferNotShared() && sz <= mSize) return this;
-
-    if (IsBufferNotShared()) {
-        // reallocate
-        // keep a strong ref local
-        sp<Allocator> allocator = mAllocator;
-        const UInt32 allocLength = sizeof(SharedBuffer) + sz + 2 * sizeof(UInt32);
-        SharedBuffer * shared = (SharedBuffer *)allocator->reallocate(this, allocLength);
-        // fix context
-        shared->mAllocator  = allocator;
-        shared->mSize       = sz;
-
-        Char * data                 = (Char *)&shared[1];
-        *(UInt32 *)data           = kBufferMagicStart;
-        data                        += sizeof(UInt32);
-        *(UInt32 *)(data + sz)    = kBufferMagicEnd;
-        shared->mData               = data;
-        return shared;
-    }
-
-    SharedBuffer * copy = SharedBuffer::allocate(mAllocator, sz);
-    memcpy(copy->mData, mData, MIN(sz, mSize));
+    
+    // DON'T USE REALLOCATE HERE, AS WE DON'T KNOWN WHAT REALLOCATE
+    // DO TO THE ORIGINAL BUFFER CONTENT, IF IT BREAK THE ORIGINAL
+    // ONE, WE WILL UNABLE TO ReleaseBuffer()
+    
+    SharedBuffer * sb = SharedBuffer::Create(mAllocator, sz);
+    memcpy(sb->mData, mData, MIN(sz, mSize));
 
     ReleaseBuffer();
-    return copy;
+    return sb;
 }
 
 __END_NAMESPACE_ABE

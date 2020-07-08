@@ -136,7 +136,7 @@ void ListImpl::freeNode(ListNodeImpl* node) {
 }
 
 void ListImpl::_prepare(const sp<Allocator>& allocator) {
-    mStorage = SharedBuffer::allocate(allocator, sizeof(ListNodeImpl));
+    mStorage = SharedBuffer::Create(allocator, sizeof(ListNodeImpl));
     ListNodeImpl * head = (ListNodeImpl *)mStorage->data();
     new (head) ListNodeImpl;
     BUILD_LIST(head);
@@ -170,7 +170,7 @@ ListNodeImpl* ListImpl::_edit() {
                 freeNode(node);
                 node = next;
             }
-            old->deallocate();
+            old->DeleteBuffer();
         }
     }
 
@@ -190,7 +190,7 @@ void ListImpl::_clear() {
 
             node = next;
         }
-        mStorage->deallocate();
+        mStorage->DeleteBuffer();
     }
     mStorage = Nil;
     mListLength = 0;

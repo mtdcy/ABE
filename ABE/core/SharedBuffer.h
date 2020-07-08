@@ -38,75 +38,74 @@
 
 __BEGIN_NAMESPACE_ABE
 
-/**
- * a cow buffer
- * @note DON'T use sp to hold SharedBuffer
- */
-struct ABE_EXPORT SharedBuffer : protected SharedObject {
-    protected:
-        SharedBuffer();
-        ~SharedBuffer() { }
+// A COW BUFFER
+// NO new or delete in SharedBuffer, always using mAllocator
+struct ABE_EXPORT SharedBuffer {
+    public:
+        /**
+         * create a cow buffer and retain it.
+         * @param a Allocator reference.
+         * @param number bytes to allocate.
+         * @return return a reference to new created cow buffer on success, otherwise Nil.
+         */
+        static SharedBuffer * Create(const sp<Allocator>&, UInt32);
 
     public:
         /**
-         * create a cow buffer with given size and backend allocator
+         * retain this cow buffer.
+         * @note retain is thread safe, can perform without lock.
          */
-        static SharedBuffer *       allocate(const sp<Allocator>&, UInt32);
-        /**
-         * manually release backend memory
-         */
-        void                        deallocate();
-
-    public:
-        /**
-         * retain this cow buffer
-         * @note retain is thread safe, can perform at any time
-         */
-        ABE_INLINE SharedBuffer *   RetainBuffer()              { return (SharedBuffer *)SharedObject::RetainObject(); }
+        SharedBuffer *      RetainBuffer();
     
         /**
          * release this cow buffer
          * @param keep  if keep == False & this is the last ref, backend memory will be released
-         *              if keep == True & this is the last ref, manually release backend memory using deallocate
-         *
-         * @note release is thread safe, can perform at any time
-         * @note if client have to do extra destruction work on this cow buffer, please always using keep = True
+         *             if keep == True & this is the last ref, backend memory will NOT release, PLEASE delete it explicit
+         * @return return remains retain count.
+         * @note release is thread safe, can perform without lock.
+         * @note if client have to do extra destruction work on this cow buffer, PLEASE set keep to False.
          */
-        UInt32                      ReleaseBuffer(Bool keep = False);
+        UInt32              ReleaseBuffer(Bool keep = False);
+        void                DeleteBuffer();
     
         /**
-         * get this cow buffer's ref count
+         * get this cow buffer's retain count
+         * @note thread safe.
          */
-        ABE_INLINE UInt32           GetRetainCount() const      { return SharedObject::GetRetainCount();    }
+        ABE_INLINE UInt32   GetRetainCount() const      { return mRefs.load();      }
     
         /**
          * is this cow buffer shared with others
+         * @note thread safe.
          * @note if IsBufferNotShared() == True, it is safe to do anything later
          * @note if IsBufferShared() == True, you may have to test again later
          */
-        ABE_INLINE Bool             IsBufferShared() const      { return SharedObject::IsObjectShared();    }
-        ABE_INLINE Bool             IsBufferNotShared() const   { return SharedObject::IsObjectNotShared(); }
-
-    public:
-        ABE_INLINE Char *           data()                      { return mData;                             }
-        ABE_INLINE const Char *     data() const                { return mData;                             }
-        ABE_INLINE UInt32           size() const                { return mSize;                             }
+        ABE_INLINE Bool     IsBufferShared() const      { return mRefs.load() > 1;  }
+        ABE_INLINE Bool     IsBufferNotShared() const   { return mRefs.load() == 1; }
 
     public:
         /**
          * perform edit before you write to this cow buffer
+         * @param number of bytes to edit, zero means not changed.
          * @note if this cow is not shared, it does NOTHING. otherwise it perform a cow action
          * @note edit with new size always perform a cow action.
          * @note edit with new size will assert on failure
          */
-        SharedBuffer *              edit();
-        SharedBuffer *              edit(UInt32);
+        SharedBuffer *      edit(UInt32 = 0);
 
+    public:
+        ABE_INLINE Char *       data()                  { return mData;             }
+        ABE_INLINE const Char * data() const            { return mData;             }
+        ABE_INLINE UInt32       size() const            { return mSize;             }
     private:
         sp<Allocator>   mAllocator;
         Char *          mData;
         UInt32          mSize;
+        Atomic<UInt32>  mRefs;
     
+        // PLEASE USE Create() TO ALLOC A NEW SHARED BUFFER.
+        SharedBuffer() : mAllocator(Nil), mData(Nil), mSize(0) { }
+        ~SharedBuffer();
         DISALLOW_EVILS(SharedBuffer);
 };
 
