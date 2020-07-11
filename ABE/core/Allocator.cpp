@@ -121,7 +121,7 @@ struct AllocatorDefaultAligned : public Allocator {
     }
 };
 
-sp<Allocator> GetAlignedAllocator(UInt32 alignment) {
+sp<Allocator> GetAllocator(UInt32 alignment) {
     return new AllocatorDefaultAligned(alignment);
 }
 

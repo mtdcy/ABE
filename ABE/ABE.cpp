@@ -54,7 +54,7 @@ AllocatorRef AllocatorGetDefault(void) {
 }
 
 AllocatorRef AllocatorGetDefaultAligned(UInt32 alignment) {
-    return (AllocatorRef)GetAlignedAllocator(alignment)->RetainObject();
+    return (AllocatorRef)GetAllocator(alignment)->RetainObject();
 }
 
 void * AllocatorAllocate(AllocatorRef ref, UInt32 n) {

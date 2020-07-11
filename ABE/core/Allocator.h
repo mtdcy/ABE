@@ -32,15 +32,15 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_ALLOCATOR_H
-#define ABE_HEADERS_ALLOCATOR_H
+#ifndef ABE_ALLOCATOR_H
+#define ABE_ALLOCATOR_H
 
 #include <ABE/core/Types.h>
 
 __BEGIN_NAMESPACE_ABE
 
 struct ABE_EXPORT Allocator : public SharedObject {
-    ABE_INLINE Allocator() : SharedObject(FOURCC('alct')) { }
+    ABE_INLINE Allocator() : SharedObject(FOURCC('?mal')) { }
     ABE_INLINE virtual ~Allocator() { }
     /**
      * allocate n bytes memory
@@ -61,10 +61,10 @@ struct ABE_EXPORT Allocator : public SharedObject {
 };
 
 ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
-ABE_EXPORT sp<Allocator> GetAlignedAllocator(UInt32 alignment);
+ABE_EXPORT sp<Allocator> GetAllocator(UInt32 alignment);
 
 __END_NAMESPACE_ABE
 
-#endif // ABE_HEADERS_ALLOCATOR_H
+#endif // ABE_ALLOCATOR_H
 
 

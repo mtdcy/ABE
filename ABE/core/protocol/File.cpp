@@ -77,7 +77,7 @@ struct File : public Protocol {
     kBlockLength(4096), mBlock((Char *)malloc(kBlockLength))
     {
         CHECK_NULL(mBlock);
-        if (url.startsWithIgnoreCase("pipe://")) {
+        if (url.startsWith("pipe://", True)) {
             Int64 offset, length;
             
             int index0 = url.indexOf(7, "+");
@@ -120,7 +120,7 @@ struct File : public Protocol {
             }
             
             const Char *pathname = url.c_str();
-            if (url.startsWithIgnoreCase("file://"))    pathname += 6;
+            if (url.startsWith("file://", True))    pathname += 6;
             
             if (flags & O_CREAT)
                 mFd = ::open(pathname, flags, S_IRUSR | S_IWUSR);

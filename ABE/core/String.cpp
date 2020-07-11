@@ -33,6 +33,7 @@
 //
 
 #define __STDC_FORMAT_MACROS
+#define _DARWIN_C_SOURCE // APPLE
 
 #define LOG_TAG   "String"
 #include "Log.h"
@@ -47,6 +48,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
+// TODO: make our own version printf & scanf.
 static UInt32 CStringPrintf(void *str, UInt32 size, const Char *format, ...) {
     va_list ap;
     va_start(ap, format);
@@ -76,12 +78,14 @@ String String::format(const Char *format, ...) {
     return result;
 }
 
+#if 0
 String String::format(const Char *format, va_list ap) {
     Char buf[1024];
     UInt32 len = vsnprintf(buf, 1024, format, ap);
     String result(buf, len);
     return result;
 }
+#endif
 
 String::String() : mData(Nil), mSize(0) { }
 
@@ -105,14 +109,14 @@ String::String(const String &rhs) : mData(Nil), mSize(0)
     mSize   = rhs.mSize;
 }
 
-String String::UTF16(const Char *s, UInt32 n) {
+String::String(const UInt16 * s, UInt32 n) {
     CHECK_NULL(s);
     CHECK_GT(n, 0);
     
     // is the size right?
-    const UInt32 length = n * 4 + 1;
-    Char utf8[length];
-    Char * buf_start = utf8;
+    const UInt32 length = n * 2 + 1;
+    mData = SharedBuffer::Create(kAllocatorDefault, length);
+    Char * buf_start = mData->data();
     Char * buf_end = buf_start + length;
     Char * buf = buf_start;
 
@@ -123,10 +127,11 @@ String String::UTF16(const Char *s, UInt32 n) {
             lenientConversion);
     if (result != conversionOK) {
         ERROR("ConvertUTF16toUTF8 failed, ret = %d.", result);
-        return String::Null;
+        buf_start[0] = '\0';
+    } else {
+        mSize = buf - buf_start;
+        buf_start[mSize] = '\0';
     }
-
-    return String(utf8, buf - buf_start);
 }
 
 #define STRING_FROM_NUMBER(TYPE, SIZE, PRI)                                 \
@@ -201,8 +206,9 @@ String& String::set(const String& s) {
     return *this;
 }
 
-String& String::set(const Char * s, UInt32 n) {
-    if (!n) n = strlen(s);
+String& String::set(const Char * s) {
+    UInt32 n = strlen(s);
+    CHECK_GT(n, 0);
     if (mData && mData->size() > n) {
         // no need to release buffer
     } else {
@@ -229,11 +235,11 @@ String& String::append(const String& s) {
     return *this;
 }
 
-String& String::append(const Char * s, UInt32 n) {
-    if (!n) n = strlen(s);
-    if (!n) return *this;   // append empty string
-    if (!mSize) return set(s, n);
+String& String::append(const Char * s) {
+    if (!mSize) return set(s);
     
+    UInt32 n = strlen(s);
+    CHECK_GT(n, 0);         // append empty string
     UInt32 m = mSize + n + 1;   // plus 1 for '\0'
     mData = mData->edit(m);
     strncpy(mData->data() + mSize, s, n + 1);   // plus 1 for '\0';
@@ -259,13 +265,13 @@ String& String::insert(UInt32 pos, const String& s) {
     return *this;
 }
 
-String& String::insert(UInt32 pos, const Char *s, UInt32 n) {
+String& String::insert(UInt32 pos, const Char *s) {
     CHECK_LE(pos, mSize);
-    if (!n) n = strlen(s);
-    if (!n) return *this; // insert empty string
+    if (!mSize) return set(s);
+    if (pos == mSize) return append(s);
     
-    if (!mSize) return set(s, n);
-    if (pos == mSize) return append(s, n);
+    UInt32 n = strlen(s);
+    if (!n) return *this; // insert empty string
     
     UInt32 m = mSize + n + 1;
     mData = mData->edit(m);
@@ -331,7 +337,17 @@ String& String::erase(UInt32 pos, UInt32 n) {
     return *this;
 }
 
-String& String::replace(const Char * s0, const Char * s1) {
+String& String::replace(const Char * s0, const Char * s1, Bool all) {
+    if (all) {
+        for (;;) {
+            Int index = indexOf(s0);
+            if (index < 0) break;
+
+            replace(s0, s1);
+        }
+        return *this;
+    }
+    
     const UInt32 n0 = strlen(s0);
     const UInt32 n1 = strlen(s1);
     const UInt32 newSize = mSize - n0 + n1;
@@ -352,32 +368,16 @@ String& String::replace(const Char * s0, const Char * s1) {
     return *this;
 }
 
-String& String::replaceAll(const Char * s0, const Char * s1) {
-    // TODO: optimize these code
-    for (;;) {
-        Int index = indexOf(s0);
-        if (index < 0) break;
-
-        replace(s0, s1);
+Int String::indexOf(UInt32 start, const Char * s, Bool ic) const {
+    if (ic) {
+        
     }
-
-    return *this;
-}
-
-Int String::indexOf(UInt32 start, const Char * s) const {
-    const Char *sub = strstr(mData->data() + start, s);
+    const Char *sub = ic ? strcasestr(mData->data() + start, s): strstr(mData->data() + start, s);
     if (!sub) return -1;
     return sub - mData->data();
 }
 
-Int String::indexOf(UInt32 fromIndex, int c) const {
-    Char * buf = mData->data();
-    const Char *sub = strchr(buf + fromIndex, c);
-    if (!sub) return -1;
-    return sub - buf;
-}
-
-Int String::lastIndexOf(const Char *s) const {
+Int String::lastIndexOf(const Char *s, Bool ic) const {
     const UInt32 n = strlen(s);
     if (n > mSize)  return -1;
     
@@ -396,36 +396,23 @@ Int String::lastIndexOf(const Char *s) const {
     return -1;
 }
 
-Int String::lastIndexOf(int c) const {
-    Char * buf = mData->data();
-    const Char *sub = strrchr(buf, c);
-    if (!sub) return -1;
-    return sub - buf;
-}
-
-int String::compare(const String& s) const {
+int String::compare(const String& s, Bool ic) const {
     if (mData == s.mData) return 0;
     if (s.mData == Nil) return 1;
     if (mData == Nil) return -1;
     
-    return strcmp(mData->data(), s.mData->data());
+    if (ic)
+        return strcasecmp(mData->data(), s.mData->data());
+    else
+        return strcmp(mData->data(), s.mData->data());
 }
 
-int String::compare(const Char *s) const {
+int String::compare(const Char *s, Bool ic) const {
     if (mData == Nil) return -1;
-    return strcmp(mData->data(), s);
-}
-
-int String::compareIgnoreCase(const String& s) const {
-    if (s.mData == Nil) return 1;
-    if (mData == Nil) return -1;
-    
-    return strcasecmp(mData->data(), s.mData->data());
-}
-
-int String::compareIgnoreCase(const Char *s) const {
-    if (mData == Nil) return -1;
-    return strcasecmp(mData->data(), s);
+    if (ic)
+        return strcasecmp(mData->data(), s);
+    else
+        return strcmp(mData->data(), s);
 }
 
 String& String::lower() {
@@ -446,28 +433,22 @@ String& String::upper() {
     return *this;
 }
 
-Bool String::startsWith(const Char * s, UInt32 n) const {
-    if (!n) n = strlen(s);
+Bool String::startsWith(const Char * s, Bool ic) const {
+    UInt32 n = strlen(s);
     if (n > mSize) return False;
-    return !strncmp(mData->data(), s, n);
+    if (ic)
+        return !strncasecmp(mData->data(), s, n);
+    else
+        return !strncmp(mData->data(), s, n);
 }
 
-Bool String::startsWithIgnoreCase(const Char * s, UInt32 n) const {
-    if (!n) n = strlen(s);
+Bool String::endsWith(const Char * s, Bool ic) const {
+    UInt32 n = strlen(s);
     if (n > mSize) return False;
-    return !strncasecmp(mData->data(), s, n);
-}
-
-Bool String::endsWith(const Char * s, UInt32 n) const {
-    if (!n) n = strlen(s);
-    if (n > mSize) return False;
-    return !strcmp(mData->data() + mSize - n, s);
-}
-
-Bool String::endsWithIgnoreCase(const Char * s, UInt32 n) const {
-    if (!n) n = strlen(s);
-    if (n > mSize) return False;
-    return !strcasecmp(mData->data() + mSize - n, s);
+    if (ic)
+        return !strcasecmp(mData->data() + mSize - n, s);
+    else
+        return !strcmp(mData->data() + mSize - n, s);
 }
 
 String String::substring(UInt32 pos, UInt32 n) const {
@@ -484,16 +465,16 @@ Int64 String::toInt64() const {
     return strtoll(mData->data(), Nil, 10);
 }
 
-Float32 String::toFloat() const {
+Float32 String::toFloat32() const {
     return strtof(mData->data(), Nil);
 }
 
-Float64 String::toDouble() const {
+Float64 String::toFloat64() const {
     return strtod(mData->data(), Nil);
 }
 
-void String::swap(String& s) {
-    if (mData == s.mData) return;
+String& String::swap(String& s) {
+    if (mData == s.mData) return *this;
     UInt32 size         = mSize;
     SharedBuffer* data  = mData;
 
@@ -501,6 +482,7 @@ void String::swap(String& s) {
     mData       = s.mData;
     s.mSize     = size;
     s.mData     = data;
+    return *this;
 }
 
 __END_NAMESPACE_ABE

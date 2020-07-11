@@ -33,8 +33,8 @@
 //
 
 
-#ifndef ABE_HEADERS_STRING_H
-#define ABE_HEADERS_STRING_H
+#ifndef ABE_STRING_H
+#define ABE_STRING_H
 
 #include <ABE/core/Types.h>
 #include <ABE/core/SharedBuffer.h>
@@ -50,7 +50,10 @@ class ABE_EXPORT String : public StaticObject {
          * format a string
          */
         static String format(const Char *format, ...);
-        static String format(const Char *format, va_list ap);
+        //static String format(const Char *format, va_list ap);
+        
+        UInt32 scan(const Char * format, ...);
+        //UInt32 scan(const Char * format, va_list ap);
 
     public:
         /**
@@ -59,34 +62,11 @@ class ABE_EXPORT String : public StaticObject {
          */
         static String Null;
     
-        /**
-         * create an empty string
-         */
-        String();
-    
-        /**
-         * copy a string
-         * @param s     reference of another string
-         */
-        String(const String& s);
-    
-        /**
-         * duplicate a null terminated c-style string
-         * @param s     pointer to a c-style string
-         * @param n     length of that string excluding terminating null
-         */
-        String(const Char *s, UInt32 n = 0);
-    
-        /**
-         * create a utf8 string from utf16 string.
-         * @param s     pointer to a c-style string, may be null terminated
-         * @param n     number bytes of this utf16 string excluding terminating null
-         */
-        static String UTF16(const Char *s, UInt32 n);
-
-        /**
-         * create string from basic types
-         */
+    public:
+        String();                               ///< empty string
+        String(const String& s);                ///< copy string
+        String(const Char *s, UInt32 n = 0);    ///< from null-terminated string
+        String(const UInt16 *s, UInt32 n = 0);  ///< from utf16 null-terminated string
         explicit String(const Char c);
         explicit String(const UInt8 v);
         explicit String(const Int8 v);
@@ -98,48 +78,46 @@ class ABE_EXPORT String : public StaticObject {
         explicit String(const Int64 v);
         explicit String(const Float32 v);
         explicit String(const Float64 v);
-        explicit String(const void *p);
+        explicit String(const void * v);
 
         ~String();
 
     public:
-        // edit
+        // edit string
         String&     set(const String& s);
-        String&     set(const Char * s, UInt32 n = 0);
+        String&     set(const Char * s);
         String&     append(const String &s);
-        String&     append(const Char * s, UInt32 n = 0);
+        String&     append(const Char * s);
         String&     insert(UInt32 pos, const String &s);
-        String&     insert(UInt32 pos, const Char * s, UInt32 n = 0);
+        String&     insert(UInt32 pos, const Char * s);
         String&     erase(UInt32 pos, UInt32 n);
-        String&     replace(const Char * s0, const Char * s1);
-        String&     replaceAll(const Char * s0, const Char * s1);
+        String&     replace(const Char * s0, const Char * s1, Bool all = False);
+
+        ABE_INLINE String& replace(const String& s0, const String& s1, Bool all = False)    { return replace(s0.c_str(), s1.c_str(), all);  }
+        ABE_INLINE String& replace(const String& s0, const Char * s1, Bool all = False)     { return replace(s0.c_str(), s1, all);          }
+        ABE_INLINE String& replace(const Char * s0, const String& s1, Bool all = False)     { return replace(s0, s1.c_str(), all);          }
     
-        ABE_INLINE String& replace(const String& s0, const String& s1)    { return replace(s0.c_str(), s1.c_str());       }
-        ABE_INLINE String& replace(const String& s0, const Char * s1)     { return replace(s0.c_str(), s1);               }
-        ABE_INLINE String& replace(const Char * s0, const String& s1)     { return replace(s0, s1.c_str());               }
-        ABE_INLINE String& replaceAll(const String& s0, const String& s1) { return replaceAll(s0.c_str(), s1.c_str());    }
-        ABE_INLINE String& replaceAll(const String& s0, const Char * s1)  { return replaceAll(s0.c_str(), s1);            }
-        ABE_INLINE String& replaceAll(const Char * s0, const String& s1)  { return replaceAll(s0, s1.c_str());            }
-    
+    public:
         String&     trim();
         void        clear();
         String      substring(UInt32 pos, UInt32 n = 0) const;
-        void        swap(String& s);
+        String&     swap(String& s);
         String&     lower();
         String&     upper();
 
     public:
-        ABE_INLINE String& operator=(const String &s)     { set(s); return *this;                 }
-        ABE_INLINE String& operator+=(const String &s)    { append(s); return *this;              }
-        ABE_INLINE String  operator+(const String &s)     { String a(*this); return a.append(s);  }
-        ABE_INLINE String& operator=(const Char * s)      { set(s); return *this;                 }
-        ABE_INLINE String& operator+=(const Char * s)     { append(s); return *this;              }
-        ABE_INLINE String  operator+(const Char * s)      { String a(*this); return a.append(s);  }
+        // operators
+        ABE_INLINE String& operator=(const Char * s)    { set(s); return *this;                 }
+        ABE_INLINE String& operator=(const String &s)   { set(s); return *this;                 }
+        ABE_INLINE String& operator+=(const Char * s)   { append(s); return *this;              }
+        ABE_INLINE String& operator+=(const String &s)  { append(s); return *this;              }
+        ABE_INLINE String  operator+(const Char * s)    { String a(*this); return a.append(s);  }
+        ABE_INLINE String  operator+(const String &s)   { String a(*this); return a.append(s);  }
 
     public:
         /**
-         * get Char at position
-         * @param index     position, range, [0, size()]
+         * get char at position
+         * @param index     position, range, [0, size]
          * @return return a Char reference.
          */
         const Char& operator[](UInt32 index) const;
@@ -156,35 +134,51 @@ class ABE_EXPORT String : public StaticObject {
         ABE_INLINE Bool         empty() const   { return mSize == 0;    }
 
     public:
-        Int     indexOf(UInt32 start, const Char * s) const;
-        Int     indexOf(UInt32 start, int c) const;
+        /**
+         * find string
+         * param ic     ignore case
+         * @return return >= 0 if string exists, otherwise return -1
+         */
+        Int     indexOf(UInt32 start, const Char * s, Bool ic = False) const;
+        Int     lastIndexOf(const Char * s, Bool ic = False) const;
 
-        ABE_INLINE Int indexOf(UInt32 start, const String& s) const   { return indexOf(start, s.c_str()); }
-        ABE_INLINE Int indexOf(const String& s) const                 { return indexOf(0, s.c_str());     }
-        ABE_INLINE Int indexOf(const Char * s) const                  { return indexOf(0, s);             }
-        ABE_INLINE Int indexOf(int c) const                           { return indexOf(0, c);             }
-    
-        Int     lastIndexOf(const Char * s) const;
-        Int     lastIndexOf(int c) const;
-    
-        ABE_INLINE Int lastIndexOf(const String& s) const             { return lastIndexOf(s.c_str());    }
+        ABE_INLINE Int indexOf(UInt32 start, const String& s, Bool ic = False) const { return indexOf(start, s.c_str()); }
+        ABE_INLINE Int indexOf(const String& s, Bool ic = False) const     { return indexOf(0, s.c_str());     }
+        ABE_INLINE Int indexOf(const Char * s, Bool ic = False) const      { return indexOf(0, s);             }
+        ABE_INLINE Int lastIndexOf(const String& s, Bool ic = False) const { return lastIndexOf(s.c_str());    }
 
+    public:
+        Bool    startsWith(const Char * s, Bool ic = False) const;
+        Bool    endsWith(const Char * s,  Bool ic = False) const;
+    
+        ABE_INLINE Bool startsWith(const String& s, Bool ic = False) const { return startsWith(s.c_str(), ic); }
+        ABE_INLINE Bool endsWith(const String& s, Bool ic = False) const   { return endsWith(s.c_str(), ic);   }
+
+    public:
+        Int32       toInt32() const;
+        Int64       toInt64() const;
+        Float32     toFloat32() const;
+        Float64     toFloat64() const;
+
+    public:
+        String      dirname() const;
+        String      basename() const;
+    
     public:
         UInt32      hash() const;
-
-    public:
-        int         compare(const Char * s) const;
-        int         compare(const String &s) const;
-        int         compareIgnoreCase(const Char * s) const;
-        int         compareIgnoreCase(const String &s) const;
     
     public:
-        ABE_INLINE Bool equals(const String &s) const             { return !compare(s);                   }
-        ABE_INLINE Bool equals(const Char * s) const              { return !compare(s);                   }
-        ABE_INLINE Bool equalsIgnoreCase(const String &s) const   { return !compareIgnoreCase(s);         }
-        ABE_INLINE Bool equalsIgnoreCase(const Char * s) const    { return !compareIgnoreCase(s);         }
+        /**
+         * compare string
+         * @param case compare case of not.
+         * @return return -1 if lhs < rhs, return 0 if lhs == rhs, return 1 if lhs > rhs.
+         */
+        int         compare(const Char * s, Bool ic = True) const;
+        int         compare(const String& s, Bool ic = True) const;
+    
+        ABE_INLINE Bool equals(const String& s, Bool ic = True) const { return !compare(s, ic);   }
+        ABE_INLINE Bool equals(const Char * s, Bool ic = True) const  { return !compare(s, ic);   }
 
-    public:
 #define OPERATOR(op) \
 ABE_INLINE Bool operator op(const String& rhs) const { return compare(rhs) op 0; }    \
 ABE_INLINE Bool operator op(const Char * rhs) const { return compare(rhs) op 0; }
@@ -195,29 +189,7 @@ ABE_INLINE Bool operator op(const Char * rhs) const { return compare(rhs) op 0; 
     OPERATOR(>)
     OPERATOR(>=)
 #undef OPERATOR
-
-    public:
-        Bool        startsWith(const Char * s, UInt32 n = 0) const;
-        Bool        startsWithIgnoreCase(const Char * s, UInt32 n = 0) const;
-        Bool        endsWith(const Char * s, UInt32 n = 0) const;
-        Bool        endsWithIgnoreCase(const Char * s, UInt32 n = 0) const;
-    
-    public:
-        ABE_INLINE Bool startsWith(const String &s) const             { return startsWith(s.c_str(), s.size());           }
-        ABE_INLINE Bool startsWithIgnoreCase(const String &s) const   { return startsWithIgnoreCase(s.c_str(), s.size()); }
-        ABE_INLINE Bool endsWith(const String &s) const               { return endsWith(s.c_str(), s.size());             }
-        ABE_INLINE Bool endsWithIgnoreCase(const String &s) const     { return endsWithIgnoreCase(s.c_str(), s.size());   }
-
-    public:
-        Int32     toInt32() const;
-        Int64     toInt64() const;
-        Float32       toFloat() const;
-        Float64      toDouble() const;
-
-    public:
-        String      dirname() const;
-        String      basename() const;
-
+             
     private:
         SharedBuffer *  mData;
         UInt32          mSize;
@@ -226,6 +198,6 @@ ABE_INLINE Bool operator op(const Char * rhs) const { return compare(rhs) op 0; 
 ///////////////////////////////////////////////////////////////////////////
 
 __END_NAMESPACE_ABE
-#endif // ABE_HEADERS_STRING_H
+#endif // ABE_STRING_H
 
 

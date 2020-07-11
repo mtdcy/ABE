@@ -215,30 +215,25 @@ void testString() {
     ASSERT_LT(s0.compare(s1), 0);
 
     // compare without case
-    ASSERT_TRUE(s1.equalsIgnoreCase(s2));
-    ASSERT_EQ(s1.compareIgnoreCase(s2), 0);
+    ASSERT_TRUE(s1.equals(s2, True));
+    ASSERT_EQ(s1.compare(s2, True), 0);
 
     // indexOf
     ASSERT_EQ(s3.indexOf("a"), 0);
-    ASSERT_EQ(s3.indexOf('a'), 0);
     ASSERT_EQ(s3.indexOf("b"), 1);
-    ASSERT_EQ(s3.indexOf('b'), 1);
     ASSERT_EQ(s3.indexOf(7, "c"), 9);
-    ASSERT_EQ(s3.indexOf(7, 'c'), 9);
     ASSERT_EQ(s3.lastIndexOf("a"), 7);
-    ASSERT_EQ(s3.lastIndexOf('a'), 7);
     ASSERT_EQ(s3.lastIndexOf("b"), 8);
-    ASSERT_EQ(s3.lastIndexOf('b'), 8);
 
     // start & end with
     ASSERT_TRUE(s1.startsWith("abc"));
     ASSERT_FALSE(s1.startsWith("aaa"));
     ASSERT_TRUE(s1.endsWith("lmn"));
     ASSERT_FALSE(s1.endsWith("aaa"));
-    ASSERT_TRUE(s2.startsWithIgnoreCase("abc"));
-    ASSERT_FALSE(s2.startsWithIgnoreCase("aaa"));
-    ASSERT_TRUE(s2.endsWithIgnoreCase("lmn"));
-    ASSERT_FALSE(s2.endsWithIgnoreCase("aaa"));
+    ASSERT_TRUE(s2.startsWith("abc", True));
+    ASSERT_FALSE(s2.startsWith("aaa", True));
+    ASSERT_TRUE(s2.endsWith("lmn", True));
+    ASSERT_FALSE(s2.endsWith("aaa", True));
 
     // upper & lower
     {
@@ -266,7 +261,7 @@ void testString() {
         tmp.replace("abc", "cba");
         ASSERT_STREQ(tmp.c_str(), "cbadefghijklmn");
         tmp = s3;
-        tmp.replaceAll("abc", "cba");
+        tmp.replace("abc", "cba", True);
         ASSERT_STREQ(tmp.c_str(), "cbadefgcbadefg");
         tmp = " abcdefghijklmn ";
         tmp.trim();

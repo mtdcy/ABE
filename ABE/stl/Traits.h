@@ -65,7 +65,7 @@ template <typename T> struct is_trivial_dtor        { enum { value = is_builtin<
 template <typename T> struct is_trivial_copy        { enum { value = is_builtin<T>::value };    };
 template <typename T> struct is_trivial_move        { enum { value = is_builtin<T>::value };    };
 template <typename T> struct is_trivial_move<sp<T> >{ enum { value = True };                    };
-#ifdef ABE_HEADERS_STRING_H    // String.h
+#ifdef ABE_STRING_H    // String.h
 template <> struct is_trivial_move<String>          { enum { value = True };                    };
 #endif
 
