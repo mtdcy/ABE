@@ -102,7 +102,7 @@ UInt32 SharedObject::Refs::incRefs() {
     }
 }
 
-UInt32 SharedObject::Refs::decRefs(Bool keep) {
+UInt32 SharedObject::Refs::decRefs() {
     // sanity check
     if (mRefs.load() == 0) {
         // do we need to assert here?
@@ -113,9 +113,7 @@ UInt32 SharedObject::Refs::decRefs(Bool keep) {
     // delete object when strong ref all gone.
     if (refs == 0) {
         mObject->onLastRetain();
-        if (!keep) {
-            delete mObject;
-        }
+        delete mObject;
     }
     decWeakRefs();
     return refs;

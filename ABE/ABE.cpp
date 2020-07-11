@@ -261,37 +261,73 @@ JobObjectRef  JobObjectCreateWithLooper(LooperObjectRef lp, UserCallback callbac
     return (Job *)runnable->RetainObject();
 }
 
-UInt32 JobObjectRun(JobObjectRef ref) {
-    return static_cast<Job *>(ref)->run();
+void JobObjectDispatch(JobObjectRef ref, UInt64 after) {
+    static_cast<Job *>(ref)->dispatch(after);
+}
+
+Bool JobObjectSync(JobObjectRef ref, UInt64 deadline) {
+    return static_cast<Job *>(ref)->sync(deadline);
 }
 
 void JobObjectCancel(JobObjectRef ref) {
     static_cast<Job *>(ref)->cancel();
 }
 
+LooperObjectRef LooperObjectMain() {
+    return Looper::Main()->RetainObject();
+}
+
+LooperObjectRef LooperObjectCurrent() {
+    return Looper::Current()->RetainObject();
+}
+
 LooperObjectRef LooperObjectCreate(const Char * name) {
-    sp<Looper> looper = new Looper(name);
-    return (LooperObjectRef)looper->RetainObject();
+    return (new Looper(name))->RetainObject();
 }
 
-void LooperObjectPostJob(LooperObjectRef ref, JobObjectRef job) {
-    static_cast<Looper *>(ref)->post(static_cast<Job *>(job));
+void LooperObjectDispatch(LooperObjectRef ref, JobObjectRef job, UInt64 after) {
+    static_cast<Looper *>(ref)->dispatch(static_cast<Job *>(job), after);
 }
 
-void LooperObjectPostJobWithDelay(LooperObjectRef ref, JobObjectRef job, Int64 delay) {
-    static_cast<Looper *>(ref)->post(static_cast<Job *>(job), delay);
+Bool LooperObjectSync(LooperObjectRef ref, JobObjectRef job, UInt64 deadline) {
+    return static_cast<Looper *>(ref)->sync(static_cast<Job *>(job), deadline);
 }
 
-void LooperObjectRemoveJob(LooperObjectRef ref, JobObjectRef job) {
-    static_cast<Looper *>(ref)->remove(static_cast<Job *>(job));
+Bool LooperObjectRemove(LooperObjectRef ref, JobObjectRef job) {
+    return static_cast<Looper *>(ref)->remove(static_cast<Job *>(job));
 }
 
-Bool LooperObjectFindJob(LooperObjectRef ref, JobObjectRef job) {
+Bool LooperObjectFind(LooperObjectRef ref, JobObjectRef job) {
     return static_cast<Looper *>(ref)->exists(static_cast<Job *>(job));
 }
 
 void SharedLooperFlush(LooperObjectRef ref) {
     static_cast<Looper *>(ref)->flush();
 }
+
+DispatchQueueRef DispatchQueueCreate(LooperObjectRef ref) {
+    return (new DispatchQueue(static_cast<Looper *>(ref)))->RetainObject();
+}
+
+void DispatchQueueDispatch(DispatchQueueRef ref, JobObjectRef job, UInt64 after) {
+    static_cast<DispatchQueue *>(ref)->dispatch(static_cast<Job *>(job), after);
+}
+
+Bool DispatchQueueSync(DispatchQueueRef ref, JobObjectRef job, UInt64 deadline) {
+    return static_cast<DispatchQueue *>(ref)->sync(static_cast<Job *>(job), deadline);
+}
+
+Bool DispatchQueueRemove(DispatchQueueRef ref, JobObjectRef job) {
+    return static_cast<DispatchQueue *>(ref)->remove(static_cast<Job *>(job));
+}
+
+Bool DispatchQueueFind(DispatchQueueRef ref, JobObjectRef job) {
+    return static_cast<DispatchQueue *>(ref)->exists(static_cast<Job *>(job));
+}
+
+void DispatchQueueFlush(DispatchQueueRef ref) {
+    static_cast<DispatchQueue *>(ref)->flush();
+}
+
 
 END_DECLS

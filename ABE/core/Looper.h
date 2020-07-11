@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_LOOPER_H
-#define ABE_HEADERS_LOOPER_H 
+#ifndef ABE_LOOPER_H
+#define ABE_LOOPER_H 
 
 #include <ABE/core/Types.h>
 #include <ABE/core/String.h>
@@ -45,7 +45,7 @@ __BEGIN_DECLS
  * thread type
  * combine of nice, priority and sched policy
  */
-enum eThreadType {
+enum {
     kThreadLowest           = 0,
     kThreadBackgroud        = 16,
     kThreadNormal           = 32,
@@ -63,61 +63,84 @@ enum eThreadType {
     kThreadHighest          = 128,
     kThreadDefault          = kThreadNormal,
 };
+typedef UInt32  eThreadType;
 
-enum eThreadStatus {
+// Status for CreateThread.
+enum {
     kThreadOK           = OK,
     kThreadXXX,
 };
 
 /**
- * create an anonymous thread and start execution immediately
+ * create a named thread and start immediately
  * @note the new thread will be in detach state.
  * @note set thread properties using pthread routines or other similar apis in ThreadEntry
  */
-ABE_EXPORT eThreadStatus CreateThread(eThreadType, void (*ThreadEntry)(void *), void *);
+ABE_EXPORT Status CreateThread(const char *name,
+                               eThreadType,
+                               void (*ThreadEntry)(void *),
+                               void *);
 
 __END_DECLS
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
 
-// two methods to use Job
-// 1. post a Job to Looper directly
-// 2. attach a Looper to Job and run
 class Looper;
 class DispatchQueue;
+struct JobDelegate;
+
+// A small section of code that can be executed by JobDelegate.
 class ABE_EXPORT Job : public SharedObject {
-    public:
+    protected:
+        // a job object constructors
         Job();
         Job(const sp<Looper>&);
         Job(const sp<DispatchQueue>&);
-        virtual ~Job();
-
-        // make job execution
-        // if no Looper bind, delay will be ignored
-        // @param us    time to delay
-        // @return return current ticks
-        virtual UInt32 run(Int64 us = 0);
-
-        // cancel execution
-        virtual UInt32 cancel();
-
-        // abstract interface
-        virtual void onJob() = 0;
 
     public:
-        // run Job directly, for job dispatcher
+        /**
+         * run this job in asynchronized way.
+         * @param time in us that this job will be executed after.
+         * @note if no job delegate exists, after will be ignored.
+         */
+        virtual void dispatch(UInt64 after = 0);
+    
+        /**
+         * run this job in synchronized way.
+         * @param deadline  time in us that this job will wait until success.
+         *                 if deadline == 0, it will wait forever.
+         * @return return True on success, otherwise return False on timeout.
+         * @note if no job delegate exists, deadline will be ignored.
+         */
+        virtual Bool sync(UInt64 deadline = 0);
+
+        /**
+         * stop this job.
+         */
+        virtual void cancel();
+
+    protected:
+        // abstract interface MUST be implemented by subclass
+        virtual void onJob() = 0;
+
+    protected:
+        friend struct JobDelegate;
+        // run Job directly, for job delegate.
         void execution();   // -> onJob()
     
-    protected:
-        sp<Looper>          mLooper;
-        sp<DispatchQueue>   mQueue;
-        // current ticks, inc after execution complete
-        Atomic<UInt32>      mTicks;
-        DISALLOW_EVILS(Job);
+        OBJECT_TAIL(Job);
 };
 
-struct JobDispatcher;
+/**
+ * a looper object backed by a job scheduler.
+ * @note NO explicit terminate operator for looper other than main, otherwise
+ *       related DispatchQueue will stop working after terminate.
+ * @note release looper will NOT terminate underlying scheduler immediately.
+ *       underlying scheduler will be released after all references are gone.
+ * @note jobs may be dropped when scheduler be terminated.
+ * @note main looper MUST be terminated explicitly.
+ */
 class ABE_EXPORT Looper : public SharedObject {
     public:
         /**
@@ -139,92 +162,117 @@ class ABE_EXPORT Looper : public SharedObject {
 
     public:
         /**
-         * post a Job object to this looper.
-         * runnable will be released when all refs gone.
-         * @param what      - runnable object
-         * @param delayUs   - delay time in us
+         * run a job in asynchronized way.
+         * @param a job object refereence.
+         * @param after     time in us that this job will be executed after.
          */
-        void        post(const sp<Job>& what, Int64 delayUs = 0);
+        void    dispatch(const sp<Job>&, UInt64 after = 0);
+    
+        /**
+         * run a job in synchronized way.
+         * @param a job object reference.
+         * @param deadline time in us that job will wait until success.
+         *                If deadline == 0, it will wait forever.
+         * @return return True on success, return False on timeout.
+         */
+        Bool    sync(const sp<Job>&, UInt64 deadline = 0);
 
         /**
-         * remove a Job object from this looper
-         * @param what      - runnable object
+         * remove a job object from this looper
+         * @param a job object reference.
+         * @return return True when job exists and be removed successful.
          */
-        void        remove(const sp<Job>& what);
+        Bool    remove(const sp<Job>&);
 
         /**
-         * test if a Job object is already in this looper
-         * @param what      - runnable object
+         * find a job object in this looper
+         * @param a job object reference
+         * @return return True when job exists, otherwise return False.
          */
-        Bool        exists(const sp<Job>& what) const;
+        Bool    exists(const sp<Job>&) const;
 
         /**
-         * flush Job objects from this looper
+         * flush all job objects from this looper
          */
-        void        flush();
+        void    flush();
 
     public:
         /**
-         * for main looper only 
-         * can only be used in main thread and it will always block
+         * start main looper.
+         * @note can only be called in main thread.
+         * @note it will always block until be terminated.
          */
-        void        loop();
-
+        void    loop();
+    
         /**
-         * for main looper only
-         * can only be used in non-main threads
+         * terminate main looper.
+         * @note be careful, terminate main looper will stop related DispatchQueue.
+         * @note terminate will drop all existing jobs.
          */
-        void        terminate();
-
-    public:
-        /**
-         * profile looper, for debugging purpose
-         */
-        void        profile(Int64 interval = 5 * 1000000LL);
+        void    terminate();
 
     private:
-        virtual void onFirstRetain();
-        virtual void onLastRetain();
-
-        friend struct JobDispatcher;
-        sp<JobDispatcher> mJobDisp;
-
-    private:
-        Looper() : mJobDisp(Nil) { }
-        DISALLOW_EVILS(Looper);
+        friend class Job;
+        friend class DispatchQueue;
+        Looper();
+        OBJECT_TAIL(Looper);
 };
 
-// for multi session share the same looper
+/**
+ * a dispatch queue object backed by looper scheduler.
+ * @note multiple dispatch queue can share the same scheduler, but
+ *       each queue has a seperate context.
+ * @note jobs will be dropped when all references are gone.
+ */
 class ABE_EXPORT DispatchQueue : public SharedObject {
     public:
+        /**
+         * create a dispatch queue object on looper
+         * @param a looper object reference.
+         */
         DispatchQueue(const sp<Looper>&);
-        
-        virtual ~DispatchQueue();
-    
-        const sp<Looper>& looper() const { return mLooper; }
-        
+                
     public:
-        void    sync(const sp<Job>&);
+        /**
+         * run a job in synchronized way.
+         * @param a job object reference.
+         * @param deadline time in us that job will wait until success.
+         *                If deadline == 0, it will wait forever.
+         * @return return True on success, return False on timeout.
+         */
+        Bool    sync(const sp<Job>&, UInt64 deadline = 0);
     
-        void    dispatch(const sp<Job>&, Int64 us = 0);
+        /**
+         * run a job in asynchronized way.
+         * @param a job object reference
+         * @param after time in us that this job will be executed after.
+         */
+        void    dispatch(const sp<Job>&, UInt64 after = 0);
     
+        /**
+         * find a job exist in this queue.
+         * @return return True if exists, otherwise False.
+         */
         Bool    exists(const sp<Job>&) const;
-        
-        void    remove(const sp<Job>&);
-        
+    
+        /**
+         * remove a job from queue.
+         * @param a job object reference.
+         * @return return True when job exists and be removed successful.
+         * @note
+         */
+        Bool    remove(const sp<Job>&);
+    
+        /**
+         * flush a jobs in queue.
+         */
         void    flush();
         
     private:
-        virtual void onFirstRetain();
-        virtual void onLastRetain();
-    
-        friend struct JobDispatcher;
-        sp<Looper>          mLooper;
-        sp<JobDispatcher>   mDispatcher;
-        
-        DISALLOW_EVILS(DispatchQueue);
+        friend class Job;
+        OBJECT_TAIL(DispatchQueue);
 };
 
 __END_NAMESPACE_ABE
 #endif // __cplusplus
-#endif // ABE_HEADERS_LOOPER_H
+#endif // ABE_LOOPER_H

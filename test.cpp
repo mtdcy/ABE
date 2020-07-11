@@ -69,7 +69,7 @@ struct Integer {
     Bool operator==(int i) const                { return value == i;            }
     Bool operator==(const Integer& rhs) const   { return value == rhs.value;    }
     Integer& operator++()                       { ++value; return *this;        }   // pre-increment
-    Integer  operator++(int)                    { return value++;               }   // post-increment
+    Integer  operator++(int)                    { return value++;               }   // dispatch-increment
 };
 
 template <class TYPE> static Bool LessCompare(const TYPE* lhs, const TYPE* rhs) {
@@ -510,18 +510,18 @@ struct ThreadJob : public Job {
 
 struct MainLooperAssist : public Job {
     virtual void onJob() {
-        INFO("post prepare");
+        INFO("dispatch prepare");
         SleepTimeMs(1000); // 1s
         sp<Looper> main = Looper::Main();
         
-        INFO("post assist 0");
-        main->post(new ThreadJob("assist 0"));
+        INFO("dispatch assist 0");
+        main->dispatch(new ThreadJob("assist 0"));
         
-        INFO("post assist 1");
-        main->post(new ThreadJob("assist 1"), 500000LL);   // 500ms
+        INFO("dispatch assist 1");
+        main->dispatch(new ThreadJob("assist 1"), 500000LL);   // 500ms
         SleepTimeMs(10);
-        INFO("post assist 2");
-        main->post(new ThreadJob("assist 2"));
+        INFO("dispatch assist 2");
+        main->dispatch(new ThreadJob("assist 2"));
         
         main->terminate();
     }
@@ -529,18 +529,21 @@ struct MainLooperAssist : public Job {
 
 void testLooper() {
     sp<Looper> looper1 = new Looper("Looper 1");
-    looper1->post(new ThreadJob("Looper run 1"));
+    looper1->dispatch(new ThreadJob("Looper run 1"));
     looper1.clear();
 
     sp<Looper> current = Looper::Current();
     ASSERT_TRUE(current != Nil);
+    current.clear();
 
     sp<Looper> main = Looper::Main();
     sp<Looper> assist = new Looper("assist");
-    assist->post(new MainLooperAssist);
+    assist->dispatch(new MainLooperAssist);
     ASSERT_TRUE(main != Nil);
     
     main->loop();
+    main.clear();
+    assist.clear();
     
     sp<Looper> lp = new Looper("looper0");
     sp<ThreadJob> job0 = new ThreadJob("job0");
@@ -548,13 +551,13 @@ void testLooper() {
     for (UInt32 i = 0; i < 100; i++) {
         switch (i % 10) {
             case 0:
-                lp->post(job1);
+                lp->dispatch(job1);
                 break;
             case 1:
-                lp->post(job1, 5000LL);     // 5ms
+                lp->dispatch(job1, 5000LL);     // 5ms
                 break;
             case 2:
-                lp->post(job0, 10000LL);
+                lp->dispatch(job0, 10000LL);
                 break;
             case 9:
                 lp->remove(job1);
@@ -563,11 +566,13 @@ void testLooper() {
                 ASSERT_TRUE(lp->exists(job0));
                 ASSERT_TRUE(lp->exists(job1));
             default:
-                lp->post(job0);
+                lp->dispatch(job0);
                 break;
         }
     }
+    SleepTimeMs(200);
     lp.clear();
+    SleepTimeMs(200);
     ASSERT_EQ(job0->count.load(), 10 * 7);
 }
 
@@ -581,7 +586,6 @@ struct QueueJob : public Job {
 
 void testDispatchQueue() {
     sp<Looper> looper = new Looper("DispatchQueue");
-    
     sp<DispatchQueue> disp0 = new DispatchQueue(looper);
     sp<DispatchQueue> disp1 = new DispatchQueue(looper);
     
@@ -611,22 +615,14 @@ void testDispatchQueue() {
     for (UInt32 i = 0; i < 100; ++i) {
         disp0->dispatch(job0);
     }
-    // disptch queue will wait for jobs complete
+    SleepTimeMs(200);   // 200ms
     disp0.clear();
     ASSERT_EQ(job0->count, 100);
     
     disp1.clear();
     
-    // test clear
-    sp<QueueJob> job1 = new QueueJob;
-    sp<DispatchQueue> disp2 = new DispatchQueue(looper);
-    
-    // dispatch a job & clear immediately
-    disp2->dispatch(job1);
-    disp2.clear();
-    ASSERT_EQ(job1->count, 1);
-    
     // test sync
+    sp<QueueJob> job1 = new QueueJob;
     sp<DispatchQueue> disp3 = new DispatchQueue(looper);
     disp3->sync(job1);
 }
@@ -676,15 +672,17 @@ template <class TYPE> void testQueue() {
 
     // single producer & single consumer test
     sp<QueueConsumer<TYPE> > consumer = new QueueConsumer<TYPE>(new Looper("QueueConsumer"));
-    consumer->run();
+    consumer->dispatch();
     
     // producer
     for (TYPE i = 0; i < consumer->kCount; ++i) {
         consumer->mQueue.push(i);
     }
     
-    SleepTimeMs(500);
+    SleepTimeMs(200);
     ASSERT_TRUE(consumer->mQueue.empty());
+    consumer.clear();
+    SleepTimeMs(200);
 }
 
 void testQueue1() { testQueue<int>();       }

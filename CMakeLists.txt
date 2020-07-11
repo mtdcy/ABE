@@ -78,7 +78,6 @@ set(ABE_SOURCES
     ABE/core/Buffer.cpp
     ABE/core/protocol/File.cpp
     ABE/core/Content.cpp
-    ABE/core/Job.cpp
     ABE/core/Thread.cpp
     ABE/core/Looper.cpp
 

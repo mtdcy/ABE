@@ -33,7 +33,7 @@
 //
 
 #define LOG_TAG   "Thread"
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #include "Log.h"
 
 #include "stl/List.h"
@@ -123,27 +123,42 @@ static void SetThreadType(eThreadType type) {
     }
 }
 
-struct ThreadContext : public SharedObject {
-    void *      mUser;
-    void        (*mUserEntry)(void *);
-    eThreadType mType;
+struct InitialData : public SharedObject {
+    void *          mUser;
+    void            (*mUserEntry)(void *);
+    const char *    mName;
+    eThreadType     mType;
+    Mutex           mLock;
+    Condition       mWait;
 };
 
 static void * ThreadEntry(void * p) {
-    ThreadContext * context = static_cast<ThreadContext *>(p);
+    InitialData * data = static_cast<InitialData *>(p);
     DEBUG("enter ThreadEntry");
+    data->mLock.lock();
+    // set thread properties.
+    // set inside thread is more common for different platform.
+    pthread_setname(data->mName);
+    SetThreadType(data->mType);
     
-    SetThreadType(context->mType);
+    void (*UserEntry)(void *) = data->mUserEntry;
+    void * user = data->mUser;
     
-    context->mUserEntry(context->mUser);
+    data->mWait.signal();
+    data->mLock.unlock();
+    data->ReleaseObject();
+    
+    UserEntry(user);
     
     DEBUG("exit ThreadEntry");
-    context->ReleaseObject();
     pthread_exit(Nil);
     return Nil;    // just fix build warnings
 }
 
-eThreadStatus CreateThread(eThreadType type, void (*userEntry)(void *), void * user) {
+Status CreateThread(const char * name,
+                           eThreadType type,
+                           void (*userEntry)(void *),
+                           void * user) {
     DEBUG("create thread of %s", NAMES[type/16]);
     // create new thread
     pthread_attr_t attr;
@@ -151,13 +166,14 @@ eThreadStatus CreateThread(eThreadType type, void (*userEntry)(void *), void * u
     // use joinable thread.
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-    ThreadContext * context = new ThreadContext;
-    context->mUser          = user;
-    context->mUserEntry     = userEntry;
-    context->mType          = type;
+    sp<InitialData> data    = new InitialData;
+    data->mUser             = user;
+    data->mUserEntry        = userEntry;
+    data->mName             = name;
+    data->mType             = type;
     
     pthread_t thread;
-    switch (pthread_create(&thread, &attr, ThreadEntry, context->RetainObject())) {
+    switch (pthread_create(&thread, &attr, ThreadEntry, data->RetainObject())) {
         case EAGAIN:
             FATAL("Insufficient resources to create another thread.");
             break;
@@ -170,6 +186,9 @@ eThreadStatus CreateThread(eThreadType type, void (*userEntry)(void *), void * u
         case 0:
             break;
     }
+    
+    AutoLock _l(data->mLock);
+    data->mWait.wait(data->mLock);
 
     return kThreadOK;
 }

@@ -142,18 +142,30 @@ ABE_EXPORT SharedObjectRef      MessageObjectGetObject  (const MessageObjectRef,
 
 typedef SharedObjectRef         JobObjectRef;
 typedef SharedObjectRef         LooperObjectRef;
+typedef SharedObjectRef         DispatchQueueRef;
 
 ABE_EXPORT JobObjectRef         JobObjectCreate(UserCallback, void *);
 ABE_EXPORT JobObjectRef         JobObjectCreateWithLooper(LooperObjectRef, UserCallback, void *);
-ABE_EXPORT UInt32               JobObjectRun(JobObjectRef);
+ABE_EXPORT JobObjectRef         JobObjectCreateWithDispatchQueue(DispatchQueueRef, UserCallback, void *);
+ABE_EXPORT void                 JobObjectDispatch(JobObjectRef, UInt64);
+ABE_EXPORT Bool                 JobObjectSync(JobObjectRef, UInt64);
 ABE_EXPORT void                 JobObjectCancel(JobObjectRef);
 
+ABE_EXPORT LooperObjectRef      LooperObjectMain();
+ABE_EXPORT LooperObjectRef      LooperObjectCurrent();
 ABE_EXPORT LooperObjectRef      LooperObjectCreate(const Char * name);
-ABE_EXPORT void                 LooperObjectPostJob(LooperObjectRef, JobObjectRef);
-ABE_EXPORT void                 LooperObjectPostJobWithDelay(LooperObjectRef, JobObjectRef, Int64);
-ABE_EXPORT void                 LooperObjectRemoveJob(LooperObjectRef, JobObjectRef);
-ABE_EXPORT Bool                 LooperObjectFindJob(LooperObjectRef, JobObjectRef);
+ABE_EXPORT void                 LooperObjectDispatch(LooperObjectRef, JobObjectRef, UInt64);
+ABE_EXPORT Bool                 LooperObjectSync(LooperObjectRef, JobObjectRef, UInt64);
+ABE_EXPORT Bool                 LooperObjectRemove(LooperObjectRef, JobObjectRef);
+ABE_EXPORT Bool                 LooperObjectFind(LooperObjectRef, JobObjectRef);
 ABE_EXPORT void                 LooperObjectFlush(LooperObjectRef);
+
+ABE_EXPORT DispatchQueueRef     DispatchQueueCreate(LooperObjectRef);
+ABE_EXPORT void                 DispatchQueueDispatch(DispatchQueueRef, JobObjectRef, UInt64);
+ABE_EXPORT Bool                 DispatchQueueSync(DispatchQueueRef, JobObjectRef, UInt64);
+ABE_EXPORT Bool                 DispatchQueueRemove(DispatchQueueRef, JobObjectRef);
+ABE_EXPORT Bool                 DispatchQueueFind(DispatchQueueRef, JobObjectRef);
+ABE_EXPORT void                 DispatchQueueFlush(DispatchQueueRef);
 
 END_DECLS
 

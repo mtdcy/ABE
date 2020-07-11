@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_TYPES_H
-#define ABE_HEADERS_TYPES_H
+#ifndef ABE_TYPES_H
+#define ABE_TYPES_H
 
 /**
  * @note NO config.h for ABE public headers
@@ -263,6 +263,8 @@ template<typename T> class sp;
 template<typename U> class wp;
 struct ABE_EXPORT SharedObject {
     private:
+        template<typename T> friend class sp;
+        template<typename T> friend class wp;
         struct Refs {
             private:
                 SharedObject * const    mObject;
@@ -277,7 +279,7 @@ struct ABE_EXPORT SharedObject {
             public:
                 // strong refs
                 UInt32  incRefs();
-                UInt32  decRefs(Bool keep = False);
+                UInt32  decRefs();
 
                 // weak refs
                 UInt32  incWeakRefs();
@@ -290,24 +292,33 @@ struct ABE_EXPORT SharedObject {
                 // DEBUGGING
                 UInt32  refCount() const;
                 UInt32  weakRefCount() const;
-
-                DISALLOW_EVILS(Refs);
         };
-        UInt32          mID;
+    
+    private:
+        // object id sematics
+        //  public class id fourcc start with '?'
+        //  backend context id fourcc start with '!'
+        UInt32          mID;        ///< ugly RTTI
         UInt32          mPreserved;
         Refs * const    mRefs;
-        template<typename T> friend class sp;
-        template<typename T> friend class wp;
+    
+    protected:
+        // a object pointer help subclass to keep ABI stable and
+        // hide member data details.
+        // the partner object can help subclass especially
+        // public class to keep constant size during upgrade.
+        SharedObject *  mPartner;
 
     protected:
         // ALLOCATE A SharedObject IS MEANINGLESS, SO MAKE IT PROTECTED.
-        SharedObject(const UInt32 id = FOURCC('?obj')) : mID(id), mRefs(new Refs(this)) { }
+        SharedObject(const UInt32 id = FOURCC('?obj'), SharedObject * partner = Nil) :
+        mID(id), mRefs(new Refs(this)), mPartner(partner) { }
     
-    public:
-        // it is a good practice to leave virtual destruction empty
+    protected:
+        // MAKE DESTRUCTOR PROTECTED TO AVOID DELETE OBJECT EXPLICITLY.
         virtual ~SharedObject();
 
-    protected:
+    private:
         // OVERLOAD THESE APIS WHEN NECCESARY
         // called when the first strong refs is retained.
         virtual void        onFirstRetain() { }
@@ -338,7 +349,7 @@ struct ABE_EXPORT SharedObject {
          * @return return remains retain count.
          * @note keep the memory if inherited need to do extra complex destruction work
          */
-        UInt32              ReleaseObject(Bool keep = False) { return mRefs->decRefs(keep); }
+        UInt32              ReleaseObject() { return mRefs->decRefs(); }
 
         // NO API FOR ACQUIRE WEAK REFS AS OBJECT MAYBE GONE WHEN WEAK REFS STILL EXISTS.
 
@@ -353,6 +364,20 @@ struct ABE_EXPORT SharedObject {
         DISALLOW_EVILS(SharedObject);
 };
 
+// good practice for object
+// 1. make destructor as protected to avoid explicit delete object
+// 2. implement onRetainObject & onReleaseObject.
+// 3. leave copy constructor & assignment private and empty.
+#define OBJECT_TAIL(TYPE)                       \
+    public:                                     \
+    protected:                                  \
+        virtual ~TYPE() { }                     \
+        virtual void onFirstRetain();           \
+        virtual void onLastRetain();            \
+    private:                                    \
+        TYPE(const TYPE&);                      \
+        TYPE& operator=(const TYPE&);
+
 #define COMPARE(_op_)                                                   \
     ABE_INLINE Bool operator _op_ (const sp<T>& o) const {              \
         return mObject _op_ o.mObject;                                  \
@@ -360,7 +385,7 @@ struct ABE_EXPORT SharedObject {
     template<typename U>                                                \
     ABE_INLINE Bool operator _op_ (const sp<U>& o) const {              \
         return mObject _op_ o.mObject;                                  \
-    }                                                                   \
+    }
 /**
  * shared/strong pointer for SharedObject only
  * @note can NOT assign from raw pointer except class derived from SharedPointer
@@ -573,5 +598,5 @@ sp<T> sp<T>::Retain(SharedObject * object) {
 __END_NAMESPACE_ABE
 #endif // __cplusplus
 
-#endif // ABE_HEADERS_TYPES_H
+#endif // ABE_TYPES_H
 
