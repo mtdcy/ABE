@@ -36,6 +36,7 @@
 #define ABE_HEADERS_MUTEX_H
 
 #include <ABE/core/Types.h>
+#include <ABE/core/System.h>
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -88,7 +89,7 @@ class ABE_EXPORT Condition : public StaticObject {
          * @param nsecs relative time to wait
          * @return return True on timeout, other wise return False
          */
-        Bool    waitRelative(Mutex& lock, Int64 nsecs);
+        Bool    waitRelative(Mutex& lock, Time after);
         void    signal();
         void    broadcast();
 

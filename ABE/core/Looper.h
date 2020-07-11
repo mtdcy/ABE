@@ -101,19 +101,19 @@ class ABE_EXPORT Job : public SharedObject {
     public:
         /**
          * run this job in asynchronized way.
-         * @param time in us that this job will be executed after.
+         * @param after time that this job will be executed after.
          * @note if no job delegate exists, after will be ignored.
          */
-        virtual void dispatch(UInt64 after = 0);
+        virtual void dispatch(Time after = 0);
     
         /**
          * run this job in synchronized way.
-         * @param deadline  time in us that this job will wait until success.
+         * @param deadline  time that this job will wait until success.
          *                 if deadline == 0, it will wait forever.
          * @return return True on success, otherwise return False on timeout.
          * @note if no job delegate exists, deadline will be ignored.
          */
-        virtual Bool sync(UInt64 deadline = 0);
+        virtual Bool sync(Time deadline = 0);
 
         /**
          * stop this job.
@@ -164,18 +164,18 @@ class ABE_EXPORT Looper : public SharedObject {
         /**
          * run a job in asynchronized way.
          * @param a job object refereence.
-         * @param after     time in us that this job will be executed after.
+         * @param after     time that this job will be executed after.
          */
-        void    dispatch(const sp<Job>&, UInt64 after = 0);
+        void    dispatch(const sp<Job>&, Time after = 0);
     
         /**
          * run a job in synchronized way.
          * @param a job object reference.
-         * @param deadline time in us that job will wait until success.
+         * @param deadline time that job will wait until success.
          *                If deadline == 0, it will wait forever.
          * @return return True on success, return False on timeout.
          */
-        Bool    sync(const sp<Job>&, UInt64 deadline = 0);
+        Bool    sync(const sp<Job>&, Time deadline = 0);
 
         /**
          * remove a job object from this looper
@@ -236,18 +236,18 @@ class ABE_EXPORT DispatchQueue : public SharedObject {
         /**
          * run a job in synchronized way.
          * @param a job object reference.
-         * @param deadline time in us that job will wait until success.
+         * @param deadline time that job will wait until success.
          *                If deadline == 0, it will wait forever.
          * @return return True on success, return False on timeout.
          */
-        Bool    sync(const sp<Job>&, UInt64 deadline = 0);
+        Bool    sync(const sp<Job>&, Time deadline = 0);
     
         /**
          * run a job in asynchronized way.
          * @param a job object reference
-         * @param after time in us that this job will be executed after.
+         * @param after time that this job will be executed after.
          */
-        void    dispatch(const sp<Job>&, UInt64 after = 0);
+        void    dispatch(const sp<Job>&, Time after = 0);
     
         /**
          * find a job exist in this queue.

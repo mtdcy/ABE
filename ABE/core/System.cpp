@@ -96,37 +96,6 @@ const Char * GetEnvironmentValue(const Char *name) {
     return value ? value : empty;
 }
 
-Int64 SystemTimeEpoch() {
-#if defined(_WIN32)
-    // borrow from ffmpeg, 100ns resolution
-    FILETIME ft;
-    GetSystemTimeAsFileTime(&ft);
-    Int64 t = (Int64)ft.dwHighDateTime << 32 | ft.dwLowDateTime;
-    t -= 116444736000000000LL;    //1jan1601 to 1jan1970
-    return t * 100LL;
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
-#endif
-}
-
-Int64 SystemTimeMonotonic() {
-#if defined(_WIN32)
-    static LARGE_INTEGER performanceFrequency = { 0 };
-    if (ABE_UNLIKELY(performanceFrequency.QuadPart == 0)) {
-        QueryPerformanceFrequency(&performanceFrequency);
-    }
-    LARGE_INTEGER t;
-    QueryPerformanceCounter(&t);
-    return (t.QuadPart * 1000000000LL) / performanceFrequency.QuadPart;
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
-#endif
-}
-
 ABE_INLINE Bool _Sleep(Int64 ns, Int64 *unslept) {
 #if defined(_WIN32)
     // https://gist.github.com/Youka/4153f12cf2e17a77314c
@@ -180,3 +149,48 @@ void SleepForIntervalWithoutInterrupt(Int64 ns) {
 }
 
 END_DECLS
+
+__BEGIN_NAMESPACE_ABE
+
+// get system time in nsecs since Epoch. @see CLOCK_REALTIME
+// @note it can jump forwards and backwards as the system time-of-day clock is changed, including by NTP.
+UInt64 SystemTimeEpoch() {
+#if defined(_WIN32)
+    // borrow from ffmpeg, 100ns resolution
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    Int64 t = (Int64)ft.dwHighDateTime << 32 | ft.dwLowDateTime;
+    t -= 116444736000000000LL;    //1jan1601 to 1jan1970
+    return t * 100LL;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
+
+// get system time in nsecs since an arbitrary point, @see CLOCK_MONOTONIC
+// For time measurement and timmer.
+// @note It isn't affected by changes in the system time-of-day clock.
+UInt64 SystemTimeMonotonic() {
+#if defined(_WIN32)
+    static LARGE_INTEGER performanceFrequency = { 0 };
+    if (ABE_UNLIKELY(performanceFrequency.QuadPart == 0)) {
+        QueryPerformanceFrequency(&performanceFrequency);
+    }
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    return (t.QuadPart * 1000000000LL) / performanceFrequency.QuadPart;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
+
+Time Time::Now(Bool epoch) {
+    Time time;
+    time.mTime = epoch ? SystemTimeEpoch() : SystemTimeMonotonic();
+    return time;
+}
+__END_NAMESPACE_ABE

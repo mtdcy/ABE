@@ -118,10 +118,10 @@ void Condition::wait(Mutex& lock) {
     CHECK_EQ(pthread_cond_wait(&mWait, &(lock.mLock)), 0);
 }
 
-Bool Condition::waitRelative(Mutex& lock, Int64 reltime /* ns */) {
+Bool Condition::waitRelative(Mutex& lock, Time after) {
     struct timespec ts;
-    ts.tv_sec  = reltime / 1000000000;
-    ts.tv_nsec = reltime % 1000000000;
+    ts.tv_sec  = after.nseconds() / 1000000000;
+    ts.tv_nsec = after.nseconds() % 1000000000;
 #if HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP
     int rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
     if (rt == ETIMEDOUT)    return True;

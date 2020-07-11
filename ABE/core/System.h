@@ -31,8 +31,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_SYSTEM_H
-#define ABE_HEADERS_SYSTEM_H
+#ifndef ABE_SYSTEM_H
+#define ABE_SYSTEM_H
 
 #include <ABE/core/Types.h>
 
@@ -43,15 +43,6 @@ ABE_EXPORT UInt32 GetCpuCount();
 // always return a nul-terminated string
 // if env does NOT exists, return a empty string
 ABE_EXPORT const Char * GetEnvironmentValue(const Char *);
-
-// get system time in nsecs since Epoch. @see CLOCK_REALTIME
-// @note it can jump forwards and backwards as the system time-of-day clock is changed, including by NTP.
-ABE_EXPORT Int64 SystemTimeEpoch();
-
-// get system time in nsecs since an arbitrary point, @see CLOCK_MONOTONIC
-// For time measurement and timmer.
-// @note It isn't affected by changes in the system time-of-day clock.
-ABE_EXPORT Int64 SystemTimeMonotonic();
 
 #define SystemTimeNs()      SystemTimeMonotonic()
 #define SystemTimeUs()      (SystemTimeMonotonic() / 1000LL)
@@ -85,6 +76,62 @@ END_DECLS
 
 #ifdef __cplusplus
 __BEGIN_NAMESPACE_ABE
+
+// system time in ns, Epoch or Monotonic(Default)
+struct ABE_EXPORT Time : public StaticObject {
+    public:
+        static Time Now(Bool epoch = False);
+    
+        ABE_INLINE Time(UInt64 time = 0) : mTime(time) { }
+        ABE_INLINE Time(const Time& rhs) : mTime(rhs.mTime) { }
+    
+    public:
+        static ABE_INLINE Time Seconds(Float64 sec)         { return Time(sec * 1E9);           }
+        static ABE_INLINE Time MilliSeconds(UInt64 msecs)   { return Time(msecs * 1000000UL);   }
+        static ABE_INLINE Time MicroSeconds(UInt64 usecs)   { return Time(usecs * 1000UL);      }
+    
+    public:
+        ABE_INLINE Float64 seconds() const                  { return mTime / 1E9;               }
+        ABE_INLINE UInt64 nseconds() const                  { return mTime;                     }
+        ABE_INLINE UInt64 useconds() const                  { return mTime / 1000UL;            }
+        ABE_INLINE UInt64 mseconds() const                  { return mTime / 1000000UL;         }
+    
+    public:
+        ABE_INLINE Time& operator+=(const Time& rhs)        { mTime += rhs.mTime; return *this; }
+        ABE_INLINE Time& operator-=(const Time& rhs)        { mTime -= rhs.mTime; return *this; }
+    
+    public:
+        ABE_INLINE Time& operator+=(Float64 sec)            { mTime += sec * 1E9; return *this; }
+        ABE_INLINE Time& operator+=(UInt64 nsec)            { mTime += nsec; return *this;      }
+        ABE_INLINE Time& operator-=(Float64 sec)            { mTime -= sec * 1E9; return *this; }
+        ABE_INLINE Time& operator-=(UInt64 nsec)            { mTime -= nsec; return *this;      }
+    
+    public:
+        ABE_INLINE Time operator+(const Time& rhs) const    { return Time(mTime + rhs.mTime);   }
+        ABE_INLINE Time operator-(const Time& rhs) const    { return Time(mTime - rhs.mTime);   }
+    
+    public:
+        ABE_INLINE Time operator+(Float64 sec) const        { return Time(mTime + sec * 1E9 );  }
+        ABE_INLINE Time operator+(UInt64 nsec) const        { return Time(mTime + nsec );       }
+        ABE_INLINE Time operator-(Float64 sec) const        { return Time(mTime - sec * 1E9 );  }
+        ABE_INLINE Time operator-(UInt64 nsec) const        { return Time(mTime - nsec );       }
+        
+    public:
+        ABE_INLINE Bool operator<(const Time& rhs) const    { return mTime < rhs.mTime;         }
+        ABE_INLINE Bool operator>(const Time& rhs) const    { return mTime > rhs.mTime;         }
+        ABE_INLINE Bool operator<=(const Time& rhs) const   { return mTime <= rhs.mTime;        }
+        ABE_INLINE Bool operator>=(const Time& rhs) const   { return mTime >= rhs.mTime;        }
+        ABE_INLINE Bool operator==(const Time& rhs) const   { return mTime == rhs.mTime;        }
+        ABE_INLINE Bool operator!=(const Time& rhs) const   { return mTime != rhs.mTime;        }
+    
+    public:
+        // TODO
+        // String format(const char *) const;
+        
+    private:
+        UInt64 mTime;
+};
+
 struct ABE_EXPORT MemoryAnalyzer : public StaticObject {
     ABE_INLINE MemoryAnalyzer()     { MemoryAnalyzerPrepare();  }
     ABE_INLINE ~MemoryAnalyzer()    { MemoryAnalyzerFinalize;   }
@@ -92,4 +139,4 @@ struct ABE_EXPORT MemoryAnalyzer : public StaticObject {
 __END_NAMESPACE_ABE
 #endif
 
-#endif // ABE_HEADERS_SYSTEM_H
+#endif // ABE_SYSTEM_H

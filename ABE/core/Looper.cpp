@@ -100,15 +100,15 @@ static ABE_INLINE const Char * signame(int signo) {
 struct Task {
     Condition *     mWait;
     sp<Job>         mJob;
-    UInt64          mWhen;
+    Time            mWhen;
 
-    Task() : mWait(Nil), mJob(Nil), mWhen(0) { }
+    Task() : mWait(Nil), mJob(Nil) { }
 
-    Task(const sp<Job>& job, UInt64 after) : mWait(Nil), mJob(job),
-    mWhen(SystemTimeUs() + after) { }
+    Task(const sp<Job>& job, Time after) : mWait(Nil), mJob(job),
+    mWhen(Time::Now() + after) { }
     
     Task(const sp<Job>& job, Condition * wait) : mWait(wait), mJob(job),
-    mWhen(SystemTimeUs()) { }
+    mWhen(Time::Now()) { }
 
     Bool operator<(const Task& rhs) const {
         return mWhen < rhs.mWhen;
@@ -177,12 +177,11 @@ struct JobDelegate : public SharedObject {
         if (!success) {
             if (mTimedTasks.size()) {
                 Task& head = mTimedTasks.front();
-                const Int64 now = SystemTimeUs();
                 // with 1ms jitter:
                 // our SleepForInterval and waitRelative based on ns,
                 // but os backend implementation can not guarentee it
                 // miniseconds precise is the least.
-                if (head.mWhen <= now + 1000LL) {
+                if (head.mWhen <= Time::Now() + Time::MilliSeconds(1)) {
                     task = head;
                     mTimedTasks.pop();
                     work(task);
@@ -201,7 +200,7 @@ struct JobDelegate : public SharedObject {
         // find next
         if (mTimedTasks.size()) {
             const Task& head = mTimedTasks.front();
-            next = head.mWhen - SystemTimeUs();
+            next = (head.mWhen - Time::Now()).nseconds();
             if (next < 0) next = 0; // fix underrun.
         }
 #if LOCKFREE_QUEUE
@@ -216,7 +215,7 @@ struct JobDelegate : public SharedObject {
     // queue a job and run synchronized.
     // return True on success
     // return False when job be canceled or interrupted.
-    Bool sync(const sp<Job>& job, UInt64 deadline = 0) {
+    Bool sync(const sp<Job>& job, Time deadline = 0) {
         AutoLock _l(mTaskLock);
         Condition wait;
         Task task(job, &wait);
@@ -234,12 +233,12 @@ struct JobDelegate : public SharedObject {
             wait.wait(mTaskLock);
             return True;
         } else {
-            return !wait.waitRelative(mTaskLock, deadline * 1000LL);
+            return !wait.waitRelative(mTaskLock, deadline);
         }
     }
 
     // queue a job and run asynchronized.
-    void queue(const sp<Job>& job, UInt64 after = 0) {
+    void queue(const sp<Job>& job, Time after = 0) {
         Task task(job, after);
 
 #if LOCKFREE_QUEUE
@@ -413,7 +412,7 @@ struct ThreadScheduler : public JobDelegate {
             
             if (next > 0) {
                 DEBUG("%s: overrun", mName.c_str());
-                mWait.waitRelative(mLock, next * 1000);
+                mWait.waitRelative(mLock, next);
                 DEBUG("%s: interrupt", mName.c_str());
             } else if (next < 0) {
                 DEBUG("%s: sleep", mName.c_str());
@@ -562,7 +561,7 @@ void Job::onLastRetain() {
     }
 }
 
-void Job::dispatch(UInt64 after) {
+void Job::dispatch(Time after) {
     if (mPartner == Nil) {
         DEBUG("run job directly");
         execution();
@@ -579,7 +578,7 @@ void Job::dispatch(UInt64 after) {
     }
 }
 
-Bool Job::sync(UInt64 deadline) {
+Bool Job::sync(Time deadline) {
     if (mPartner == Nil) {
         DEBUG("run job directly");
         execution();
@@ -677,7 +676,7 @@ void Looper::terminate() {
     static_cast<ThreadScheduler *>(mPartner)->terminate();
 }
 
-void Looper::dispatch(const sp<Job>& job, UInt64 delayUs) {
+void Looper::dispatch(const sp<Job>& job, Time delayUs) {
     static_cast<JobDelegate *>(mPartner)->queue(job, delayUs);
 }
 
@@ -708,12 +707,12 @@ void DispatchQueue::onLastRetain() {
     mPartner = Nil;
 }
 
-Bool DispatchQueue::sync(const sp<Job>& job, UInt64 deadline) {
+Bool DispatchQueue::sync(const sp<Job>& job, Time deadline) {
     sp<JobDelegate> delegate = mPartner;
     return delegate->sync(job, deadline);
 }
 
-void DispatchQueue::dispatch(const sp<Job>& job, UInt64 us) {
+void DispatchQueue::dispatch(const sp<Job>& job, Time us) {
     sp<JobDelegate> delegate = mPartner;
     delegate->queue(job, us);
 }

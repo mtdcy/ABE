@@ -513,7 +513,7 @@ struct MainLooperAssist : public Job {
         main->dispatch(new ThreadJob("assist 0"));
         
         INFO("dispatch assist 1");
-        main->dispatch(new ThreadJob("assist 1"), 500000LL);   // 500ms
+        main->dispatch(new ThreadJob("assist 1"), Time::MilliSeconds(500));   // 500ms
         SleepTimeMs(10);
         INFO("dispatch assist 2");
         main->dispatch(new ThreadJob("assist 2"));
@@ -549,10 +549,10 @@ void testLooper() {
                 lp->dispatch(job1);
                 break;
             case 1:
-                lp->dispatch(job1, 5000LL);     // 5ms
+                lp->dispatch(job1, Time::MilliSeconds(5));     // 5ms
                 break;
             case 2:
-                lp->dispatch(job0, 10000LL);
+                lp->dispatch(job0, Time::MilliSeconds(10));
                 break;
             case 9:
                 lp->remove(job1);
@@ -590,18 +590,18 @@ void testDispatchQueue() {
     
     SleepTimeMs(200);   // 200ms
     
-    disp0->dispatch(job, 1000000LL);
+    disp0->dispatch(job, Time::Seconds(1));
     ASSERT_TRUE(disp0->exists(job));
     ASSERT_FALSE(disp1->exists(job));
     ASSERT_FALSE(looper->exists(job));
     
     disp0->remove(job);
-    disp1->dispatch(job, 1000000LL);
+    disp1->dispatch(job, Time::Seconds(1));
     ASSERT_TRUE(disp1->exists(job));
     ASSERT_FALSE(disp0->exists(job));
     ASSERT_FALSE(looper->exists(job));
     
-    disp0->dispatch(job, 1000000LL);
+    disp0->dispatch(job, Time::Seconds(1));
     disp1->flush();
     ASSERT_TRUE(disp0->exists(job));
     ASSERT_FALSE(disp1->exists(job));

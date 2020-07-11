@@ -49,6 +49,8 @@
 #define PRIpid_t    "d"
 #endif
 
+USING_NAMESPACE_ABE
+
 BEGIN_DECLS
 
 // NOTE:
@@ -94,13 +96,13 @@ void SystemLogPrint(const Char *      tag,
         Nil
     };
 
-    Int64 ts = SystemTimeEpoch();
+    Float64 ts = Time::Now(True).seconds();
     
     Char name[16];
     pthread_getname(name, 16);
 
-    snprintf(buf1, 1024, "[%08.03f][%-7.7s][%-7.7s][%1s][%14.14s:%u] : %s\n",
-            ts / 1E9,
+    snprintf(buf1, 1024, "[%.06f][%-7.7s][%-7.7s][%1s][%14.14s:%u] : %s\n",
+            ts,
             name,
             tag,
             LEVELS[level],
