@@ -506,7 +506,7 @@ struct ThreadJob : public Job {
 struct MainLooperAssist : public Job {
     virtual void onJob() {
         INFO("dispatch prepare");
-        SleepTimeMs(1000); // 1s
+        Timer().sleep(Time::Seconds(1)); // 1s
         sp<Looper> main = Looper::Main();
         
         INFO("dispatch assist 0");
@@ -514,7 +514,7 @@ struct MainLooperAssist : public Job {
         
         INFO("dispatch assist 1");
         main->dispatch(new ThreadJob("assist 1"), Time::MilliSeconds(500));   // 500ms
-        SleepTimeMs(10);
+        Timer().sleep(Time::MilliSeconds(10));
         INFO("dispatch assist 2");
         main->dispatch(new ThreadJob("assist 2"));
         
@@ -565,9 +565,9 @@ void testLooper() {
                 break;
         }
     }
-    SleepTimeMs(200);
+    Timer().sleep(Time::MilliSeconds(200));
     lp.clear();
-    SleepTimeMs(200);
+    Timer().sleep(Time::MilliSeconds(200));
     ASSERT_EQ(job0->count.load(), 10 * 7);
 }
 
@@ -588,7 +588,7 @@ void testDispatchQueue() {
     disp0->dispatch(job);
     disp1->dispatch(job);
     
-    SleepTimeMs(200);   // 200ms
+    Timer().sleep(Time::MilliSeconds(200));   // 200ms
     
     disp0->dispatch(job, Time::Seconds(1));
     ASSERT_TRUE(disp0->exists(job));
@@ -610,7 +610,7 @@ void testDispatchQueue() {
     for (UInt32 i = 0; i < 100; ++i) {
         disp0->dispatch(job0);
     }
-    SleepTimeMs(200);   // 200ms
+    Timer().sleep(Time::MilliSeconds(200));   // 200ms
     disp0.clear();
     ASSERT_EQ(job0->count, 100);
     
@@ -674,10 +674,10 @@ template <class TYPE> void testQueue() {
         consumer->mQueue.push(i);
     }
     
-    SleepTimeMs(200);
+    Timer().sleep(Time::MilliSeconds(200));
     ASSERT_TRUE(consumer->mQueue.empty());
     consumer.clear();
-    SleepTimeMs(200);
+    Timer().sleep(Time::MilliSeconds(200));
 }
 
 void testQueue1() { testQueue<int>();       }

@@ -44,25 +44,6 @@ ABE_EXPORT UInt32 GetCpuCount();
 // if env does NOT exists, return a empty string
 ABE_EXPORT const Char * GetEnvironmentValue(const Char *);
 
-#define SystemTimeNs()      SystemTimeMonotonic()
-#define SystemTimeUs()      (SystemTimeMonotonic() / 1000LL)
-#define SystemTimeMs()      (SystemTimeMonotonic() / 1000000LL)
-
-/**
- * suspend thread execution for an interval, @see man(2) nanosleep
- * @return return True on sleep complete, return False if was interrupted by signal
- * @note not all sleep implementation on different os will have guarantee.
- */
-ABE_EXPORT Bool SleepForInterval(Int64 ns);
-
-/**
- * suspend thread execution for an interval, guarantee time elapsed
- */
-ABE_EXPORT void SleepForIntervalWithoutInterrupt(Int64 ns);
-#define SleepTimeNs(ns)     SleepForIntervalWithoutInterrupt(ns)
-#define SleepTimeUs(us)     SleepForIntervalWithoutInterrupt(us * 1000LL)
-#define SleepTimeMs(ms)     SleepForIntervalWithoutInterrupt(ms * 1000000LL)
-
 /**
  * memory analyzer.
  * @note current only support memory leak detect.
@@ -130,6 +111,13 @@ struct ABE_EXPORT Time : public StaticObject {
         
     private:
         UInt64 mTime;
+};
+
+struct Timer : public StaticObject {
+    Timer() { }
+    
+    // return True on success(timeout), otherwise return False.
+    Bool sleep(Time interval, Bool interrupt = True);
 };
 
 struct ABE_EXPORT MemoryAnalyzer : public StaticObject {
