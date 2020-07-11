@@ -46,7 +46,7 @@
 // we can not use CHECK_EQ/... here, which use String
 #define FATAL_CHECK(a, b, op) do {                                  \
     if (__builtin_expect(!((a) op (b)), 0)) {                       \
-        FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)              \
+        FATAL(__FILE__ ":" __LITERAL_TO_STRING(__LINE__)              \
                 " CHECK(" #a " " #op " " #b ") failed. ");          \
     }                                                               \
 } while(0)

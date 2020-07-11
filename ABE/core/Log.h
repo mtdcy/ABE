@@ -78,8 +78,8 @@ ABE_EXPORT void LogSetCallback(void (*callback)(const Char *));
 #define ERROR(fmt, ...) SystemLogPrint(LOG_TAG, LOG_ERROR, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
 #define FATAL(fmt, ...) SystemLogPrint(LOG_TAG, LOG_FATAL, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
 
-#define LITERAL_TO_STRING0(x) #x
-#define LITERAL_TO_STRING(x) LITERAL_TO_STRING0(x)
+#define __LITERAL_TO_STRING0(x) #x
+#define __LITERAL_TO_STRING(x) __LITERAL_TO_STRING0(x)
 #define __VA_NARGS0(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, N, ...) N
 #define __VA_NARGS(...) __VA_NARGS0(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
@@ -134,11 +134,11 @@ __END_NAMESPACE_ABE_PRIVATE
         using __NAMESPACE_ABE::String;                                      \
         String __res = __NAMESPACE_PRIVATE::__MAKE_CHECK_STRING(a, b);  \
         if (__VA_NARGS(__VA_ARGS__) > 0)                                    \
-        FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)                      \
+        FATAL(__FILE__ ":" __LITERAL_TO_STRING(__LINE__)                      \
                 " CHECK(" #a " " #op " " #b ") failed. "                    \
                 "%s. => " __VA_ARGS__ , __res.c_str());                     \
         else                                                                \
-        FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)                      \
+        FATAL(__FILE__ ":" __LITERAL_TO_STRING(__LINE__)                      \
                 " CHECK(" #a " " #op " " #b ") failed. "                    \
                 "%s", __res.c_str());                                       \
     }                                                                       \
@@ -150,11 +150,11 @@ __END_NAMESPACE_ABE_PRIVATE
 #define _CHECK2(a, b, op, ...) do {                                 \
     if (__builtin_expect(!((a) op (b)), 0)) {                       \
         if (__VA_NARGS(__VA_ARGS__) > 0)                            \
-        FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)              \
+        FATAL(__FILE__ ":" __LITERAL_TO_STRING(__LINE__)              \
                 " CHECK(" #a " " #op " " #b ") failed. "            \
                 " => " __VA_ARGS__);                                \
         else                                                        \
-        FATAL(__FILE__ ":" LITERAL_TO_STRING(__LINE__)              \
+        FATAL(__FILE__ ":" __LITERAL_TO_STRING(__LINE__)              \
                 " CHECK(" #a " " #op " " #b ") failed. ");          \
     }                                                               \
 } while(0)
