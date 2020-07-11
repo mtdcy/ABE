@@ -92,9 +92,9 @@ sp<Content> Content::Create(const String& url, Protocol::eMode mode) {
     INFO("Open content %s", url.c_str());
 
     sp<Protocol> proto;
-    if (url.startsWithIgnoreCase("file://") || 
-            url.startsWithIgnoreCase("android://") ||
-            url.startsWithIgnoreCase("pipe://")) {
+    if (url.startsWith("file://", True) ||
+            url.startsWith("android://", True) ||
+            url.startsWith("pipe://", True)) {
         proto = CreateFile(url, mode);
     } else {
         // normal file path
