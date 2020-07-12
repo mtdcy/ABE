@@ -64,7 +64,6 @@ include (BuildEnvCheck.cmake)
 
 # source files
 set(ABE_SOURCES
-    ABE/core/debug/backtrace.c
     ABE/core/debug/malloc.cpp
     ABE/core/CallStack.cpp
     ABE/core/Log.cpp

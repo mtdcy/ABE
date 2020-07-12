@@ -51,9 +51,7 @@
 #include "core/Types.h"
 #include "core/System.h"
 
-#include "backtrace.h"
 #define MALLOC_CALLSTACK
-#define MALLOC_DEFAULT_BYPASS
 
 #include <string.h>
 #include <pthread.h>
@@ -155,30 +153,11 @@ struct MallocBlock {
     UInt32          magic;
     UInt32          n;
     UInt32          flags;
-#ifdef MALLOC_CALLSTACK
     UInt32          stack_size;
-    bt_stack_t      stack[32];
-#else
-    UInt32          dummy1;
-#endif
+    UInt64          stack[16];
     void *          real;
     void *          dummy2;
 };
-
-#if 0
-// find a better hash function ???
-// 1. The address of a block returned by malloc or realloc in the GNU system is
-//    always a multiple of eight (or sixteen on 64-bit systems)
-// 2. https://www.cocoawithlove.com/2010/05/look-at-how-malloc-works-on-mac.html
-//
-static ABE_INLINE UInt32 do_hash(void * p) {
-#if __LP64__
-    return (UInt32)((((intptr_t)p >> 32) | (intptr_t)p) / 16);
-#else
-    return (UInt32)((((intptr_t)p >> 32) | (intptr_t)p) / 8);
-#endif
-}
-#endif
 
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 static HashTable<void *, MallocBlock *> g_blocks(8192, new RealAllocator);
@@ -197,9 +176,7 @@ static ABE_INLINE void printBlocks() {
     for (; it != g_blocks.cend(); ++it) {
         const MallocBlock* block = it.value();
         INFO("== %p - %" PRIu32, block->real, block->n);
-#ifdef MALLOC_CALLSTACK
-        backtrace_symbols(block->stack, block->stack_size);
-#endif
+        CallStackPut(block->stack, block->stack_size);
         ++n;
         total += block->n;
     }
@@ -253,9 +230,7 @@ static void* malloc_impl_malloc_body(UInt32 n) {
     block->n            = n;
     block->flags        = 0;
     block->real         = &block[1];
-#ifdef MALLOC_CALLSTACK
-    block->stack_size   = backtrace_stack(block->stack, 32);
-#endif
+    block->stack_size   = CallStackGet(block->stack, 16);
     ((UInt32*)((Char*)block + length))[-1] = 0xdeadbaad;
 
     DEBUG("malloc %p@%p[%zu]", block->real, block, block->n);
@@ -281,9 +256,7 @@ static void  malloc_impl_free_body(void *p) {
         // is not a good program manner, even simply using free().
 #if LOG_NDEBUG == 0
         DEBUG("free unregisterred pointer %p", p);
-#ifdef MALLOC_CALLSTACK
-        BACKTRACE();
-#endif
+        CallStackPrint();
 #endif
         return real_free(p);
     }
@@ -318,9 +291,7 @@ static void* malloc_impl_realloc_body(void *p, UInt32 n) {
     block->n            = n;
     block->flags        = 0;
     block->real         = &block[1];
-#ifdef MALLOC_CALLSTACK
-    block->stack_size   = backtrace_stack(block->stack, 32);
-#endif
+    block->stack_size   = CallStackGet(block->stack, 16);
     ((UInt32*)((Char*)block + length))[-1] = 0xdeadbaad;
 
     CHECK_NULL(block);
@@ -350,9 +321,7 @@ static int malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt
     block->n            = n;
     block->flags        = 0;
     block->real         = &block[1];
-#ifdef MALLOC_CALLSTACK
-    block->stack_size   = backtrace_stack(block->stack, 32);
-#endif
+    block->stack_size   = CallStackGet(block->stack, 16);
     ((UInt32*)((Char*)block + length))[-1] = 0xdeadbaad;
     CHECK_NULL(block);
 

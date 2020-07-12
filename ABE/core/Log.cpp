@@ -38,7 +38,6 @@
 #endif
 
 #include "Log.h"
-#include "debug/backtrace.h"
 
 #include "System.h"
 #include "compat/pthread.h"
@@ -120,7 +119,7 @@ void SystemLogPrint(const Char *      tag,
     }
 
     if (level == LOG_FATAL) {
-        BACKTRACE();
+        CallStackPrint();
         __builtin_trap();
     }
 }

@@ -168,6 +168,14 @@ void testSharedObject() {
     ASSERT_EQ(wp2.refsCount(), 2);
 }
 
+void testCallStack() {
+    UInt64 stack[32];
+    UInt32 n = CallStackGet(stack, 32);
+    ASSERT_GT(n, 0);
+    
+    CallStackPut(stack, n);
+}
+
 void testAllocator() {
     sp<Allocator> allocator = kAllocatorDefault;
     void * p = allocator->allocate(1024);
@@ -465,15 +473,15 @@ struct EmptySharedObject : public SharedObject {
 };
 
 void testMessage() {
-    Message message;
+    sp<Message> message = new Message;
     SharedObject * object = new EmptySharedObject;
     
 #define TEST_MESSAGE(NAME, VALUE) {                     \
-    Message msg;                                        \
-    ASSERT_FALSE(msg.contains('test'));                 \
-    msg.set##NAME('test', VALUE);                       \
-    ASSERT_EQ(msg.find##NAME('test'), VALUE);           \
-    ASSERT_TRUE(msg.contains('test'));                  \
+    sp<Message> msg = new Message;                      \
+    ASSERT_FALSE(msg->contains('test'));                \
+    msg->set##NAME('test', VALUE);                      \
+    ASSERT_EQ(msg->find##NAME('test'), VALUE);          \
+    ASSERT_TRUE(msg->contains('test'));                 \
 }
 
     TEST_MESSAGE(Int32, 32)
@@ -486,9 +494,9 @@ void testMessage() {
 #undef TEST_MESSAGE
     
     const Char * string = "abcdefg";
-    message.setString('str ', string);
-    ASSERT_TRUE(message.contains('str '));
-    ASSERT_STREQ(message.findString('str '), string);
+    message->setString('str ', string);
+    ASSERT_TRUE(message->contains('str '));
+    ASSERT_STREQ(message->findString('str '), string);
     
     message.clear();
 }
@@ -880,6 +888,7 @@ void testContent() {
 
 TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
+TEST_ENTRY(testCallStack);
 TEST_ENTRY(testAllocator);
 TEST_ENTRY(testString);
 TEST_ENTRY(testBits);

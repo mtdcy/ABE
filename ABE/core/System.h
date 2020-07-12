@@ -44,6 +44,19 @@ ABE_EXPORT UInt32 GetCpuCount();
 // if env does NOT exists, return a empty string
 ABE_EXPORT const Char * GetEnvironmentValue(const Char *);
 
+// save current call stack
+ABE_EXPORT UInt32 CallStackGet(UInt64 array[], UInt32 max);
+
+// print this call stack
+ABE_EXPORT void CallStackPut(const UInt64 array[], UInt32 size);
+
+// print current call stack
+#define CallStackPrint() do {               \
+    UInt64  stack[32];                      \
+    UInt32 n = CallStackGet(stack, 32);     \
+    CallStackPut(stack, n);                 \
+} while(0)
+
 /**
  * memory analyzer.
  * @note current only support memory leak detect.
@@ -113,11 +126,23 @@ struct ABE_EXPORT Time : public StaticObject {
         UInt64 mTime;
 };
 
-struct Timer : public StaticObject {
+struct ABE_EXPORT Timer : public StaticObject {
     Timer() { }
     
     // return True on success(timeout), otherwise return False.
     Bool sleep(Time interval, Bool interrupt = True);
+};
+
+struct ABE_EXPORT CallStack : public StaticObject {
+    public:
+        ABE_INLINE CallStack()  { mSize = CallStackGet(mStack, 32); }
+        ABE_INLINE ~CallStack() { }
+    
+        ABE_INLINE void print() { CallStackPut(mStack, mSize);      }
+
+    private:
+        UInt64  mStack[32];
+        UInt32  mSize;
 };
 
 struct ABE_EXPORT MemoryAnalyzer : public StaticObject {
