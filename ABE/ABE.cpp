@@ -176,22 +176,13 @@ MessageObjectRef MessageObjectCreate() {
     return (MessageObjectRef)message->RetainObject();
 }
 
-MessageObjectRef MessageObjectCreateWithId(UInt32 id) {
-    sp<Message> message = new Message(id);
-    return (MessageObjectRef)message->RetainObject();
-}
-
 MessageObjectRef MessageObjectCopy(const MessageObjectRef ref) {
-    sp<Message> copy = static_cast<const Message *>(ref)->dup();
+    sp<Message> copy = static_cast<const Message *>(ref)->copy();
     return (MessageObjectRef)copy->RetainObject();
 }
 
-UInt32 MessageObjectGetId(const MessageObjectRef ref) {
-    return static_cast<const Message *>(ref)->what();
-}
-
 UInt32 MessageObjectGetCount(const MessageObjectRef ref) {
-    return static_cast<const Message *>(ref)->countEntries();
+    return static_cast<const Message *>(ref)->size();
 }
 
 Bool MessageObjectContains(const MessageObjectRef ref, UInt32 name) {

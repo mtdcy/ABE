@@ -44,10 +44,9 @@ __BEGIN_NAMESPACE_ABE
 // we prefer FOURCC as name
 class ABE_EXPORT Message : public SharedObject {
     public:
-        Message(UInt32 what = 0);
-        virtual ~Message();
+        Message();
     
-        sp<Message> dup() const;
+        sp<Message> copy() const;
     
     public:
         enum Type {
@@ -61,33 +60,37 @@ class ABE_EXPORT Message : public SharedObject {
         };
 
     public:
-        ABE_INLINE UInt32    what        () const { return mWhat; }
-        ABE_INLINE UInt32      countEntries() const { return mEntries.size(); }
+        ABE_INLINE UInt32   size() const    { return mEntries.size();   }
+        ABE_INLINE UInt32   empty() const   { return size() == 0;       }
 
+    public:
         void            clear       ();
         Bool            contains    (UInt32 name) const;
         Bool            remove      (UInt32 name);
-        String          string      () const;
         Bool            contains    (UInt32 name, Type) const;
-        UInt32        getEntryNameAt(UInt32 index, Type *type) const;
+        UInt32          name        (UInt32 index, Type&) const;
+    
+    public:
+        // DEBUGGING
+        String          string      () const;
 
     public:
         // core types
-        void            setInt32    (UInt32 name, Int32 value);                    // kTypeInt32
-        void            setInt64    (UInt32 name, Int64 value);                    // kTypeInt64
-        void            setFloat    (UInt32 name, Float32 value);                      // kTypeFloat
-        void            setDouble   (UInt32 name, Float64 value);                     // kTypeDouble
-        void            setPointer  (UInt32 name, void *value);                      // kTypePointer
-        void            setString   (UInt32 name, const Char *s, UInt32 len = 0);    // kTypeString
-        void            setObject   (UInt32 name, SharedObject * object);            // kTypeObject
+        void            setInt32    (UInt32 name, Int32 value);                     // kTypeInt32
+        void            setInt64    (UInt32 name, Int64 value);                     // kTypeInt64
+        void            setFloat    (UInt32 name, Float32 value);                   // kTypeFloat
+        void            setDouble   (UInt32 name, Float64 value);                   // kTypeDouble
+        void            setPointer  (UInt32 name, void *value);                     // kTypePointer
+        void            setString   (UInt32 name, const Char *s, UInt32 len = 0);   // kTypeString
+        void            setObject   (UInt32 name, SharedObject * object);           // kTypeObject
 
         template <class T> ABE_INLINE void setObject(UInt32 name, const sp<T>& o)
         { setObject(name, static_cast<SharedObject *>(o.get())); }
 
-        Int32         findInt32   (UInt32 name, Int32 def = 0) const;            // kTypeInt32
-        Int64         findInt64   (UInt32 name, Int64 def = 0) const;            // kTypeInt64
-        Float32           findFloat   (UInt32 name, Float32 def = 0) const;              // kTypeFloat
-        Float64          findDouble  (UInt32 name, Float64 def = 0) const;             // kTypeDouble
+        Int32           findInt32   (UInt32 name, Int32 def = 0) const;             // kTypeInt32
+        Int64           findInt64   (UInt32 name, Int64 def = 0) const;             // kTypeInt64
+        Float32         findFloat   (UInt32 name, Float32 def = 0) const;           // kTypeFloat
+        Float64         findDouble  (UInt32 name, Float64 def = 0) const;           // kTypeDouble
         void *          findPointer (UInt32 name, void * def = Nil) const;          // kTypePointer
         const Char *    findString  (UInt32 name, const Char * def = Nil) const;    // kTypeString
         SharedObject *  findObject  (UInt32 name, SharedObject * def = Nil) const;  // kTypeObject
@@ -97,21 +100,20 @@ class ABE_EXPORT Message : public SharedObject {
         { setString(name, s.c_str()); }
 
     private:
-        UInt32                    mWhat;
         struct Entry {
-            Type                    mType;
+            Type                mType;
             union {
-                Int32             i32;
-                Int64             i64;
-                Float32               flt;
-                Float64              dbl;
-                void *              ptr;
-                SharedObject *      obj;
+                Int32           i32;
+                Int64           i64;
+                Float32         flt;
+                Float64         dbl;
+                void *          ptr;
+                SharedObject *  obj;
             } u;
         };
         HashTable<UInt32, Entry>  mEntries;
     
-        DISALLOW_EVILS(Message);
+        OBJECT_TAIL(Message)
 };
 
 __END_NAMESPACE_ABE

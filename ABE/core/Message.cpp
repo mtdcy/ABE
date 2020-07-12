@@ -45,19 +45,24 @@
 __BEGIN_NAMESPACE_ABE
 
 ///////////////////////////////////////////////////////////////////////////
-static Bool isFourcc(Int32 what) {
+static Bool isFourcc(UInt32 what) {
     return isprint(what & 0xff)
         && isprint((what >> 8) & 0xff)
         && isprint((what >> 16) & 0xff)
         && isprint((what >> 24) & 0xff);
 }
 
-Message::Message(UInt32 what)
-    : mWhat(what), mEntries()
-{
+Message::Message() : mEntries() {
 }
 
-sp<Message> Message::dup() const {
+void Message::onFirstRetain() {
+}
+
+void Message::onLastRetain() {
+    clear();
+}
+
+sp<Message> Message::copy() const {
     sp<Message> message = new Message;
     HashTable<UInt32, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
@@ -76,10 +81,6 @@ sp<Message> Message::dup() const {
         message->mEntries.insert(name, copy);
     }
     return message;
-}
-
-Message::~Message() {
-    clear();
 }
 
 void Message::clear() {
@@ -114,7 +115,7 @@ Bool Message::contains(UInt32 name, Type type) const {
 }
 
 #define BASIC_TYPE(NAME,FIELDNAME,TYPENAME)                                 \
-    void Message::set##NAME(UInt32 name, TYPENAME value) {                \
+    void Message::set##NAME(UInt32 name, TYPENAME value) {                  \
         Entry e;                                                            \
         e.mType         = kType##NAME;                                      \
         e.u.FIELDNAME   = value;                                            \
@@ -123,7 +124,7 @@ Bool Message::contains(UInt32 name, Type type) const {
         }                                                                   \
         mEntries.insert(name, e);                                           \
     }                                                                       \
-    TYPENAME Message::find##NAME(UInt32 name, TYPENAME def) const {       \
+    TYPENAME Message::find##NAME(UInt32 name, TYPENAME def) const {         \
         const Entry *e  = mEntries.find(name);                              \
         if (e && e->mType == kType##NAME) {                                 \
             return e->u.FIELDNAME;                                          \
@@ -201,23 +202,14 @@ Bool Message::remove(UInt32 name) {
 }
 
 String Message::string() const {
-    String s = String::format("Message ");
-
-    String tmp;
-    if (isFourcc(mWhat)) {
-        tmp = String::format("'%.4s'", (const Char *)&mWhat);
-    } else {
-        tmp = String::format("0x%08x", mWhat);
-    }
-    s.append(tmp);
-
-    s.append(" = {\n");
+    String s = String::format("Message = {\n");
 
     HashTable<UInt32, Entry>::const_iterator it = mEntries.cbegin();
     for (; it != mEntries.cend(); ++it) {
         const UInt32 name = it.key();
         const Entry& e      = it.value();
         
+        String tmp;
         switch (e.mType) {
             case kTypeInt32:
                 if (isFourcc(e.u.i32))
@@ -268,12 +260,12 @@ String Message::string() const {
     return s;
 }
 
-UInt32 Message::getEntryNameAt(UInt32 index, Type *type) const {
-    CHECK_LT(index, countEntries());
+UInt32 Message::name(UInt32 index, Type& type) const {
+    CHECK_LT(index, size());
     HashTable<UInt32, Entry>::const_iterator it = mEntries.cbegin();
     for (UInt32 i = 0; i < index; ++it, ++i) { }
     const Entry& e = it.value();
-    *type = e.mType;
+    type = e.mType;
     return it.key();
 }
 

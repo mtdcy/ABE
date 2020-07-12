@@ -118,9 +118,7 @@ ABE_EXPORT void                 BufferObjectClearBytes(BufferObjectRef);
 
 typedef SharedObjectRef         MessageObjectRef;
 ABE_EXPORT MessageObjectRef     MessageObjectCreate();
-ABE_EXPORT MessageObjectRef     MessageObjectCreateWithId(UInt32 id);
 ABE_EXPORT MessageObjectRef     MessageObjectCopy(MessageObjectRef);
-ABE_EXPORT UInt32               MessageObjectGetId      (const MessageObjectRef);
 ABE_EXPORT UInt32               MessageObjectGetSize    (const MessageObjectRef);
 ABE_EXPORT Bool                 MessageObjectContains   (const MessageObjectRef, UInt32);
 ABE_EXPORT Bool                 MessageObjectRemove     (MessageObjectRef, UInt32);
