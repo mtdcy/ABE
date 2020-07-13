@@ -80,6 +80,21 @@ struct MySharedObject : public SharedObject {
     MySharedObject() { }
 };
 
+void testTypes() {
+    ASSERT_EQ(sizeof(UInt8), 1);
+    ASSERT_EQ(sizeof(UInt16), 2);
+    ASSERT_EQ(sizeof(UInt32), 4);
+    ASSERT_EQ(sizeof(UInt64), 8);
+    
+    ASSERT_EQ(sizeof(Int8), 1);
+    ASSERT_EQ(sizeof(Int16), 2);
+    ASSERT_EQ(sizeof(Int32), 4);
+    ASSERT_EQ(sizeof(Int64), 8);
+    
+    ASSERT_EQ(sizeof(Float32), 4);
+    ASSERT_EQ(sizeof(Float64), 8);
+}
+
 void testAtomic() {
     Atomic<int> a;
     ASSERT_EQ(a.load(), 0);
@@ -922,6 +937,7 @@ void testContent() {
         INFO("End Test MyTest."#FUNC);      \
     }
 
+TEST_ENTRY(testTypes);
 TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
 //TEST_ENTRY(testCallStack);
