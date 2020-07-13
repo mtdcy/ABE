@@ -25,6 +25,7 @@ void testBuffer() {
 }
 
 int main (int argc, Char ** argv) {
+    INFO("ABE: %#x, %s", ABE_VERSION, ABE_VERSION_STRING);
     
     testBuffer();
     

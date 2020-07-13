@@ -946,6 +946,8 @@ TEST_ENTRY(testHashTableIterator);
 
 int main(int argc, Char **argv) {
     testing::InitGoogleTest(&argc, argv);
+    
+    INFO("ABE: %#x, %s", ABE_VERSION, ABE_VERSION_STRING);
 
     if (argc > 1)
         gCurrentDir = argv[1];
