@@ -39,7 +39,7 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-class HashTable : public SharedObject {
+class ABE_EXPORT HashTable : public SharedObject {
     public:
         HashTable(const sp<Allocator>& allocator,
                   UInt32 tableLength,
@@ -123,7 +123,7 @@ __BEGIN_NAMESPACE_ABE
 //////////////////////////////////////////////////////////////////////////////
 
 template <typename K, typename V>
-class HashTable : public StaticObject {
+class ABE_EXPORT HashTable : public StaticObject {
     private:
         // increment only iterator
         template <class TABLE, class VALUE, class NODE> class Iterator {

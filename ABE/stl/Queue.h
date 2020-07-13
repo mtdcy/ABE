@@ -38,7 +38,7 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 /**
  * a lock free queue implement
  */
-class LockFreeQueue : public SharedObject {
+class ABE_EXPORT LockFreeQueue : public SharedObject {
     public:
         LockFreeQueue(UInt32 dataLength, type_destruct_t);
 

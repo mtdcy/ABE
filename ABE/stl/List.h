@@ -41,7 +41,7 @@
 // c++ implementation of doubly-linked list container.
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-class List : public SharedObject {
+class ABE_EXPORT List : public SharedObject {
     public:
         class Node {
             friend class List;
@@ -107,7 +107,7 @@ __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 // doubly-linked list
-template <typename T> class List : public StaticObject {
+template <typename T> class ABE_EXPORT List : public StaticObject {
     protected:
         // iterator for List, bidirection iterator
         template <typename N, typename V> class Iterator {

@@ -41,7 +41,7 @@
 #include <ABE/core/SharedBuffer.h>
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
-class Vector : public SharedObject {
+class ABE_EXPORT Vector : public SharedObject {
     public:
         Vector(const sp<Allocator>& allocator,
                UInt32 capacity, UInt32 dataLength,
@@ -86,7 +86,7 @@ __BEGIN_NAMESPACE_ABE
 // Note:
 // 1. No interator for Vector because it's random access has constant time.
 // 2. No auto memory shrink
-template <typename T> class Vector : public StaticObject {
+template <typename T> class ABE_EXPORT Vector : public StaticObject {
     public:
         ABE_INLINE Vector(UInt32 capacity = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
         mImpl(new __NAMESPACE_PRIVATE::Vector(allocator, capacity, sizeof(T), type_destruct<T>, type_move<T>)) { }
