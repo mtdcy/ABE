@@ -69,6 +69,11 @@ template <typename T> struct is_trivial_move<sp<T> >{ enum { value = True };    
 #ifdef ABE_STRING_H    // String.h
 template <> struct is_trivial_move<String>          { enum { value = True };                    };
 #endif
+#ifdef ABE_SYSTEM_H
+template <> struct is_trivial_dtor<Time>            { enum { value = is_builtin<UInt64>::value }; };
+template <> struct is_trivial_copy<Time>            { enum { value = is_builtin<UInt64>::value }; };
+template <> struct is_trivial_move<Time>            { enum { value = is_builtin<UInt64>::value }; };
+#endif
 
 __END_NAMESPACE_ABE
 

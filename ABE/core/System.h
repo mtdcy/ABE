@@ -99,6 +99,7 @@ struct ABE_EXPORT Time : public StaticObject {
         ABE_INLINE Time& operator+=(UInt64 nsec)            { mTime += nsec; return *this;      }
         ABE_INLINE Time& operator-=(Float64 sec)            { mTime -= sec * 1E9; return *this; }
         ABE_INLINE Time& operator-=(UInt64 nsec)            { mTime -= nsec; return *this;      }
+        ABE_INLINE Time& operator*=(Float64 multiplier)     { mTime *= multiplier; return *this;}
     
     public:
         ABE_INLINE Time operator+(const Time& rhs) const    { return Time(mTime + rhs.mTime);   }
@@ -109,6 +110,7 @@ struct ABE_EXPORT Time : public StaticObject {
         ABE_INLINE Time operator+(UInt64 nsec) const        { return Time(mTime + nsec );       }
         ABE_INLINE Time operator-(Float64 sec) const        { return Time(mTime - sec * 1E9 );  }
         ABE_INLINE Time operator-(UInt64 nsec) const        { return Time(mTime - nsec );       }
+        ABE_INLINE Time operator*(Float64 multiplier) const { return Time(mTime * multiplier);  }
         
     public:
         ABE_INLINE Bool operator<(const Time& rhs) const    { return mTime < rhs.mTime;         }
