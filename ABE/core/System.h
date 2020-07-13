@@ -76,21 +76,21 @@ struct ABE_EXPORT Time : public StaticObject {
     public:
         static Time Now(Bool epoch = False);
     
-        ABE_INLINE Time(UInt64 time = 0) : mTime(time) { }
+        ABE_INLINE Time(Int64 time = 0) : mTime(time) { }
         ABE_INLINE Time(const Time& rhs) : mTime(rhs.mTime) { }
     
-        ABE_INLINE UInt64 value() const { return mTime; }
+        ABE_INLINE Int64 value() const { return mTime; }
     
     public:
         static ABE_INLINE Time Seconds(Float64 sec)         { return Time(sec * 1E9);           }
-        static ABE_INLINE Time MilliSeconds(UInt64 msecs)   { return Time(msecs * 1000000UL);   }
-        static ABE_INLINE Time MicroSeconds(UInt64 usecs)   { return Time(usecs * 1000UL);      }
+        static ABE_INLINE Time MilliSeconds(Int64 msecs)    { return Time(msecs * 1000000LL);   }
+        static ABE_INLINE Time MicroSeconds(Int64 usecs)    { return Time(usecs * 1000LL);      }
     
     public:
         ABE_INLINE Float64 seconds() const                  { return mTime / 1E9;               }
-        ABE_INLINE UInt64 nseconds() const                  { return mTime;                     }
-        ABE_INLINE UInt64 useconds() const                  { return mTime / 1000UL;            }
-        ABE_INLINE UInt64 mseconds() const                  { return mTime / 1000000UL;         }
+        ABE_INLINE Int64  nseconds() const                  { return mTime;                     }
+        ABE_INLINE Int64  useconds() const                  { return mTime / 1000LL;            }
+        ABE_INLINE Int64  mseconds() const                  { return mTime / 1000000LL;         }
     
     public:
         ABE_INLINE Time& operator+=(const Time& rhs)        { mTime += rhs.mTime; return *this; }
@@ -98,9 +98,9 @@ struct ABE_EXPORT Time : public StaticObject {
     
     public:
         ABE_INLINE Time& operator+=(Float64 sec)            { mTime += sec * 1E9; return *this; }
-        ABE_INLINE Time& operator+=(UInt64 nsec)            { mTime += nsec; return *this;      }
+        ABE_INLINE Time& operator+=(Int64 nsec)             { mTime += nsec; return *this;      }
         ABE_INLINE Time& operator-=(Float64 sec)            { mTime -= sec * 1E9; return *this; }
-        ABE_INLINE Time& operator-=(UInt64 nsec)            { mTime -= nsec; return *this;      }
+        ABE_INLINE Time& operator-=(Int64 nsec)             { mTime -= nsec; return *this;      }
         ABE_INLINE Time& operator*=(Float64 multiplier)     { mTime *= multiplier; return *this;}
     
     public:
@@ -115,6 +115,9 @@ struct ABE_EXPORT Time : public StaticObject {
         ABE_INLINE Time operator*(Float64 multiplier) const { return Time(mTime * multiplier);  }
         
     public:
+        ABE_INLINE Time operator-() const                   { return Time(-mTime);              }
+            
+    public:
         ABE_INLINE Bool operator<(const Time& rhs) const    { return mTime < rhs.mTime;         }
         ABE_INLINE Bool operator>(const Time& rhs) const    { return mTime > rhs.mTime;         }
         ABE_INLINE Bool operator<=(const Time& rhs) const   { return mTime <= rhs.mTime;        }
@@ -127,7 +130,8 @@ struct ABE_EXPORT Time : public StaticObject {
         // String format(const char *) const;
         
     private:
-        UInt64 mTime;
+        // MUST USING SIGNED VALUE, SO Arithmetic won't overflow.
+        Int64 mTime;
 };
 
 struct ABE_EXPORT Timer : public StaticObject {
