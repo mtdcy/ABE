@@ -429,10 +429,12 @@ class ABE_EXPORT sp : public StaticObject {
 
         ABE_INLINE  T&          operator*()        { return *static_cast<T*>(mObject);          }
         ABE_INLINE  const T&    operator*() const  { return *static_cast<const T*>(mObject);    }
+    
+        // export object to c code.
+        ABE_INLINE  T*          get() const        { return static_cast<T *>(mObject);          }
 
     public:
         // DEBUGGING
-        ABE_INLINE const T*     get() const        { return static_cast<const T*>(mObject);     }
         ABE_INLINE UInt32       refsCount() const  { return mRefs ? mRefs->refCount() : 0;      }
 
     public:
