@@ -35,7 +35,7 @@
 #define _DARWIN_C_SOURCE    // sys_signame
 
 #define LOG_TAG   "Looper"
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #include "Log.h"
 
 #include "stl/List.h"
