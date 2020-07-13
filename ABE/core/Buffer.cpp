@@ -53,7 +53,7 @@ static String hexdump(const void *data, UInt32 bytes) {
     while (head < end) {
         String line = String::format("%08" PRIx32 ": ", (UInt32)(head - (UInt8*)data));
 
-        for (int i = 0; i < 16; i++) {
+        for (Int i = 0; i < 16; i++) {
             if (head + i < end)
                 line.append(String::format("%02" PRIx8 " ", head[i]));
             else
@@ -62,7 +62,7 @@ static String hexdump(const void *data, UInt32 bytes) {
 
         line.append("> ");
 
-        for (int i = 0; i < 16; i++) {
+        for (Int i = 0; i < 16; i++) {
             if (head + i < end) {
                 if (isprint(head[i]))
                     line.append(String::format("%c", head[i]));
@@ -374,7 +374,7 @@ UInt32 Buffer::writeBytes(const sp<ABuffer>& buf, UInt32 n) {
     return m;
 }
 
-UInt32 Buffer::writeBytes(int c, UInt32 n) {
+UInt32 Buffer::writeBytes(Int c, UInt32 n) {
     CHECK_GT(n, 0);
     edit();
     rewind(n);

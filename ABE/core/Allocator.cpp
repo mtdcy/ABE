@@ -44,7 +44,7 @@
 #define ALIGN (32)
 
 #if 0
-static int posix_memalign(void **ptr, UInt32 alignment, UInt32 size) {
+static Int posix_memalign(void **ptr, UInt32 alignment, UInt32 size) {
     if (alignment < ALIGN) alignment = ALIGN;
 
     *ptr = Nil;

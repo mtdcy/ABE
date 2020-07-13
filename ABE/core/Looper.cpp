@@ -78,7 +78,7 @@
  */
 __BEGIN_NAMESPACE_ABE
 
-static ABE_INLINE const Char * signame(int signo) {
+static ABE_INLINE const Char * signame(Int signo) {
 #ifdef __APPLE__
     return sys_signame[signo];
 #elif defined(_WIN32) || defined(__MINGW32__)
@@ -132,7 +132,7 @@ struct JobDelegate : public SharedObject {
     // in extreme case, mTasks or mTimedTasks will be ignored forever.
     // so we use an extra virable to handle this situation.
     enum { IMMEDIATE = 0, TIMED = 1 };
-    Atomic<int>                     mHacker;
+    Atomic<Int>                     mHacker;
 
     JobDelegate(const String& name, UInt id) : SharedObject(id),
     mName(name), mHacker(TIMED) { }
@@ -368,7 +368,7 @@ struct ThreadScheduler : public JobDelegate {
         CHECK_EQ(sigaction(SIGINT, &act, Nil), 0);
     }
 
-    static void sigaction_exit(int signum, siginfo_t *info, void *vcontext) {
+    static void sigaction_exit(Int signum, siginfo_t *info, void *vcontext) {
         INFO("sig %s @ [%d, %d]", signame(info->si_signo), info->si_pid, info->si_uid);
         Looper::Main()->terminate();
         INFO("main: exit...");

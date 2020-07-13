@@ -118,9 +118,9 @@ template <typename T> class List : public StaticObject {
 
             public:
                 ABE_INLINE Iterator& operator++()    { mNode = mNode->next(); return *this;           }   // pre-increment
-                ABE_INLINE Iterator  operator++(int) { Iterator old(*this); operator++(); return old; }   // post-increment
+                ABE_INLINE Iterator  operator++(Int) { Iterator old(*this); operator++(); return old; }   // post-increment
                 ABE_INLINE Iterator& operator--()    { mNode = mNode->prev(); return *this;           }   // pre-decrement
-                ABE_INLINE Iterator  operator--(int) { Iterator old(*this); operator--(); return old; }   // post-decrement
+                ABE_INLINE Iterator  operator--(Int) { Iterator old(*this); operator--(); return old; }   // post-decrement
 
                 ABE_INLINE V&        operator*()     { return *(static_cast<V *>(mNode->data()));     }
                 ABE_INLINE V*        operator->()    { return static_cast<V *>(mNode->data());        }

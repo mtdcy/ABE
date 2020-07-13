@@ -133,7 +133,7 @@ class HashTable : public StaticObject {
                 ABE_INLINE ~Iterator() { }
 
                 ABE_INLINE Iterator& operator++()    { next(); return *this;                              }   // pre-increment
-                ABE_INLINE Iterator  operator++(int) { Iterator old(*this); next(); return old;           }   // post-increment
+                ABE_INLINE Iterator  operator++(Int) { Iterator old(*this); next(); return old;           }   // post-increment
 
                 ABE_INLINE Bool      operator == (const Iterator& rhs) const { return mNode == rhs.mNode; }
                 ABE_INLINE Bool      operator != (const Iterator& rhs) const { return mNode != rhs.mNode; }
@@ -151,7 +151,7 @@ class HashTable : public StaticObject {
             private:
                 // no decrement
                 Iterator&   operator--();
-                Iterator    operator--(int);
+                Iterator    operator--(Int);
         };
 
     public:

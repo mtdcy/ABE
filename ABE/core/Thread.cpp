@@ -74,13 +74,13 @@ static const Char * NAMES[] = {
 static void SetThreadType(eThreadType type) {
     sched_param old;
     sched_param par;
-    int policy;
+    Int policy;
     pthread_getschedparam(pthread_self(), &policy, &old);
     DEBUG("policy %d, sched_priority %d", policy, old.sched_priority);
     if (type < kThreadSystem) {
         policy = SCHED_OTHER;
-        int min = sched_get_priority_min(SCHED_OTHER);
-        int max = sched_get_priority_max(SCHED_OTHER);
+        Int min = sched_get_priority_min(SCHED_OTHER);
+        Int max = sched_get_priority_max(SCHED_OTHER);
         // make sure kThreadDefault map to default priority
         par.sched_priority = old.sched_priority;
         if (type >= kThreadDefault)
@@ -89,16 +89,16 @@ static void SetThreadType(eThreadType type) {
             par.sched_priority += ((min - old.sched_priority) * (type - kThreadDefault)) / (kThreadLowest - kThreadDefault);
     } else if (type < kThreadRealtime) {
         policy = SCHED_FIFO;
-        int min = sched_get_priority_min(SCHED_FIFO);
-        int max = sched_get_priority_max(SCHED_FIFO);
+        Int min = sched_get_priority_min(SCHED_FIFO);
+        Int max = sched_get_priority_max(SCHED_FIFO);
         par.sched_priority = min + ((max - min) * (type - kThreadSystem)) / (kThreadRealtime - kThreadSystem);
     } else {
         policy = SCHED_RR;
-        int min = sched_get_priority_min(SCHED_RR);
-        int max = sched_get_priority_max(SCHED_RR);
+        Int min = sched_get_priority_min(SCHED_RR);
+        Int max = sched_get_priority_max(SCHED_RR);
         par.sched_priority = min + ((max - min) * (type - kThreadRealtime)) / (kThreadHighest - kThreadRealtime);
     }
-    int err = pthread_setschedparam(pthread_self(), policy, &par);
+    Int err = pthread_setschedparam(pthread_self(), policy, &par);
     switch (err) {
         case 0:
             DEBUG("%s => policy %d, sched_priority %d",

@@ -242,7 +242,7 @@ UInt32 Content::writeBytes(const sp<ABuffer>& buffer, UInt32 n) {
     return n - buffer->size();
 }
 
-UInt32 Content::writeBytes(int c, UInt32 n) {
+UInt32 Content::writeBytes(Int c, UInt32 n) {
     ABuffer::flush();
     UInt32 bytesWritten = 0;
     while (bytesWritten < n) {

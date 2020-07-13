@@ -65,7 +65,7 @@ struct File : public Protocol {
     String          mUrl;
     eMode           mMode;  // read | write
     
-    int             mFd;
+    Int             mFd;
     Int64           mOffset;
     Int64           mLength;
     mutable Int64   mPosition;
@@ -80,11 +80,11 @@ struct File : public Protocol {
         if (url.startsWith("pipe://", True)) {
             Int64 offset, length;
             
-            int index0 = url.indexOf(7, "+");
+            Int index0 = url.indexOf(7, "+");
             if (index0 < 7) return; // "+" not found.
             mFd     = url.substring(7, index0 - 7).toInt32();
             
-            int index1 = url.indexOf(index0 + 1, "+");
+            Int index1 = url.indexOf(index0 + 1, "+");
             mOffset = url.substring(index0 + 1, index1 - index0 - 1).toInt64();
             mLength = url.substring(index1 + 1).toInt64();
             
@@ -104,7 +104,7 @@ struct File : public Protocol {
             }
             
         } else {
-            int flags = O_LARGEFILE;
+            Int flags = O_LARGEFILE;
             if ((mode & Read) && (mode & Write)) {
                 flags |= O_CREAT;
                 flags |= O_RDWR;

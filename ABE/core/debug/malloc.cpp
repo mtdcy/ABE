@@ -82,7 +82,7 @@ USING_NAMESPACE_ABE
 typedef void*   (*real_malloc_t)(UInt32 n);
 typedef void    (*real_free_t)(void *p);
 typedef void*   (*real_realloc_t)(void *p, UInt32 n);
-typedef int     (*real_posix_memalign_t)(void **, UInt32, UInt32);
+typedef Int     (*real_posix_memalign_t)(void **, UInt32, UInt32);
 #if USING_DLSYM == 0
 // http://stackoverflow.com/questions/5223971/question-about-overriding-c-standard-library-functions-and-how-to-link-everythin
 //extern void *__libc_malloc(UInt32);
@@ -134,7 +134,7 @@ static ABE_INLINE void * real_realloc(void *ptr, UInt32 size) {
     return _real_realloc(ptr, size);
 }
 
-static ABE_INLINE int real_posix_memalign(void **memptr, UInt32 alignment, UInt32 n) {
+static ABE_INLINE Int real_posix_memalign(void **memptr, UInt32 alignment, UInt32 n) {
     static real_posix_memalign_t _real_posix_memalign = Nil;
     if (__builtin_expect(_real_posix_memalign == Nil, False)) {
         DEBUG("initial real_posix_memalign");
@@ -208,8 +208,8 @@ static void  malloc_impl_free_bypass(void *p);
 static void  malloc_impl_free_body(void *p);
 static void* malloc_impl_realloc_bypass(void *p, UInt32 n);
 static void* malloc_impl_realloc_body(void *p, UInt32 n);
-static int   malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n);
-static int   malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n);
+static Int   malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n);
+static Int   malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n);
 
 // default: always bypass, wait intialization finished
 static real_malloc_t g_malloc_impl_malloc = malloc_impl_malloc_bypass;
@@ -303,17 +303,17 @@ static void* malloc_impl_realloc_body(void *p, UInt32 n) {
     return block->real;
 }
 
-static int malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n) {
+static Int malloc_impl_posix_memalign_bypass(void **memptr, UInt32 alignment, UInt32 n) {
     return real_posix_memalign(memptr, alignment, n);
 }
 
-static int malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n) {
+static Int malloc_impl_posix_memalign_body(void **memptr, UInt32 alignment, UInt32 n) {
     FATAL_CHECK_GT(n, 0);
     FATAL_CHECK_GT(alignment, 0);
     FATAL_CHECK_EQ(sizeof(MallocBlock) % alignment, 0);   // FIXME
     const UInt32 length = sizeof(MallocBlock) + n + sizeof(UInt32);
     MallocBlock * block;
-    int ret = real_posix_memalign((void**)&block, length, alignment);
+    Int ret = real_posix_memalign((void**)&block, length, alignment);
     if (ret < 0) {
         return ret;
     }
@@ -356,7 +356,7 @@ ABE_EXPORT void* realloc(void *p, size_t n) {
     return g_malloc_impl_realloc(p, n);
 }
 
-ABE_EXPORT int posix_memalign(void **memptr, size_t alignment, size_t n) {
+ABE_EXPORT Int posix_memalign(void **memptr, size_t alignment, size_t n) {
     return g_malloc_impl_posix_memalign(memptr, alignment, n);
 }
 

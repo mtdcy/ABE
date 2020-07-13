@@ -123,7 +123,7 @@ Bool Condition::waitRelative(Mutex& lock, Time after) {
     ts.tv_sec  = after.nseconds() / 1000000000;
     ts.tv_nsec = after.nseconds() % 1000000000;
 #if HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE_NP
-    int rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
+    Int rt = pthread_cond_timedwait_relative_np(&mWait, &lock.mLock, &ts);
     if (rt == ETIMEDOUT)    return True;
     else                    return False;
 #else

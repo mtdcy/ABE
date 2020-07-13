@@ -173,8 +173,8 @@ class ABE_EXPORT String : public StaticObject {
          * @param case compare case of not.
          * @return return -1 if lhs < rhs, return 0 if lhs == rhs, return 1 if lhs > rhs.
          */
-        int         compare(const Char * s, Bool ic = True) const;
-        int         compare(const String& s, Bool ic = True) const;
+        Int         compare(const Char * s, Bool ic = True) const;
+        Int         compare(const String& s, Bool ic = True) const;
     
         ABE_INLINE Bool equals(const String& s, Bool ic = True) const { return !compare(s, ic);   }
         ABE_INLINE Bool equals(const Char * s, Bool ic = True) const  { return !compare(s, ic);   }

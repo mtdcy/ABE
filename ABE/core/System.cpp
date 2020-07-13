@@ -68,7 +68,7 @@ UInt32 GetCpuCount() {
 #if defined(__ANDROID__)
     return android_getCpuCount();
 #elif defined(__APPLE__)
-    int nm[2];
+    Int nm[2];
     UInt32 len = 4;
     UInt32 count;
     
@@ -180,7 +180,7 @@ ABE_INLINE Bool Sleep(UInt64 ns, UInt64 *unslept) {
     struct timespec rmtp;
     rqtp.tv_sec     = ns / 1000000000LL;
     rqtp.tv_nsec    = ns % 1000000000LL;
-    int rt = nanosleep(&rqtp, &rmtp);
+    Int rt = nanosleep(&rqtp, &rmtp);
     CHECK_TRUE(rt == 0 || errno == EINTR);
     if (rt == 0) return True;
     // return False and unslept time

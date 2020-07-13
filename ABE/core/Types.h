@@ -234,9 +234,9 @@ class Atomic : public StaticObject {
         ABE_INLINE Bool   cas(T& to, T val)     { return ABE_ATOMIC_CAS(&value, &to, val);      }   // compare and swap
 
         ABE_INLINE T      operator++()          { return ABE_ATOMIC_ADD(&value, 1);             }   // pre-increment
-        ABE_INLINE T      operator++(int)       { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
+        ABE_INLINE T      operator++(Int)       { return ABE_ATOMIC_FETCH_ADD(&value, 1);       }   // post_increment
         ABE_INLINE T      operator--()          { return ABE_ATOMIC_SUB(&value, 1);             }
-        ABE_INLINE T      operator--(int)       { return ABE_ATOMIC_FETCH_SUB(&value, 1);       }
+        ABE_INLINE T      operator--(Int)       { return ABE_ATOMIC_FETCH_SUB(&value, 1);       }
 
         ABE_INLINE T      operator+=(T val)     { return ABE_ATOMIC_ADD(&value, val);           }
         ABE_INLINE T      operator-=(T val)     { return ABE_ATOMIC_SUB(&value, val);           }

@@ -183,7 +183,7 @@ void CallStackPut(const UInt64 array[], UInt32 size) {
                      i,
                      info.dli_fbase, addr,
                      info.dli_fname, info.dli_sname,
-                     (int)((const Char *)addr - (Char *)info.dli_saddr));
+                     (Int)((const Char *)addr - (Char *)info.dli_saddr));
 #endif
 #endif
             } else {

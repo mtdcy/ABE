@@ -88,7 +88,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
          */
         virtual UInt32      writeBytes(const Char *, UInt32 n = 0) = 0;         ///< write n bytes into this buffer
         virtual UInt32      writeBytes(const sp<ABuffer>& b, UInt32 n = 0) = 0; ///< write a buffer into this buffer
-        virtual UInt32      writeBytes(int c, UInt32 n) = 0;    ///< write n bytes of c
+        virtual UInt32      writeBytes(Int c, UInt32 n) = 0;    ///< write n bytes of c
         virtual void        flushBytes() = 0;                   ///< flush bytes writer
         virtual void        clearBytes() = 0;                   ///< clear bytes in buffer
 
@@ -224,7 +224,7 @@ class ABE_EXPORT Buffer : public ABuffer {
     
         virtual UInt32      writeBytes(const Char *, UInt32 n = 0);
         virtual UInt32      writeBytes(const sp<ABuffer>&, UInt32 n = 0);
-        virtual UInt32      writeBytes(int c, UInt32 n);
+        virtual UInt32      writeBytes(Int c, UInt32 n);
         virtual void        flushBytes();
         virtual void        clearBytes();
     

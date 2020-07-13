@@ -138,7 +138,7 @@ String::String(const UInt16 * s, UInt32 n) {
     String::String(const TYPE v) : mData(Nil), mSize(0) {                   \
         mData = SharedBuffer::Create(kAllocatorDefault, SIZE + 1);          \
         Char * buf = mData->data();                                         \
-        int result = CStringPrintf(buf, SIZE, "%" PRI, v);                  \
+        Int result = CStringPrintf(buf, SIZE, "%" PRI, v);                  \
         CHECK_GT(result, 0); CHECK_LE(result, SIZE);                        \
         mSize               = result;                                       \
         buf[mSize]          = '\0';                                         \
@@ -396,7 +396,7 @@ Int String::lastIndexOf(const Char *s, Bool ic) const {
     return -1;
 }
 
-int String::compare(const String& s, Bool ic) const {
+Int String::compare(const String& s, Bool ic) const {
     if (mData == s.mData) return 0;
     if (s.mData == Nil) return 1;
     if (mData == Nil) return -1;
@@ -407,7 +407,7 @@ int String::compare(const String& s, Bool ic) const {
         return strcmp(mData->data(), s.mData->data());
 }
 
-int String::compare(const Char *s, Bool ic) const {
+Int String::compare(const Char *s, Bool ic) const {
     if (mData == Nil) return -1;
     if (ic)
         return strcasecmp(mData->data(), s);
