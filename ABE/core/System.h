@@ -79,6 +79,8 @@ struct ABE_EXPORT Time : public StaticObject {
         ABE_INLINE Time(UInt64 time = 0) : mTime(time) { }
         ABE_INLINE Time(const Time& rhs) : mTime(rhs.mTime) { }
     
+        ABE_INLINE UInt64 value() const { return mTime; }
+    
     public:
         static ABE_INLINE Time Seconds(Float64 sec)         { return Time(sec * 1E9);           }
         static ABE_INLINE Time MilliSeconds(UInt64 msecs)   { return Time(msecs * 1000000UL);   }
