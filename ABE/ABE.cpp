@@ -148,7 +148,9 @@ UInt32 BufferObjectGetData(const BufferObjectRef ref, Char * data, UInt32 n) {
 }
 
 BufferObjectRef BufferObjectReadBytes(const BufferObjectRef ref, UInt32 n) {
-    return static_cast<const ABuffer *>(ref)->readBytes(n)->RetainObject();
+    sp<ABuffer> buffer = static_cast<const ABuffer *>(ref)->readBytes(n);
+    if (buffer.isNil()) return Nil;
+    return buffer->RetainObject();
 }
 
 Int64 BufferObjectSkipBytes(const BufferObjectRef ref, Int64 offset) {
