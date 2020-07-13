@@ -130,6 +130,9 @@ struct InitialData : public SharedObject {
     eThreadType     mType;
     Mutex           mLock;
     Condition       mWait;
+    Bool            mReady;
+    
+    InitialData() : mReady(False) { }
 };
 
 static void * ThreadEntry(void * p) {
@@ -144,6 +147,7 @@ static void * ThreadEntry(void * p) {
     void (*UserEntry)(void *) = data->mUserEntry;
     void * user = data->mUser;
     
+    data->mReady = True;
     data->mWait.signal();
     data->mLock.unlock();
     data->ReleaseObject();
@@ -188,7 +192,9 @@ Status CreateThread(const char * name,
     }
     
     AutoLock _l(data->mLock);
-    data->mWait.wait(data->mLock);
+    while (data->mReady == False) {
+        data->mWait.wait(data->mLock);
+    }
 
     return kThreadOK;
 }
