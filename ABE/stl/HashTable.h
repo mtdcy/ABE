@@ -32,143 +32,121 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_HT_H
-#define ABE_HEADERS_HT_H
+#ifndef ABE_STL_HASHTABLE_H
+#define ABE_STL_HASHTABLE_H
 
 #include <ABE/stl/TypeHelper.h>
-#include <ABE/stl/Vector.h>
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-class ABE_EXPORT HashTableImpl {
+class HashTable : public SharedObject {
     public:
-        HashTableImpl(const sp<Allocator>& allocator,
-                UInt32 tableLength,
-                const TypeHelper& keyHelper,
-                const TypeHelper& valueHelper,
-                type_compare_t keyCompare);
-        HashTableImpl(const HashTableImpl&);
-        HashTableImpl& operator=(const HashTableImpl&);
-        ~HashTableImpl();
+        HashTable(const sp<Allocator>& allocator,
+                  UInt32 tableLength,
+                  UInt32 keyLength,
+                  UInt32 dataLength,
+                  type_hash_t hash,
+                  type_compare_t cmp,
+                  type_copy_t copy,
+                  type_destruct_t key_dtor,
+                  type_destruct_t data_dtor);
 
-    protected:
-        struct Element {
-            const UInt32    mHash;
-            void *          mKey;
-            void *          mValue;
-            Element *       mNext;
+    public:
+        struct Node {
+            public:
+                const void * key() const { return mKey; }
+                const void * value() const { return mValue; }
+                void * value() { return mValue; }
+                
+            protected:
+                friend class HashTable;
+                const UInt32    mHash;
+                void *          mKey;
+                void *          mValue;
+                Node *          mNext;
 
-            Element(UInt32);
-            ~Element();
+                Node(UInt32);
+                ~Node();
         };
 
-    protected:
-        ABE_INLINE UInt32   size () const { return mNumElements; }
+    public:
+        ABE_INLINE UInt32   size        () const { return mNumElements; }
+        ABE_INLINE UInt32   tableLength () const { return mTableLength; }
 
-    protected:
-        void                insert      (const void *k, const void *v, UInt32 hash);
-        UInt32              erase       (const void *k, UInt32 hash);
+    public:
+        // edit hash table
+        void                insert      (const void * k, const void * v, type_copy_t);
+        UInt32              erase       (const void * k);
         void                clear       ();
 
-    protected:
+    public:
+        // access hash table
         // return Nil if not exists
-        void *              find        (const void *k, UInt32 hash);
-        const void *        find        (const void *k, UInt32 hash) const;
+        void *              find        (const void * k);
+        const void *        find        (const void * k) const;
         // assert if not exists
-        void *              access      (const void *k, UInt32 hash);
-        const void *        access      (const void *k, UInt32 hash) const;
+        void *              access      (const void * k);
+        const void *        access      (const void * k) const;
+        // emplace if not exists
+        void *              emplace     (const void * k, type_construct_t);
 
-    protected:
+    public:
         // for iterator
-        ABE_INLINE UInt32   tableLength() const { return mTableLength; }
-        Element *           next        (const Element *, UInt32 *);
-        const Element *     next        (const Element *, UInt32 *) const;
+        Node *              next        (const Node *) const;
+        Node *              erase       (const Node *);
 
     private:
-        Element *           allocateElement     (UInt32);
-        void                deallocateElement   (Element *);
+        Node *              allocateNode(UInt32);
+        void                freeNode    (Node *);
         void                grow        ();
         void                shrink      ();
 
     private:
-        Element **          _edit();
-        void                _release(SharedBuffer *);
-
-    private:
-        TypeHelper          mKeyHelper;
-        TypeHelper          mValueHelper;
-        type_compare_t      mKeyCompare;  // make sure element is unique
         sp<Allocator>       mAllocator;
-        SharedBuffer *      mStorage;
+        const UInt32        mKeyLength;
+        const UInt32        mDataLength;
         UInt32              mTableLength;
         UInt32              mNumElements;
+        Node **             mBuckets;
+        type_hash_t         mHash;
+        type_compare_t      mKeyCompare;
+        type_copy_t         mKeyCopy;
+        type_destruct_t     mKeyDeletor;
+        type_destruct_t     mDataDeletor;
+    
+        OBJECT_TAIL(HashTable);
 };
 
 __END_NAMESPACE_ABE_PRIVATE
 
 __BEGIN_NAMESPACE_ABE
 //////////////////////////////////////////////////////////////////////////////
-// implementation of hash of core types
-template <typename TYPE> static ABE_INLINE UInt32 hash(const TYPE& value) {
-    return value.hash();
-};
 
-#define HASH_BASIC_TYPES32(TYPE)                                                        \
-    template <> ABE_INLINE UInt32 hash(const TYPE& v) { return UInt32(v); }
-#define HASH_BASIC_TYPES64(TYPE)                                                        \
-    template <> ABE_INLINE UInt32 hash(const TYPE& v) { return UInt32((v >> 32) ^ v); }
-#define HASH_BASIC_TYPES(TYPE)                                                          \
-    template <> ABE_INLINE UInt32 hash(const TYPE& v) {                               \
-        UInt32 x = 0;                                                                   \
-        const UInt8 *u8 = reinterpret_cast<const UInt8*>(&v);                       \
-        for (UInt32 i = 0; i < sizeof(TYPE); ++i) x = x * 31 + u8[i];                   \
-        return x;                                                                       \
-    };
-
-HASH_BASIC_TYPES32  (UInt8);
-HASH_BASIC_TYPES32  (Int8);
-HASH_BASIC_TYPES32  (UInt16);
-HASH_BASIC_TYPES32  (Int16);
-HASH_BASIC_TYPES32  (UInt32);
-HASH_BASIC_TYPES32  (Int32);
-HASH_BASIC_TYPES64  (UInt64);
-HASH_BASIC_TYPES64  (Int64);
-HASH_BASIC_TYPES    (Float32);
-HASH_BASIC_TYPES    (Float64);
-#undef HASH_BASIC_TYPES
-#undef HASH_BASIC_TYPES32
-#undef HASH_BASIC_TYPES64
-
-template <typename TYPE> ABE_INLINE UInt32 hash(TYPE * const& p) {
-    return hash<UInt64>(UInt64(p));
-};
-
-template <typename KEY, typename VALUE>
-class HashTable : private __NAMESPACE_PRIVATE::HashTableImpl, public StaticObject {
+template <typename K, typename V>
+class HashTable : public StaticObject {
     private:
         // increment only iterator
-        template <class TABLE_TYPE, class VALUE_TYPE, class ELEM_TYPE> class Iterator {
+        template <class TABLE, class VALUE, class NODE> class Iterator {
             public:
-                ABE_INLINE Iterator() : mTable(Nil), mIndex(0), mElement(Nil) { }
-                ABE_INLINE Iterator(TABLE_TYPE table, UInt32 index, const ELEM_TYPE& e) : mTable(table), mIndex(index), mElement(e) { }
+                ABE_INLINE Iterator() : mTable(Nil), mNode(Nil) { }
+                ABE_INLINE Iterator(TABLE table, const NODE& node) : mTable(table), mNode(node) { }
                 ABE_INLINE ~Iterator() { }
 
-                ABE_INLINE Iterator&   operator++()    { next(); return *this;                                 }   // pre-increment
-                ABE_INLINE Iterator    operator++(int) { Iterator old(*this); next(); return old;              }   // post-increment
+                ABE_INLINE Iterator& operator++()    { next(); return *this;                              }   // pre-increment
+                ABE_INLINE Iterator  operator++(int) { Iterator old(*this); next(); return old;           }   // post-increment
 
-                ABE_INLINE Bool        operator == (const Iterator& rhs) const { return mElement == rhs.mElement; }
-                ABE_INLINE Bool        operator != (const Iterator& rhs) const { return !operator==(rhs);      }
+                ABE_INLINE Bool      operator == (const Iterator& rhs) const { return mNode == rhs.mNode; }
+                ABE_INLINE Bool      operator != (const Iterator& rhs) const { return mNode != rhs.mNode; }
 
-                ABE_INLINE const KEY&  key() const     { return *static_cast<KEY*>(mElement->mKey);            }
-                ABE_INLINE VALUE_TYPE& value()         { return *static_cast<VALUE_TYPE*>(mElement->mValue);   }
+                ABE_INLINE const K&  key() const     { return *static_cast<const K*>(mNode->key());       }
+                ABE_INLINE VALUE&    value()         { return *static_cast<VALUE*>(mNode->value());       }
 
             private:
-                ABE_INLINE void        next()          { mElement = mTable->next(mElement, &mIndex);           }
+                ABE_INLINE void      next()          { mNode = mTable->mImpl->next(mNode);                }
 
             protected:
-                TABLE_TYPE  mTable;
-                UInt32      mIndex;
-                ELEM_TYPE   mElement;
+                TABLE   mTable;
+                NODE    mNode;
 
             private:
                 // no decrement
@@ -177,44 +155,47 @@ class HashTable : private __NAMESPACE_PRIVATE::HashTableImpl, public StaticObjec
         };
 
     public:
-        typedef Iterator<HashTable<KEY, VALUE> *, VALUE, Element *> iterator;
-        typedef Iterator<const HashTable<KEY, VALUE> *, const VALUE, const Element *> const_iterator;
+        typedef Iterator<HashTable<K, V> *, V, __NAMESPACE_PRIVATE::HashTable::Node *> iterator;
+        typedef Iterator<const HashTable<K, V> *, const V, const __NAMESPACE_PRIVATE::HashTable::Node *> const_iterator;
 
     public:
         ABE_INLINE HashTable(UInt32 tableLength = 4, const sp<Allocator>& allocator = kAllocatorDefault) :
-            HashTableImpl(allocator, tableLength,
-                    TypeHelperBuilder<KEY, False, True, False>(),
-                    TypeHelperBuilder<VALUE, False, True, False>(),
-                    type_compare_equal<KEY>) { }
+        mImpl(new __NAMESPACE_PRIVATE::HashTable(allocator, tableLength, sizeof(K), sizeof(V),
+                                                 type_hash<K>, type_compare_eq<K>, type_copy<K>,
+                                                 type_destruct<K>, type_destruct<V>)) { }
 
         ABE_INLINE ~HashTable() { }
 
     public:
-        ABE_INLINE UInt32           size() const        { return HashTableImpl::size();         }
-        ABE_INLINE Bool             empty() const       { return size() == 0;                   }
-        ABE_INLINE void             clear()             { HashTableImpl::clear();               }
+        ABE_INLINE UInt32       size() const    { return mImpl->size(); }
+        ABE_INLINE Bool         empty() const   { return size() == 0;   }
+        ABE_INLINE void         clear()         { mImpl->clear();       }
 
     public:
         // insert value with key, replace if exists
-        ABE_INLINE void             insert(const KEY& k, const VALUE& v){ HashTableImpl::insert(&k, &v, hash(k));                                   }
+        ABE_INLINE void         insert(const K& k, const V& v) { mImpl->insert(&k, &v, type_copy<V>);               }
         // erase element with key, return 1 if exists, and 0 otherwise.
-        ABE_INLINE UInt32           erase(const KEY& k)                 { return HashTableImpl::erase(&k, hash(k));                                 }
+        ABE_INLINE UInt32       erase(const K& k)              { return mImpl->erase(&k);                           }
         // return Nil if not exists
-        ABE_INLINE VALUE *          find(const KEY& k)                  { return static_cast<VALUE*>(HashTableImpl::find(&k, hash(k)));             }
-        ABE_INLINE const VALUE*     find(const KEY& k) const            { return static_cast<const VALUE*>(HashTableImpl::find(&k, hash(k)));       }
+        ABE_INLINE V *          find(const K& k)               { return static_cast<V *>(mImpl->find(&k));          }
+        ABE_INLINE const V *    find(const K& k) const         { return static_cast<const V *>(mImpl->find(&k));    }
+        // emplace if not exists
+        ABE_INLINE V&           operator[](const K& k)         { return *static_cast<V *>(mImpl->emplace(&k, type_construct<V>)); }
         // assert if not exists
-        ABE_INLINE VALUE&           operator[](const KEY& k)            { return *static_cast<VALUE*>(HashTableImpl::access(&k, hash(k)));          }
-        ABE_INLINE const VALUE&     operator[](const KEY& k) const      { return *static_cast<const VALUE*>(HashTableImpl::access(&k, hash(k)));    }
+        ABE_INLINE const V&     operator[](const K& k) const   { return *static_cast<const V *>(mImpl->access(&k)); }
 
     public:
         // forward iterator
-        ABE_INLINE iterator         begin()         { return ++iterator(this, 0, Nil);                                 }
-        ABE_INLINE iterator         end()           { return iterator(this, HashTableImpl::tableLength(), Nil);        }
-        ABE_INLINE const_iterator   cbegin() const  { return ++const_iterator(this, 0, Nil);                           }
-        ABE_INLINE const_iterator   cend() const    { return const_iterator(this, HashTableImpl::tableLength(), Nil);  }
+        ABE_INLINE iterator         begin()         { return iterator(this, mImpl->next(Nil));          }
+        ABE_INLINE iterator         end()           { return iterator(this, Nil);                       }
+        ABE_INLINE const_iterator   cbegin() const  { return const_iterator(this, mImpl->next(Nil));    }
+        ABE_INLINE const_iterator   cend() const    { return const_iterator(this, Nil);                 }
+    
+    private:
+        sp<__NAMESPACE_PRIVATE::HashTable> mImpl;
 };
 
 __END_NAMESPACE_ABE
 
-#endif // ABE_HEADERS_HT_H
+#endif // ABE_STL_HASHTABLE_H
 

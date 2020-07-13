@@ -44,6 +44,8 @@
 
 __BEGIN_NAMESPACE_ABE
 
+template <> struct is_trivial_copy<Message::Entry> { enum { value = True }; };
+
 ///////////////////////////////////////////////////////////////////////////
 static Bool isFourcc(UInt32 what) {
     return isprint(what & 0xff)
@@ -87,11 +89,13 @@ void Message::clear() {
     HashTable<UInt32, Entry>::iterator it = mEntries.begin();
     for (; it != mEntries.end(); ++it) {
         Entry &e = it.value();
+        INFO("clear type = %u", e.mType);
         switch (e.mType) {
             case kTypeString:
                 free(e.u.ptr);
                 break;
             case kTypeObject:
+                INFO("release object");
                 e.u.obj->ReleaseObject();
                 break;
             case kTypePointer:

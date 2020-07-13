@@ -46,302 +46,236 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-HashTableImpl::HashTableImpl(const sp<Allocator>& allocator,
-        UInt32 tableLength,
-        const TypeHelper& keyHelper,
-        const TypeHelper& valueHelper,
-        type_compare_t equal) :
-    mKeyHelper(keyHelper), mValueHelper(valueHelper), mKeyCompare(equal),
-    mAllocator(allocator), mStorage(Nil),
-    mTableLength(POW_2(tableLength)), mNumElements(0)
-{
-    const UInt32 allocLength = sizeof(Element *) * mTableLength;
-    mStorage = SharedBuffer::Create(mAllocator, allocLength);
-    memset(mStorage->data(), 0, allocLength);
+HashTable::HashTable(const sp<Allocator>& allocator,
+                     UInt32 tableLength,
+                     UInt32 keyLength,
+                     UInt32 dataLength,
+                     type_hash_t hash,
+                     type_compare_t cmp,
+                     type_copy_t copy,
+                     type_destruct_t key_dtor,
+                     type_destruct_t data_dtor) :
+SharedObject(FOURCC('!tbl')), mAllocator(allocator), mKeyLength(keyLength), mDataLength(dataLength),
+mTableLength(tableLength), mNumElements(0), mHash(hash), mKeyCompare(cmp), mKeyCopy(copy),
+mKeyDeletor(key_dtor), mDataDeletor(data_dtor) {
+    const UInt32 allocLength = sizeof(Node *) * mTableLength;
+    mBuckets = (Node **)mAllocator->allocate(allocLength);
+    memset(mBuckets, 0, allocLength);
 }
 
-HashTableImpl::HashTableImpl(const HashTableImpl& rhs) :
-    mKeyHelper(rhs.mKeyHelper), mValueHelper(rhs.mValueHelper), mKeyCompare(rhs.mKeyCompare),
-    mAllocator(rhs.mAllocator), mStorage(rhs.mStorage->RetainBuffer()),
-    mTableLength(rhs.mTableLength), mNumElements(rhs.mNumElements) {
-
-    }
-
-HashTableImpl& HashTableImpl::operator=(const HashTableImpl & rhs) {
-    // must be the same type
-    _release(mStorage);
-    // copy allocator & storage
-    mKeyHelper      = rhs.mKeyHelper;
-    mValueHelper    = rhs.mValueHelper;
-    mKeyCompare     = rhs.mKeyCompare;
-    mAllocator      = rhs.mAllocator;
-    mStorage        = rhs.mStorage->RetainBuffer();
-    mTableLength    = rhs.mTableLength;
-    mNumElements    = rhs.mNumElements;
-
-    return *this;
+void HashTable::onFirstRetain() {
+    
 }
 
-HashTableImpl::~HashTableImpl() {
-    _release(mStorage);
-    mNumElements = 0;
-    mTableLength = 0;
+void HashTable::onLastRetain() {
+    clear();
+    mAllocator->deallocate(mBuckets);
 }
 
 // clear only Elements, not the bucket storage
-void HashTableImpl::clear() {
+void HashTable::clear() {
+    DEBUG("clear: size = %u", mNumElements);
     if (mNumElements == 0) return;
-    Element ** buck = (Element **)mStorage->data();
+    
     for (UInt32 index = 0; index < mTableLength; ++index) {
-        Element * e = buck[index];
-        while (e) {
-            Element * next  = e->mNext;
-            deallocateElement(e);
-            e = next;
+        Node * node = mBuckets[index];
+        while (node) {
+            Node * next = node->mNext;
+            DEBUG("- hash %u index %u", node->mHash, index);
+            freeNode(node);
+            node = next;
         }
-        buck[index] = Nil;
     }
     mNumElements = 0;
 }
 
-// clear both Elements and bucket storage
-void HashTableImpl::_release(SharedBuffer * storage) {
-    if (storage->ReleaseBuffer(True) == 0) {
-        Element ** buck = (Element **)storage->data();
-        for (UInt32 index = 0; index < mTableLength; ++index) {
-            Element * e = buck[index];
-            while (e) {
-                Element * next = e->mNext;
-                deallocateElement(e);
-                e = next;
-            }
-            buck[index] = Nil;
-        }
-        storage->DeleteBuffer();
-    }
+HashTable::Node::Node(UInt32 hash) : mHash(hash), mKey(Nil), mValue(Nil), mNext(Nil) {
 }
 
-// 'cow': copy bucket and Elements on write
-HashTableImpl::Element ** HashTableImpl::_edit() {
-    if (mStorage->IsBufferShared()) {
-        DEBUG("copy on write");
-        SharedBuffer * old  = mStorage;
-        Element ** buck0    = (Element **)old->data();
-
-        const UInt32 allocLength = sizeof(Element *) * mTableLength;
-        mStorage = SharedBuffer::Create(mAllocator, allocLength);
-        Element ** buck     = (Element **)mStorage->data();
-        memset(buck, 0, allocLength);
-
-        for (UInt32 index = 0; index < mTableLength; ++index) {
-            Element * e0    = buck0[index];
-            Element ** p    = &buck[index];
-            while (e0) {
-                Element * e = allocateElement(e0->mHash);
-                mKeyHelper.do_copy(e->mKey, e0->mKey, 1);
-                mValueHelper.do_copy(e->mValue, e0->mValue, 1);
-                *p  = e;
-                p   = &(e->mNext);
-                e0  = e0->mNext;
-            }
-        }
-
-        _release(old);
-    }
-    return (Element **)mStorage->data();
-}
-
-HashTableImpl::Element::Element(UInt32 hash) : mHash(hash), mKey(Nil), mValue(Nil), mNext(Nil) {
-}
-
-HashTableImpl::Element::~Element() {
+HashTable::Node::~Node() {
     mKey = mValue = mNext = Nil;
 }
 
-HashTableImpl::Element * HashTableImpl::allocateElement(UInt32 hash) {
-    Element * e = (Element *)mAllocator->allocate(sizeof(Element) + mKeyHelper.size() + mValueHelper.size());
-    new (e) Element(hash);
+HashTable::Node * HashTable::allocateNode(UInt32 hash) {
+    Node * e = (Node *)mAllocator->allocate(sizeof(Node) + mKeyLength + mDataLength);
+    new (e) Node(hash);
     // do not construct data here
     e->mKey     = &e[1];
-    e->mValue   = (Char *)e->mKey + mKeyHelper.size();
+    e->mValue   = (Char *)e->mKey + mKeyLength;
     return e;
 }
 
-void HashTableImpl::deallocateElement(Element *e) {
-    mKeyHelper.do_destruct(e->mKey, 1);
-    mValueHelper.do_destruct(e->mValue, 1);
-    e->~Element();
+void HashTable::freeNode(Node *e) {
+    mKeyDeletor(e->mKey, 1);
+    mDataDeletor(e->mValue, 1);
+    e->~Node();
     mAllocator->deallocate(e);
 }
 
-void HashTableImpl::insert(const void * k, const void * v, UInt32 hash) {
+void HashTable::insert(const void * k, const void * v, type_copy_t copy) {
+    const UInt32 hash = mHash(k);
     const UInt32 index = hash % mTableLength;
-    Element *e  = allocateElement(hash);
-    mKeyHelper.do_copy(e->mKey, k, 1);
-    mValueHelper.do_copy(e->mValue, v, 1);
+    Node * node  = allocateNode(hash);
+    mKeyCopy(node->mKey, k, 1);
+    copy(node->mValue, v, 1);
+    
+    DEBUG("+ hash %u index %u", hash, index);
+    node->mNext = mBuckets[index];
+    mBuckets[index] = node;
+    
+    // HANDLE COLLISION ?
 
-    Element ** buck = _edit();
-    Element ** p    = &buck[index];
-    DEBUG("+ hash %zu index %zu", hash, index);
-    while (*p) {
-        DEBUG("collision");
-        CHECK_FALSE(mKeyCompare(k, (*p)->mKey));
-        p = &((*p)->mNext);
-    }
-    *p = e;
     ++mNumElements;
-
     grow();
 }
 
-void HashTableImpl::grow() {
+void HashTable::grow() {
     // FIXME: implement Incremental resizing
     //  be careful with the price enlarging the hash table all at once
     // load factor .75
     if (mNumElements > (mTableLength * 3) / 4) {
-        DEBUG("table grow %zu -> %zu", mTableLength, mTableLength * 2);
-        SharedBuffer * old = mStorage;
-        Element ** buck0 = (Element **)old->data();
+        DEBUG("table grow %u -> %u", mTableLength, mTableLength * 2);
 
-        const UInt32 tableLength = mTableLength * 2;    // Float64 table length
-        const UInt32 allocLength = sizeof(Element *) * tableLength;
-        mStorage = SharedBuffer::Create(mAllocator, allocLength);
-        Element ** buck = (Element **)mStorage->data();
+        const UInt32 tableLength = mTableLength * 2;    // double table length
+        const UInt32 allocLength = sizeof(Node *) * tableLength;
+        Node ** buck = (Node **)mAllocator->allocate(allocLength);
         memset(buck, 0, allocLength);
 
         for (UInt32 i = 0; i < mTableLength; ++i) {
-            Element * e     = buck0[i];
-            while (e) {
-                Element * next  = e->mNext;
-                UInt32 index    = e->mHash % tableLength;
-                DEBUG("> hash %zu index %zu", e->mHash, index);
-                e->mNext        = buck[index];
-                buck[index]     = e;
-                e               = next;
+            Node * node = mBuckets[i];
+            while (node) {
+                Node * next = node->mNext;
+                UInt32 index = node->mHash % tableLength;
+                DEBUG("> hash %u index %zu", node->mHash, index);
+                node->mNext = buck[index];
+                buck[index] = node;
+                node = next;
             }
         }
         // release old bucket, not Elements
-        old->ReleaseBuffer();
+        mAllocator->deallocate(mBuckets);
+        mBuckets        = buck;
         mTableLength    = tableLength;
     }
 }
 
-UInt32 HashTableImpl::erase(const void * k, UInt32 hash) {
+UInt32 HashTable::erase(const void * k) {
+    const UInt32 hash = mHash(k);
     const UInt32 index  = hash % mTableLength;
-    Element ** buck = _edit();
-    Element ** p    = &buck[index];
+    Node ** p = &mBuckets[index];
     while (*p) {
         if (hash == (*p)->mHash && mKeyCompare(k, (*p)->mKey)) {
-            Element * e     = *p;
-            *p              = e->mNext;
+            Node * node = *p;
+            *p = node->mNext;
             --mNumElements;
 
-            deallocateElement(e);
+            DEBUG("- hash %u index %u", node->mHash, index);
+            freeNode(node);
             shrink();
             return 1;
         }
-        p   = &((*p)->mNext);
+        p = &((*p)->mNext);
     }
     return 0;
 }
 
-void HashTableImpl::shrink() {
+void HashTable::shrink() {
     // TODO: implement buckets shrink
 }
 
-void * HashTableImpl::find(const void * k, UInt32 hash) {
+void * HashTable::find(const void * k) {
+    const UInt32 hash = mHash(k);
     const UInt32 index = hash % mTableLength;
-    Element ** buck = _edit();
-    Element * p     = buck[index];
-    while (p) {
-        if (hash == p->mHash && mKeyCompare(k, p->mKey)) {
-            return p->mValue;
+    Node * node = mBuckets[index];
+    while (node) {
+        if (hash == node->mHash && mKeyCompare(k, node->mKey)) {
+            return node->mValue;
         }
-        p = p->mNext;
+        node = node->mNext;
     }
     return Nil;
 }
 
-const void * HashTableImpl::find(const void * k, UInt32 hash) const {
+const void * HashTable::find(const void * k) const {
+    const UInt32 hash = mHash(k);
     const UInt32 index = hash % mTableLength;
-    Element ** buck = (Element **)mStorage->data();
-    Element * p     = buck[index];
-    while (p) {
-        if (hash == p->mHash && mKeyCompare(k, p->mKey)) {
-            return p->mValue;
+    Node * node = mBuckets[index];
+    while (node) {
+        if (hash == node->mHash && mKeyCompare(k, node->mKey)) {
+            return node->mValue;
         }
-        p = p->mNext;
+        node = node->mNext;
     }
     return Nil;
 }
 
-void * HashTableImpl::access(const void * k, UInt32 hash) {
+void * HashTable::access(const void * k) {
+    const UInt32 hash = mHash(k);
     const UInt32 index = hash % mTableLength;
-    Element ** buck = _edit();
-    Element * p     = buck[index];
-    while (p) {
-        if (hash == p->mHash && mKeyCompare(k, p->mKey)) {
-            return p->mValue;
+    Node * node = mBuckets[index];
+    while (node) {
+        if (hash == node->mHash && mKeyCompare(k, node->mKey)) {
+            return node->mValue;
         }
-        p = p->mNext;
+        node = node->mNext;
     }
-    CHECK_NULL(p);
     return Nil;
 }
 
-const void * HashTableImpl::access(const void * k, UInt32 hash) const {
+const void * HashTable::access(const void * k) const {
+    const UInt32 hash = mHash(k);
     const UInt32 index = hash % mTableLength;
-    Element ** buck = (Element **)mStorage->data();
-    Element * p     = buck[index];
-    while (p) {
-        if (hash == p->mHash && mKeyCompare(k, p->mKey)) {
-            return p->mValue;
+    Node * node = mBuckets[index];
+    while (node) {
+        if (hash == node->mHash && mKeyCompare(k, node->mKey)) {
+            return node->mValue;
         }
-        p = p->mNext;
+        node = node->mNext;
     }
-    CHECK_NULL(p);
     return Nil;
 }
 
-HashTableImpl::Element * HashTableImpl::next(const Element *elem, UInt32 *index) {
-    CHECK_NULL(index);
-    // should not shared this hash table during iterator
-    CHECK_TRUE(mStorage->IsBufferNotShared());
-    Element ** buck = (Element **)mStorage->data();
-    Element * _next = Nil;
-    if (elem) {
-        _next = elem->mNext;
-        if (_next) return _next;
-        *index += 1;
+void * HashTable::emplace(const void * k, type_construct_t ctor) {
+    const UInt32 hash = mHash(k);
+    const UInt32 index = hash % mTableLength;
+    Node * node = mBuckets[index];
+    while (node) {
+        if (hash == node->mHash && mKeyCompare(k, node->mKey)) {
+            return node->mValue;
+        }
+        node = node->mNext;
     }
-
-    while (_next == Nil && *index < mTableLength) {
-        _next = buck[*index];
-        if (_next) break;
-        *index += 1;
-    }
-
-    return _next;
+    DEBUG("+ hash %u index %u", hash, index);
+    node = allocateNode(hash);
+    ctor(node->mValue, 1);
+    node->mNext = mBuckets[index];
+    mBuckets[index] = node;
+    return node->mValue;
 }
 
-const HashTableImpl::Element * HashTableImpl::next(const Element *elem, UInt32 *index) const {
-    CHECK_NULL(index);
-    // const_iterator is ok even hash table is shared
-    Element ** buck = (Element **)mStorage->data();
-    Element * _next = Nil;
-    if (elem) {
-        _next = elem->mNext;
-        if (_next) return _next;
-        *index += 1;
+HashTable::Node * HashTable::next(const Node * node) const {
+    // return first node
+    if (node == Nil) {
+        for (UInt32 i = 0; i < mTableLength; ++i) {
+            Node * node = mBuckets[i];
+            if (node) {
+                return node;
+            }
+        }
     }
-
-    while (_next == Nil && *index < mTableLength) {
-        _next = buck[*index];
-        if (_next) break;
-        *index += 1;
+    if (node == Nil) return Nil;
+    // return next node in the bucket
+    if (node->mNext) return node->mNext;
+    
+    // return node in next bucket
+    const UInt32 index = node->mHash % mTableLength;
+    for (UInt32 i = index + 1; i < mTableLength; ++i) {
+        Node * node = mBuckets[i];
+        if (node) {
+            return node;
+        }
     }
-
-    return _next;
+    return Nil;
 }
 
 __END_NAMESPACE_ABE_PRIVATE

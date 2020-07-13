@@ -49,234 +49,140 @@ __BEGIN_NAMESPACE_ABE_PRIVATE
 
 static const UInt32 kDefaultCapacity = 4;
 
-VectorImpl::VectorImpl(const sp<Allocator>& allocator,
-        UInt32 capacity,
-        const TypeHelper& helper) :
-    mTypeHelper(helper),
-    mAllocator(allocator), mStorage(Nil),
-    mCapacity(capacity), mItemCount(0)
-{
+Vector::Vector(const sp<Allocator>& allocator,
+               UInt32 capacity, UInt32 dataLength,
+               type_destruct_t dtor, type_move_t move) :
+SharedObject(FOURCC('!vec')), mAllocator(allocator),
+mDataLength(dataLength), mCapacity(capacity), mItemCount(0),
+mDeletor(dtor), mMover(move) {
     CHECK_GT(capacity, 0);
-    DEBUG("constructor 1");
-    mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * mCapacity);
+    DEBUG("constructor");
+    mItems = mAllocator->allocate(mCapacity * mDataLength);
+    CHECK_NULL(mItems);
 }
 
-VectorImpl::VectorImpl(const VectorImpl& rhs) :
-    mTypeHelper(rhs.mTypeHelper),
-    mAllocator(rhs.mAllocator), mStorage(rhs.mStorage->RetainBuffer()),
-    mCapacity(rhs.mCapacity), mItemCount(rhs.mItemCount)
-{
-    DEBUG("copy constructor");
+void Vector::onFirstRetain() {
+    
 }
 
-VectorImpl::~VectorImpl() {
-    DEBUG("destructor");
-    _release(mStorage, mItemCount);
-    mStorage = Nil;
+void Vector::onLastRetain() {
+    clear();
+    mAllocator->deallocate(mItems);
 }
 
-VectorImpl& VectorImpl::operator=(const VectorImpl& rhs) {
-    DEBUG("copy assignment");
-    _release(mStorage, mItemCount);
-
-    mTypeHelper = rhs.mTypeHelper;
-    mAllocator  = rhs.mAllocator;
-    mStorage    = rhs.mStorage->RetainBuffer();
-    mCapacity   = rhs.mCapacity;
-    mItemCount  = rhs.mItemCount;
-    return *this;
-}
-
-void* VectorImpl::access(UInt32 index) {
+void* Vector::access(UInt32 index) {
     CHECK_LT(index, mItemCount);
-    _edit();
-    return (void *)(mStorage->data() + index * mTypeHelper.size());
+    return (Char *)mItems + index * mDataLength;
 }
 
-const void* VectorImpl::access(UInt32 index) const {
+const void* Vector::access(UInt32 index) const {
     CHECK_LT(index, mItemCount);
-    return (void *)(mStorage->data() + index * mTypeHelper.size());
+    return (Char *)mItems + index * mDataLength;
 }
 
-void VectorImpl::clear() {
-    if (mItemCount) _remove(0, mItemCount);
+void Vector::clear() {
+    if (mItemCount) remove(0, mItemCount);
 }
 
 // shrink memory to fit size
-void VectorImpl::shrink() {
+void Vector::shrink() {
     if (mItemCount == capacity()) return;
 
     DEBUG("shrink %zu vs %zu", mItemCount, capacity());
 
     // FIXME: if has trivial move, shrink by realloc
-    if (0 && mStorage->IsBufferNotShared()) {
-        DEBUG("shrink with realloc.");
-        mStorage = mStorage->edit(mItemCount * mTypeHelper.size());
-    } else {
-        DEBUG("shrink heavily");
-        SharedBuffer *old = mStorage;
-        mStorage = SharedBuffer::Create(mAllocator, mItemCount * mTypeHelper.size());
-
-        if (old->IsBufferNotShared()) {
-            mTypeHelper.do_move(mStorage->data(),
-                    old->data(),
-                    mItemCount);
-            _release(old, mItemCount, True);
-        } else {
-            mTypeHelper.do_copy(mStorage->data(),
-                    old->data(),
-                    mItemCount);
-            _release(old, mItemCount, False);
-        }
-    }
+    void * items = mAllocator->allocate(mItemCount);
+    mMover(items, mItems, mItemCount);
+    
+    mAllocator->deallocate(mItems);
+    mItems = items;
+    mCapacity = mItemCount;
 }
 
 // grow storage without construct items
-Char * VectorImpl::_grow(UInt32 pos, UInt32 amount) {
+void * Vector::grow(UInt32 pos, UInt32 amount) {
     CHECK_LE(pos, mItemCount);
     const UInt32 count  = mItemCount + amount;
     const UInt32 move   = mItemCount - pos;
-
-    // not shared, and no grow
-    if (mStorage->IsBufferNotShared() && count <= capacity()) {
-        Char * where = mStorage->data() + pos * mTypeHelper.size();
+    
+    if (count > mCapacity) {
+        while (mCapacity < count) mCapacity *= 2;
+        
+        Char * items = (Char *)mAllocator->allocate(mDataLength * mCapacity);
+        
+        if (pos > 0) {
+            mMover(items, mItems, pos);
+        }
         if (move) {
-            mTypeHelper.do_move(where + amount * mTypeHelper.size(),
-                    where,
-                    move);
+            mMover(items + (pos + amount) * mDataLength,
+                   (Char *)mItems + pos * mDataLength,
+                   move);
         }
-        // caller will construct object in place
-        mItemCount = count;
-        return where;
+        
+        mAllocator->deallocate(mItems);
+        mItems = items;
+    } else if (move) {
+        // move item@pos -> pos+amount
+        Char * where = (Char *)mItems + pos * mDataLength;
+        mMover(where + amount * mDataLength,
+               where,
+               move);
     }
-
-    // grow by Float64 capacity ?
-    while (mCapacity < count)   mCapacity *= 2;
-
-    // optimize for push() with grow
-    // FIXME:
-    if (0 && !move && /*has_trivial_move() &&*/ mStorage->IsBufferNotShared()) {
-        // just resize
-        DEBUG("grow by realloc");
-        mStorage = mStorage->edit(mCapacity * mTypeHelper.size());
-    } else {
-        DEBUG("grow heavily");
-        SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::Create(mAllocator, mCapacity * mTypeHelper.size());
-
-        // copy item before pos
-        if (pos) {
-            mTypeHelper.do_copy(mStorage->data(),
-                    old->data(),
-                    pos);
-        }
-
-        // copy item after pos
-        if (move) {
-            mTypeHelper.do_copy(mStorage->data() + (pos + amount) * mTypeHelper.size(),
-                    old->data() + pos * mTypeHelper.size(),
-                    move);
-        }
-        _release(old, mItemCount);
-    }
-    mItemCount  = count;
-    return mStorage->data() + pos * mTypeHelper.size();
+    // caller MUST construct object in place
+    mItemCount = count;
+    return (Char *)mItems + pos * mDataLength;
 }
 
 // no auto memory shrink
-void VectorImpl::_remove(UInt32 pos, UInt32 amount) {
+void Vector::remove(UInt32 pos, UInt32 amount) {
+    CHECK_GT(amount, 0);
     CHECK_LE(pos + amount, mItemCount);
     const UInt32 count  = mItemCount - amount;
     const UInt32 move   = mItemCount - (pos + amount);
 
-    if (mStorage->IsBufferNotShared()) {
-        Char * storage = mStorage->data() + mTypeHelper.size() * pos;
+    Char * where = (Char *)mItems + pos * mDataLength;
 
-        // NO need to move item before pos
+    // NO need to move item before pos
+    // destruct at pos
+    mDeletor(where, amount);
 
-        // destruct at pos
-        mTypeHelper.do_destruct(storage, amount);
-
-        // move
-        if (move) {
-            mTypeHelper.do_move(storage, storage + mTypeHelper.size() * amount, move);
-        }
-    } else {
-        SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::Create(mAllocator, mCapacity * mTypeHelper.size());
-
-        // copy item before pos
-        mTypeHelper.do_copy(mStorage->data(),
-                old->data(),
-                pos);
-
-        // no need to destruct at pos
-
-        // copy
-        if (move) {
-            mTypeHelper.do_copy(mStorage->data() + mTypeHelper.size() * pos,
-                    old->data() + mTypeHelper.size() * (pos + amount),
-                    move);
-        }
-
-        _release(old, mItemCount);
+    // move
+    if (move) {
+        mMover(where, where + mDataLength * amount, move);
     }
     mItemCount = count;
 }
 
-void VectorImpl::insert(UInt32 pos, const void* what) {
+void Vector::insert(UInt32 pos, const void * what, type_copy_t copy) {
     CHECK_LE(pos, mItemCount);
 
-    Char * where = _grow(pos, 1);
-    mTypeHelper.do_copy(where, what, 1);
+    void * where = grow(pos, 1);
+    copy(where, what, 1);
 }
 
-void * VectorImpl::emplace(UInt32 pos, type_construct_t ctor) {
+void * Vector::emplace(UInt32 pos, type_construct_t ctor) {
     CHECK_LE(pos, mItemCount);
 
-    Char * where = _grow(pos, 1);
+    void * where = grow(pos, 1);
     if (ctor) ctor(where, 1);
 
     return where;
 }
 
-void VectorImpl::erase(UInt32 pos) {
+void Vector::erase(UInt32 pos) {
     CHECK_LT(pos, mItemCount);
-    _remove(pos, 1);
+    remove(pos, 1);
 }
 
-void VectorImpl::erase(UInt32 first, UInt32 last) {
+void Vector::erase(UInt32 first, UInt32 last) {
     CHECK_LT(first, last);
     CHECK_LT(last, mItemCount);
 
-    _remove(first, last - first + 1);
-}
-
-void VectorImpl::_release(SharedBuffer *sb, UInt32 count, Bool moved) {
-    if (sb->ReleaseBuffer(True) == 0) {
-        if (count && !moved) {
-            mTypeHelper.do_destruct(sb->data(), count);
-        }
-        sb->DeleteBuffer();
-    }
-}
-
-void VectorImpl::_edit() {
-    if (mStorage->IsBufferNotShared()) return;
-
-    DEBUG("edit heavily");
-    SharedBuffer* old = mStorage;
-    mStorage = SharedBuffer::Create(mAllocator, capacity() * mTypeHelper.size());
-
-    mTypeHelper.do_copy(mStorage->data(),
-            old->data(),
-            mItemCount);
-
-    _release(old, mItemCount);
+    remove(first, last - first + 1);
 }
 
 // stable sort
-void VectorImpl::sort(type_compare_t cmp) {
+void Vector::sort(type_compare_t cmp) {
     if (mItemCount <= 1) return;
     // NO _edit() here, as we will copy value later
 
@@ -285,16 +191,16 @@ void VectorImpl::sort(type_compare_t cmp) {
     UInt32 * index = (UInt32 *)mAllocator->allocate(mItemCount * sizeof(UInt32));
     for (UInt32 i = 0; i < mItemCount; ++i) index[i] = i;
 
-    Char * item = mStorage->data();
-#define ITEM(n)     (item + index[n] * mTypeHelper.size())
+    Char * item = (Char *)mItems;
+#define ITEM(n)     (item + index[n] * mDataLength)
 
     Bool reorder = False;
-#define SET_FLAG(x) do { if (__builtin_expect(x == False, False)) x = True; } while(0)
+#define SET_FLAG() do { if (ABE_UNLIKELY(reorder == False)) reorder = True; } while(0)
 
     UInt32 * index2 = (UInt32 *)mAllocator->allocate(mItemCount * sizeof(UInt32));
     for (UInt32 seg = 1; seg < mItemCount; seg += seg) {
         for (UInt32 i = 0; i < mItemCount; i += 2 * seg) {
-            DEBUG("merge buck %zu & %zu", i, i + seg);
+            DEBUG("merge buck %u & %u", i, i + seg);
             UInt32 a        = i;
             UInt32 b        = MIN(a + seg, mItemCount);;
             const UInt32 e1 = b;
@@ -324,13 +230,13 @@ void VectorImpl::sort(type_compare_t cmp) {
                 while (b < e2)  index2[k++] = index[b++];
                 while (a < e1)  index2[k++] = index[a++];
 #endif
-                SET_FLAG(reorder);
+                SET_FLAG();
             } else {
                 // normal procedure: take more cmp ops
                 while (a < e1 && b < e2) {
                     if (cmp(ITEM(b), ITEM(a))) {    // b < a
                         index2[k++] = index[b++];
-                        SET_FLAG(reorder);
+                        SET_FLAG();
                     } else {
                         index2[k++] = index[a++];
                     }
@@ -361,29 +267,14 @@ void VectorImpl::sort(type_compare_t cmp) {
     // optimize for no reorder
     if (reorder == False) {
         DEBUG("no reorder");
-        if (mStorage->IsBufferNotShared()) {
-            // NOTHING
-        } else {
-            SharedBuffer * old = mStorage;
-            mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * capacity());
-
-            mTypeHelper.do_copy(mStorage->data(),
-                    old->data(),
-                    mItemCount);
-
-            _release(old, mItemCount);
-        }
     } else {
-        SharedBuffer * old = mStorage;
-        mStorage = SharedBuffer::Create(mAllocator, mTypeHelper.size() * capacity());
-
-        Char * dest = mStorage->data();
+        Char * dest = (Char *)mAllocator->allocate(mCapacity * mDataLength);
         for (UInt32 i = 0; i < mItemCount; ++i) {
-            DEBUG("%zu => %zu", index[i], i);
-            mTypeHelper.do_copy(dest, ITEM(i), 1);
-            dest += mTypeHelper.size();
+            DEBUG("%u => %u", index[i], i);
+            mMover(dest + i * mDataLength, ITEM(i), 1);
         }
-        _release(old, mItemCount);
+        mAllocator->deallocate(mItems);
+        mItems = dest;
     }
 
 #undef ITEM

@@ -49,51 +49,57 @@
 
 __BEGIN_NAMESPACE_ABE_PRIVATE
 
-struct LockFreeQueueImpl::NodeImpl {
-    NodeImpl *  mNext;
+struct LockFreeQueue::Node {
+    Node *  mNext;
     void *      mData;
 };
 
-LockFreeQueueImpl::LockFreeQueueImpl(const TypeHelper& helper) :
-    mTypeHelper(helper), mHead(Nil), mTail(Nil), mLength(0) {
+LockFreeQueue::LockFreeQueue(UInt32 dataLength,
+                             type_destruct_t dtor) :
+SharedObject('!que'), mDataLength(dataLength), mLength(0),
+mHead(Nil), mTail(Nil), mDeletor(dtor) {
         // use a dummy node
         // to avoid modify both mHead and mTail at push() or pop()
         mHead = mTail = allocateNode();
         mHead->mData = Nil;
     }
 
-LockFreeQueueImpl::~LockFreeQueueImpl() {
+void LockFreeQueue::onFirstRetain() {
+    
+}
+
+void LockFreeQueue::onLastRetain() {
     clear();
-    freeNode((NodeImpl *)mHead);    // free dummy node
+    freeNode((Node *)mHead);    // free dummy node
     mHead = mTail = Nil;
 }
 
-void LockFreeQueueImpl::clear() {
-    volatile NodeImpl *head = ABE_ATOMIC_LOAD(&mHead);
+void LockFreeQueue::clear() {
+    volatile Node *head = ABE_ATOMIC_LOAD(&mHead);
     while (ABE_ATOMIC_LOAD(&mLength)) {
         if (ABE_ATOMIC_CAS(&mHead, &head, mHead->mNext)) {
             ABE_ATOMIC_SUB(&mLength, 1);
 
             atomic_fence();
-            mTypeHelper.do_destruct(head->mNext->mData, 1);
-            freeNode((NodeImpl *)head);
+            mDeletor(head->mNext->mData, 1);
+            freeNode((Node *)head);
         }
     }
 }
 
-UInt32 LockFreeQueueImpl::size() const {
+UInt32 LockFreeQueue::size() const {
     return ABE_ATOMIC_LOAD(&mLength);
 }
 
-LockFreeQueueImpl::NodeImpl * LockFreeQueueImpl::allocateNode() {
-    const UInt32 length = sizeof(NodeImpl) + mTypeHelper.size();
-    NodeImpl * node = static_cast<NodeImpl*>(malloc(length));
+LockFreeQueue::Node * LockFreeQueue::allocateNode() {
+    const UInt32 length = sizeof(Node) + mDataLength;
+    Node * node = static_cast<Node*>(malloc(length));
     node->mNext = Nil;
     node->mData = node + 1;
     return node;
 }
 
-void LockFreeQueueImpl::freeNode(NodeImpl * node) {
+void LockFreeQueue::freeNode(Node * node) {
     free(node);
 }
 
@@ -101,9 +107,9 @@ void LockFreeQueueImpl::freeNode(NodeImpl * node) {
 // do_copy();
 // mTail->mNext = node;
 // mTail = node;
-UInt32 LockFreeQueueImpl::push1(const void * what) {
-    NodeImpl *node = allocateNode();
-    mTypeHelper.do_copy(node->mData, what, 1);
+UInt32 LockFreeQueue::push1(const void * what, type_copy_t copy) {
+    Node *node = allocateNode();
+    copy(node->mData, what, 1);
 
     atomic_fence();
     ABE_ATOMIC_STORE(&mTail->mNext, node);
@@ -111,13 +117,13 @@ UInt32 LockFreeQueueImpl::push1(const void * what) {
     return ABE_ATOMIC_ADD(&mLength, 1);
 }
 
-UInt32 LockFreeQueueImpl::pushN(const void * what) {
+UInt32 LockFreeQueue::pushN(const void * what, type_copy_t copy) {
     DEBUG("%p: push %p", this, mTail->mData);
-    NodeImpl *node = allocateNode();
-    mTypeHelper.do_copy(node->mData, what, 1);
+    Node *node = allocateNode();
+    copy(node->mData, what, 1);
 
     atomic_fence();
-    volatile NodeImpl *tail = ABE_ATOMIC_LOAD(&mTail);  // old tail
+    volatile Node *tail = ABE_ATOMIC_LOAD(&mTail);  // old tail
     // mTail = node;
     do {
         if (ABE_ATOMIC_CAS(&mTail, &tail, node)) {
@@ -133,28 +139,28 @@ UInt32 LockFreeQueueImpl::pushN(const void * what) {
 // mHead = mHead->mNext;
 // do_destruct
 // freeNode();
-Bool LockFreeQueueImpl::pop1(void * where) {
+Bool LockFreeQueue::pop1(void * where, type_move_t move) {
     if (ABE_ATOMIC_LOAD(&mLength)) {
-        volatile NodeImpl * head = ABE_ATOMIC_LOAD(&mHead);
+        volatile Node * head = ABE_ATOMIC_LOAD(&mHead);
         ABE_ATOMIC_STORE(&mHead, mHead->mNext);
         ABE_ATOMIC_SUB(&mLength, 1);
 
         atomic_fence();
         if (where) {
-            mTypeHelper.do_move(where, head->mNext->mData, 1);
+            move(where, head->mNext->mData, 1);
         } else {
-            mTypeHelper.do_destruct(head->mNext->mData, 1);
+            mDeletor(head->mNext->mData, 1);
         }
         head->mNext->mData = Nil;
-        freeNode((NodeImpl *)head);
+        freeNode((Node *)head);
         return True;
     }
     return False;
 }
 
-Bool LockFreeQueueImpl::popN(void * where) {
+Bool LockFreeQueue::popN(void * where, type_move_t move) {
     Bool success = False;
-    volatile NodeImpl *head = ABE_ATOMIC_LOAD(&mHead);
+    volatile Node *head = ABE_ATOMIC_LOAD(&mHead);
     while (ABE_ATOMIC_LOAD(&mLength)) {
         // mHead = mHead->mNext
         if (ABE_ATOMIC_CAS(&mHead, &head, mHead->mNext)) {
@@ -167,12 +173,12 @@ Bool LockFreeQueueImpl::popN(void * where) {
     atomic_fence();
     if (success) {
         if (where) {
-            mTypeHelper.do_move(where, head->mNext->mData, 1);
+            move(where, head->mNext->mData, 1);
         } else {
-            mTypeHelper.do_destruct(head->mNext->mData, 1);
+            mDeletor(head->mNext->mData, 1);
         }
         head->mNext->mData = Nil;
-        freeNode((NodeImpl *)head);
+        freeNode((Node *)head);
         return True;
     }
     return False;

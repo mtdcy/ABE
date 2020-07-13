@@ -714,14 +714,14 @@ template <class TYPE> void testList() {
 
     // sort with predefined compare
     list.clear();
-    for (int i = 0; i < 10 - i - 1; ++i) {
+    for (Int i = 0; i < 10 - i - 1; ++i) {
         list.push(i);
         if (i < 10 - i - 1) list.push(10 - i - 1);
     }
     ASSERT_EQ(list.size(), 10);
     list.sort();
-    list.sort(LessCompare<TYPE>);   // just syntax check
-    for (int i = 0; i < 10; ++i) {
+    //list.sort(LessCompare<TYPE>);   // just syntax check
+    for (Int i = 0; i < 10; ++i) {
         ASSERT_TRUE(list.front() == i);
         list.pop();
     }
@@ -729,6 +729,55 @@ template <class TYPE> void testList() {
 
 void testList1() { testList<int>();     }
 void testList2() { testList<Integer>(); }
+
+void testListIterator() {
+    List<Int> list;
+    for (Int i = 0; i < 100; i++) {
+        list.push(i);
+    }
+    
+    { // iterator
+        List<Int>::iterator it = list.begin();
+        Int i;
+        for (i = 0; it != list.end(); ++it, ++i) {
+            ASSERT_EQ(*it, i);
+        }
+        ASSERT_EQ(i, list.size());
+        ASSERT_EQ(i, 100);
+        
+        it = list.rbegin();
+        for (i = 0; it != list.rend(); --it, ++i) {
+            ASSERT_EQ(*it, 100 - i - 1);
+        }
+        ASSERT_EQ(i, list.size());
+        ASSERT_EQ(i, 100);
+    }
+    
+    { // const_iterator
+        List<Int>::const_iterator it = list.cbegin();
+        Int i;
+        for (i = 0; it != list.cend(); ++it, ++i) {
+            ASSERT_EQ(*it, i);
+        }
+        ASSERT_EQ(i, list.size());
+        ASSERT_EQ(i, 100);
+        
+        it = list.crbegin();
+        for (i = 0; it != list.crend(); --it, ++i) {
+            ASSERT_EQ(*it, 100 - i - 1);
+        }
+        ASSERT_EQ(i, list.size());
+        ASSERT_EQ(i, 100);
+    }
+    
+    { // insert/erase with iterator
+        List<Int>::iterator it = list.begin();
+        it = list.insert(it, 100);
+        ASSERT_EQ(*it, 100);
+        it = list.erase(it);
+        ASSERT_EQ(*it, 0);
+    }
+}
 
 template <class TYPE> void testVector() {
     Vector<TYPE> vec(4);
@@ -740,27 +789,6 @@ template <class TYPE> void testVector() {
         ASSERT_TRUE(vec.back() == i);
     }
 
-    for (int i = 0; i < 10; ++i) {
-        ASSERT_TRUE(vec[i] == i);
-    }
-
-    // vector copy
-    Vector<TYPE> copy = vec;
-
-    { // const vector copy
-        const Vector<TYPE> cvec = vec;
-        for (int i = 0; i < 10; ++i) {  // operator[] const
-            ASSERT_TRUE(cvec[i] == i);
-        }
-    }
-
-    // edit copy
-    for (int i = 0; i < 10; ++i) {
-        ASSERT_TRUE(copy.back() == 10 - i - 1);
-        copy.pop();
-    }
-
-    // test original again
     for (int i = 0; i < 10; ++i) {
         ASSERT_TRUE(vec[i] == i);
     }
@@ -780,7 +808,7 @@ template <class TYPE> void testVector() {
         ASSERT_TRUE(vec[i] == i);
     }
 }
-void testVector1() { testVector<int>();     }
+void testVector1() { testVector<Int>();     }
 void testVector2() { testVector<Integer>(); }
 
 template <class TYPE> void testHashTable() {
@@ -794,6 +822,7 @@ template <class TYPE> void testHashTable() {
     // insert two tableLength => force grow
     for (UInt32 i = 0; i < tableLength * 2; ++i) {
         table.insert(String(KEYS[i]), i);
+        ASSERT_EQ(table.size(), i + 1);
     }
     ASSERT_EQ(table.size(), tableLength * 2);
     ASSERT_FALSE(table.empty());
@@ -810,36 +839,43 @@ template <class TYPE> void testHashTable() {
         ASSERT_TRUE(ctable.find(String(KEYS[i])) != Nil);
         ASSERT_TRUE(ctable[String(KEYS[i])] == i);
     }
-
-    // test copy
-    HashTable<String, TYPE> copy = table;
-    for (UInt32 i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(copy.find(String(KEYS[i])) != Nil);
-        ASSERT_TRUE(copy[String(KEYS[i])] == i);
-    }
-    
-    // test copy operator
-    copy = table;
-    for (UInt32 i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(copy.find(String(KEYS[i])) != Nil);
-        ASSERT_TRUE(copy[String(KEYS[i])] == i);
-    }
-
-    // test erase
-    for (UInt32 i = 0; i < tableLength * 2; ++i) {
-        ASSERT_EQ(copy.erase(String(KEYS[i])), 1);
-    }
-    ASSERT_TRUE(copy.empty());
-
-    // test original table again
-    for (UInt32 i = 0; i < tableLength * 2; ++i) {
-        ASSERT_TRUE(table.find(String(KEYS[i])) != Nil);
-        ASSERT_TRUE(table[String(KEYS[i])] == i);
-    }
 }
 
-void testHashTable1() { testHashTable<int>();       }
+void testHashTable1() { testHashTable<Int>();       }
 void testHashTable2() { testHashTable<Integer>();   }
+
+void testHashTableIterator() {
+    const String KEYS = "abcdefghijklmnopqrstuvwxyz";
+    HashTable<String, UInt32> table;
+    
+    // insert two tableLength => force grow
+    for (UInt32 i = 0; i < KEYS.size(); ++i) {
+        INFO("+ %c - %u", KEYS[i], i);
+        table.insert(String(KEYS[i]), i);
+    }
+    ASSERT_EQ(table.size(), KEYS.size());
+    
+    // iterator
+    {
+        HashTable<String, UInt32>::iterator it = table.begin();
+        UInt32 i;
+        for (i = 0; it != table.end(); ++it, ++i) {
+            INFO("> %s - %u", it.key().c_str(), it.value());
+        }
+        ASSERT_EQ(i, KEYS.size());
+    }
+    
+    // const_iterator
+    {
+        HashTable<String, UInt32>::const_iterator it = table.cbegin();
+        UInt32 i;
+        for (i = 0; it != table.cend(); ++it, ++i) {
+            INFO("> %s - %u", it.key().c_str(), it.value());
+        }
+        ASSERT_EQ(i, table.size());
+        ASSERT_EQ(i, KEYS.size());
+    }
+}
 
 void testContent() {
     if (gCurrentDir == Nil) {
@@ -888,7 +924,7 @@ void testContent() {
 
 TEST_ENTRY(testAtomic);
 TEST_ENTRY(testSharedObject);
-TEST_ENTRY(testCallStack);
+//TEST_ENTRY(testCallStack);
 TEST_ENTRY(testAllocator);
 TEST_ENTRY(testString);
 TEST_ENTRY(testBits);
@@ -901,10 +937,12 @@ TEST_ENTRY(testQueue1);
 TEST_ENTRY(testQueue2);
 TEST_ENTRY(testList1);
 TEST_ENTRY(testList2);
+TEST_ENTRY(testListIterator);
 TEST_ENTRY(testVector1);
 TEST_ENTRY(testVector2);
 TEST_ENTRY(testHashTable1);
 TEST_ENTRY(testHashTable2);
+TEST_ENTRY(testHashTableIterator);
 
 int main(int argc, Char **argv) {
     testing::InitGoogleTest(&argc, argv);
@@ -916,5 +954,3 @@ int main(int argc, Char **argv) {
 
     return result;
 }
-
-

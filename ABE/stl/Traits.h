@@ -45,6 +45,7 @@ template <typename T> struct is_same<T, T>          { enum { value = True  }; };
 //////////////////////////////////////////////////////////////////////////////
 template <typename TYPE> struct is_pointer          { enum { value = False }; };
 template <typename TYPE> struct is_pointer<TYPE *>  { enum { value = True  }; };
+// FIXME: different type of pointer, const TYPE * ...
 
 template <typename TYPE> struct is_builtin          { enum { value = is_pointer<TYPE>::value }; };
 template <> struct is_builtin< void     >           { enum { value = True  }; };

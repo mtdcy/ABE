@@ -39,50 +39,52 @@
 #include <ABE/stl/Traits.h>
 #include <new>
 #include <string.h>     // memcpy & memmove
-#include <math.h>
 __BEGIN_NAMESPACE_ABE
 
 // TYPE()
-typedef void (*type_construct_t)(void *storage, UInt32);
+typedef void (*type_construct_t)(void * dest, UInt32);
 // ~TYPE()
-typedef void (*type_destruct_t)(void *storage, UInt32);
+typedef void (*type_destruct_t)(void * dest, UInt32);
 // TYPE(const TYPE&);
-typedef void (*type_copy_t)(void *storage, const void *, UInt32);
+typedef void (*type_copy_t)(void * dest, const void *, UInt32);
 // move TYPE
-typedef void (*type_move_t)(void *dest, void *src, UInt32);
+typedef void (*type_move_t)(void * dest, void * src, UInt32);
 // operator< or operator> or operator==
-typedef Bool (*type_compare_t)(const void* lhs, const void* rhs);
+typedef Bool (*type_compare_t)(const void * lhs, const void * rhs);
 
 //////////////////////////////////////////////////////////////////////////////
-// templates for type_helper
-template <typename TYPE> static ABE_INLINE void type_construct(void *storage, UInt32 n) {
+template <typename TYPE> static ABE_INLINE void type_construct(void * dest, UInt32 n) {
     if (is_trivial_ctor<TYPE>::value) {
         // NOTHING
     } else {
-        TYPE *p = static_cast<TYPE*>(storage);
+        TYPE * p = static_cast<TYPE *>(dest);
         while (n--) { ::new (p++) TYPE; }
     }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static ABE_INLINE void type_destruct(void *storage, UInt32 n) {
+template <typename TYPE> static ABE_INLINE void type_destruct(void * dest, UInt32 n) {
     if (is_trivial_dtor<TYPE>::value) {
         // NOTHING
     } else {
-        TYPE *p = static_cast<TYPE*>(storage);
+        TYPE * p = static_cast<TYPE *>(dest);
         while (n--) { p->~TYPE(); ++p; }
     }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static ABE_INLINE void type_copy_trivial(void * storage, const void * from, UInt32 n) {
-    memcpy(storage, from, n * sizeof(TYPE));
+template <typename TYPE> static ABE_INLINE void type_copy_trivial(void * dest, const void * src, UInt32 n) {
+    memcpy(dest, src, n * sizeof(TYPE));
 }
 
-template <typename TYPE> static ABE_INLINE void type_copy(void *storage, const void *_from, UInt32 n) {
-    TYPE *p = static_cast<TYPE*>(storage);
-    const TYPE *from = static_cast<const TYPE*>(_from);
-    while (n--) { ::new (p++) TYPE(*from++); }
+template <typename TYPE> static ABE_INLINE void type_copy(void * dest, const void * src, UInt32 n) {
+    if (is_trivial_copy<TYPE>::value) {
+        memcpy(dest, src, n * sizeof(TYPE));
+    } else {
+        TYPE * rhs = static_cast<TYPE *>(dest);
+        const TYPE * lhs = static_cast<const TYPE *>(src);
+        while (n--) { ::new (rhs++) TYPE(*lhs++); }
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -90,10 +92,13 @@ template <typename TYPE> static ABE_INLINE void type_move_trivial(void * dest, v
     memmove(dest, src, n * sizeof(TYPE));
 }
 
-template <typename TYPE> static ABE_INLINE void type_move(void * _dest, void * _src, UInt32 n) {
-    TYPE * dest = (TYPE *)_dest;
-    TYPE * src  = (TYPE *)_src;
-    if ((UInt32)abs(dest - src) > n) {
+template <typename TYPE> static ABE_INLINE void type_move(void * dest, void * src, UInt32 n) {
+    TYPE * lhs = (TYPE *)dest;
+    TYPE * rhs  = (TYPE *)src;
+#define _ABS(x)  ((x) > 0 ? (x) : (-(x)))
+    if (is_trivial_move<TYPE>::value) {
+        memmove(dest, src, n * sizeof(TYPE));
+    } else if (_ABS(lhs - rhs) > n) {
         // no overlap
         if (is_trivial_copy<TYPE>::value) 
             type_copy_trivial<TYPE>(dest, src, n);
@@ -101,96 +106,87 @@ template <typename TYPE> static ABE_INLINE void type_move(void * _dest, void * _
             type_copy<TYPE>(dest, src, n);
         type_destruct<TYPE>(src, n);
     } else {
-        if (dest > src) {
-            dest    += n;
-            src     += n;
+        if (lhs > rhs) {
+            lhs += n;
+            rhs += n;
             while (n--) {
-                dest    -= 1;
-                src     -= 1;
-                type_copy<TYPE>(dest, src, 1);
-                type_destruct<TYPE>(src, 1);
+                lhs -= 1;
+                rhs -= 1;
+                type_copy<TYPE>(lhs, rhs, 1);
+                type_destruct<TYPE>(rhs, 1);
             }
         } else {
             while (n--) {
-                type_copy<TYPE>(dest, src, 1);
-                type_destruct<TYPE>(src, 1);
-                dest    += 1;
-                src     += 1;
+                type_copy<TYPE>(lhs, rhs, 1);
+                type_destruct<TYPE>(rhs, 1);
+                lhs += 1;
+                rhs += 1;
             }
         }
     }
+#undef _ABS
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// for template wrapper => implementation
-struct TypeHelper : public StaticObject {
-    private:
-        UInt32              type_size;
-        type_construct_t    construct;
-        type_destruct_t     destruct;
-        type_copy_t         copy;
-        type_move_t         move;
-
-    public:
-        ABE_INLINE TypeHelper(UInt32 _size,
-                type_construct_t _ctor,
-                type_destruct_t _dtor,
-                type_copy_t _copy = Nil,
-                type_move_t _move = Nil) :
-            type_size(_size), construct(_ctor), destruct(_dtor), copy(_copy), move(_move) { }
-
-        ABE_INLINE UInt32 size() const                                         { return type_size;         }
-        ABE_INLINE void do_construct(void * storage, UInt32 n)                 { construct(storage, n);    }
-        ABE_INLINE void do_destruct(void * storage, UInt32 n)                  { destruct(storage, n);     }
-        ABE_INLINE void do_copy(void * storage, const void * from, UInt32 n)   { copy(storage, from, n);   }
-        ABE_INLINE void do_move(void * dest, void * src, UInt32 n)             { move(dest, src, n);       }
-};
-
-// using template partial specilization
-#define Helper(WHAT, TH0, TH1, TRIVIAL)                                         \
-    template <typename TYPE, Bool trivail = TRIVIAL<TYPE>::value>               \
-    struct WHAT##_helper_;                                         \
-    template <typename TYPE> struct WHAT##_helper_<TYPE, False> {               \
-        WHAT operator()(void) { return TH0<TYPE>; }                             \
-    };                                                                          \
-    template <typename TYPE> struct WHAT##_helper_<TYPE, True> {                \
-        WHAT operator()(void) { return TH1<TYPE>; }                             \
-    };                                                                          \
-    template <typename TYPE, Bool ENABLE> struct WHAT##_helper;    \
-    template <typename TYPE> struct WHAT##_helper<TYPE, True> {                 \
-        WHAT get(void) const { return WHAT##_helper_<TYPE>()(); }               \
-    };                                                                          \
-    template <typename TYPE> struct WHAT##_helper<TYPE, False> {                \
-        WHAT get(void) const { return Nil; }                                   \
-    };
-
-Helper(type_construct_t, type_construct, type_construct, is_trivial_ctor);
-Helper(type_destruct_t, type_destruct, type_destruct, is_trivial_dtor);
-Helper(type_copy_t, type_copy, type_copy_trivial, is_trivial_copy);
-Helper(type_move_t, type_move, type_move_trivial, is_trivial_move);
-
-template <typename TYPE, Bool CTOR, Bool COPY, Bool MOVE>
-static TypeHelper TypeHelperBuilder() {
-    return TypeHelper(sizeof(TYPE),
-            type_construct_t_helper<TYPE, CTOR>().get(),
-            type_destruct_t_helper<TYPE, True>().get(),
-            type_copy_t_helper<TYPE, COPY>().get(),
-            type_move_t_helper<TYPE, MOVE>().get());
-}
-#undef Helper
-
-//////////////////////////////////////////////////////////////////////////////
-template <typename TYPE> static ABE_INLINE Bool type_compare_less(const void* lhs, const void* rhs) {
+// operator<
+template <typename TYPE> static ABE_INLINE Bool type_compare_lt(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) < *static_cast<const TYPE*>(rhs);
 }
 
-template <typename TYPE> static ABE_INLINE Bool type_compare_more(const void* lhs, const void* rhs) {
+// operator>
+template <typename TYPE> static ABE_INLINE Bool type_compare_gt(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) > *static_cast<const TYPE*>(rhs);
 }
 
-template <typename TYPE> static ABE_INLINE Bool type_compare_equal(const void* lhs, const void* rhs) {
+// operator==
+template <typename TYPE> static ABE_INLINE Bool type_compare_eq(const void* lhs, const void* rhs) {
     return *static_cast<const TYPE*>(lhs) == *static_cast<const TYPE*>(rhs);
 }
+
+//////////////////////////////////////////////////////////////////////////////
+// implementation of hash of core types
+template <typename TYPE> static ABE_INLINE UInt32 hash(const TYPE& value) {
+    return value.hash();
+};
+
+#define HASH_BASIC_TYPES32(TYPE)                                                        \
+    template <> ABE_INLINE UInt32 hash(const TYPE& v) { return UInt32(v); }
+#define HASH_BASIC_TYPES64(TYPE)                                                        \
+    template <> ABE_INLINE UInt32 hash(const TYPE& v) { return UInt32((v >> 32) ^ v); }
+#define HASH_BASIC_TYPES(TYPE)                                                          \
+    template <> ABE_INLINE UInt32 hash(const TYPE& v) {                                 \
+        UInt32 x = 0;                                                                   \
+        const UInt8 *u8 = (const UInt8*)(&v);                                           \
+        for (UInt32 i = 0; i < sizeof(TYPE); ++i) x = x * 31 + u8[i];                   \
+        return x;                                                                       \
+    };
+
+HASH_BASIC_TYPES32  (Char);
+HASH_BASIC_TYPES32  (UInt8);
+HASH_BASIC_TYPES32  (Int8);
+HASH_BASIC_TYPES32  (UInt16);
+HASH_BASIC_TYPES32  (Int16);
+HASH_BASIC_TYPES32  (UInt32);
+HASH_BASIC_TYPES32  (Int32);
+HASH_BASIC_TYPES64  (UInt64);
+HASH_BASIC_TYPES64  (Int64);
+HASH_BASIC_TYPES    (Float32);
+HASH_BASIC_TYPES    (Float64);
+#undef HASH_BASIC_TYPES
+#undef HASH_BASIC_TYPES32
+#undef HASH_BASIC_TYPES64
+
+template <typename TYPE> ABE_INLINE UInt32 hash(TYPE * const& p) {
+    return hash<UInt64>(UInt64(p));
+};
+
+typedef UInt32 (*type_hash_t)(const void *);
+
+template <typename TYPE>
+static ABE_INLINE UInt32 type_hash(const void * k) {
+    return hash(*static_cast<const TYPE *>(k));
+}
+
 
 __END_NAMESPACE_ABE
 
