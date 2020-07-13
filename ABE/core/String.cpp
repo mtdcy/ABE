@@ -208,14 +208,14 @@ String& String::set(const String& s) {
 
 String& String::set(const Char * s) {
     UInt32 n = strlen(s);
-    CHECK_GT(n, 0);
+    CHECK_GE(n, 0);
     if (mData && mData->size() > n) {
         // no need to release buffer
     } else {
         if (mData) mData->ReleaseBuffer();
         mData = SharedBuffer::Create(kAllocatorDefault, n + 1);
     }
-    memcpy(mData->data(), s, n);
+    if (n) memcpy(mData->data(), s, n);
     *(mData->data() + n) = '\0';    // null-terminator
     mSize = n;
     return *this;
