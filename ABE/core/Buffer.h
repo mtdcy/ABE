@@ -150,7 +150,7 @@ class ABE_EXPORT ABuffer : public SharedObject {
         ABE_INLINE void     w64(UInt64 x) { mByteOrder == Big ? wb64(x) : wl64(x); }
 
     protected:
-        ABuffer() : mByteOrder(Little) {
+        ABuffer() : SharedObject(FOURCC('?buf')), mByteOrder(Little) {
             mReadReservoir.mLength = 0;
             mWriteReservoir.mLength = 0;
         }
@@ -192,8 +192,6 @@ class ABE_EXPORT Buffer : public ABuffer {
          */
         Buffer(const Char *, UInt32 n = 0, eBufferType type = Default,
                 const sp<Allocator>& allocator = kAllocatorDefault);
-
-        virtual ~Buffer();
     
         /**
          * get flags of this buffer
@@ -270,7 +268,7 @@ class ABE_EXPORT Buffer : public ABuffer {
         mutable UInt32      mReadPos;
         UInt32              mWritePos;
     
-        DISALLOW_EVILS(Buffer);
+        OBJECT_TAIL(Buffer);
 };
 
 __END_NAMESPACE_ABE

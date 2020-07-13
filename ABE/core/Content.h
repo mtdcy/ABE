@@ -116,8 +116,6 @@ class ABE_EXPORT Content : public ABuffer {
 
     protected:
         Content(const sp<Protocol>& proto, UInt32 blockLength);
-
-        ~Content();
     
     public:
         /**
@@ -161,7 +159,7 @@ class ABE_EXPORT Content : public ABuffer {
         Int64               mWritePosition;
         sp<Buffer>          mWriteBlock;
     
-        DISALLOW_EVILS(Content);
+        OBJECT_TAIL(Content);
 };
 
 __END_NAMESPACE_ABE

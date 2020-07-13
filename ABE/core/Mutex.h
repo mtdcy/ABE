@@ -70,8 +70,7 @@ class ABE_EXPORT Mutex : public StaticObject {
 
 class ABE_EXPORT AutoLock : public StaticObject {
     public:
-        ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock(); }
-        ABE_INLINE AutoLock(Mutex* lock) : mLock(*lock)   { mLock.lock(); }
+        ABE_INLINE AutoLock(Mutex& lock) : mLock(lock)    { mLock.lock();   }
         ABE_INLINE ~AutoLock()                            { mLock.unlock(); }
 
     private:

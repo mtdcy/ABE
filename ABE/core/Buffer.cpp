@@ -301,7 +301,9 @@ Buffer::Buffer(const Char *s, UInt32 n, eBufferType type, const sp<Allocator>& a
     mWritePos += n;
 }
 
-Buffer::~Buffer() {
+void Buffer::onFirstRetain() { }
+
+void Buffer::onLastRetain() {
     mData->ReleaseBuffer();
 }
 

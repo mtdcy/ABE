@@ -198,14 +198,15 @@ struct JobDelegate : public SharedObject {
         }
 
         // find next
+#if LOCKFREE_QUEUE
+        if (mTasks.size()) next = 0;
+        else
+#endif
         if (mTimedTasks.size()) {
             const Task& head = mTimedTasks.front();
             next = (head.mWhen - Time::Now()).nseconds();
             if (next < 0) next = 0; // fix underrun.
         }
-#if LOCKFREE_QUEUE
-        else if (mTasks.size()) next = 0;
-#endif
         else next = -1;
         DEBUG("%s: dispatch status %d, next %" PRId64,
               mName.c_str(), success, next);
@@ -244,7 +245,7 @@ struct JobDelegate : public SharedObject {
 #if LOCKFREE_QUEUE
         // using lockfree queue to speed up queue()
         // but this will cause remove() and exists() more complex
-        if (delay <= 0) {
+        if (after == 0) {
             UInt32 length = mTasks.push(task);
             mHacker.store(IMMEDIATE);
             if (length == 1) notify();

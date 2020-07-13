@@ -128,7 +128,11 @@ Content::Content(const sp<Protocol>& proto, UInt32 blockLength) :
     }
 }
 
-Content::~Content() {
+void Content::onFirstRetain() {
+    
+}
+
+void Content::onLastRetain() {
     if (!mWriteBlock.isNil()) writeBlockBack(True);
 }
 

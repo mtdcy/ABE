@@ -195,8 +195,8 @@ typedef UInt32          Status;
 // and it may cause problem if you don't declare it or misuse it.
 #define DISALLOW_EVILS(TypeName)            \
     private:                                \
-TypeName(const TypeName&);              \
-TypeName& operator=(const TypeName&)
+    TypeName(const TypeName&);              \
+    TypeName& operator=(const TypeName&)
 
 //=============================================================
 // sp Type
@@ -209,8 +209,8 @@ __BEGIN_NAMESPACE_ABE
  */
 #define STATIC_OBJECT(TypeName)             \
     private:                                \
-void *  operator new(size_t);           \
-void    operator delete(void *)
+    void *  operator new(size_t);           \
+    void    operator delete(void *)
 struct ABE_EXPORT StaticObject {
     StaticObject() { }
     ~StaticObject() { }
