@@ -32,8 +32,8 @@
 //          1. 20160701     initial version
 //
 
-#ifndef ABE_HEADERS_BITS_H
-#define ABE_HEADERS_BITS_H
+#ifndef ABE_STL_BITS_H
+#define ABE_STL_BITS_H
 
 #include <ABE/core/Types.h>
 
@@ -61,4 +61,4 @@ class ABE_EXPORT Bits : public StaticObject {
         T V;
 };
 __END_NAMESPACE_ABE
-#endif // ABE_HEADERS_BITS_H 
+#endif // ABE_STL_BITS_H 

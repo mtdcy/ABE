@@ -44,7 +44,6 @@
 #include <ABE/core/SharedBuffer.h>
 #include <ABE/core/String.h>
 #include <ABE/core/Mutex.h>
-#include <ABE/core/Bits.h>
 
 // object types [SharedObject] [c & c++]
 #include <ABE/core/Buffer.h>
@@ -58,6 +57,7 @@
 #include <ABE/stl/Vector.h>
 #include <ABE/stl/HashTable.h>
 #include <ABE/stl/Queue.h>
+#include <ABE/stl/Bits.h>
 
 // math [non-SharedObject]
 #include <ABE/math/Matrix.h>
