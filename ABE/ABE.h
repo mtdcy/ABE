@@ -89,6 +89,8 @@ ABE_EXPORT void                 AllocatorDeallocate(AllocatorRef, void *);
 
 typedef SharedObjectRef         SharedBufferRef;
 ABE_EXPORT SharedBufferRef      SharedBufferCreate(AllocatorRef allocator, UInt32);
+ABE_EXPORT SharedBufferRef      SharedBufferRetain(SharedBufferRef);
+ABE_EXPORT UInt32               SharedBufferGetRetainCount(const SharedBufferRef);
 ABE_EXPORT void                 SharedBufferRelease(SharedBufferRef);
 ABE_EXPORT Char *               SharedBufferGetDataPointer(SharedBufferRef);
 ABE_EXPORT const Char *         SharedBufferGetConstDataPointer(const SharedBufferRef);

@@ -73,6 +73,14 @@ SharedBufferRef SharedBufferCreate(AllocatorRef allocator, UInt32 sz) {
     return SharedBuffer::Create(static_cast<Allocator*>(allocator), sz);
 }
 
+SharedBufferRef SharedBufferRetain(SharedBufferRef ref) {
+    return static_cast<SharedBuffer *>(ref)->RetainBuffer();
+}
+
+UInt32 SharedBufferGetRetainCount(const SharedBufferRef ref) {
+    return static_cast<const SharedBuffer *>(ref)->GetRetainCount();
+}
+
 void SharedBufferRelease(SharedBufferRef ref) {
     static_cast<SharedBuffer *>(ref)->ReleaseBuffer(False);
 }

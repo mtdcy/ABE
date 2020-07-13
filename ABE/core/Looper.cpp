@@ -681,6 +681,10 @@ void Looper::dispatch(const sp<Job>& job, Time delayUs) {
     static_cast<JobDelegate *>(mPartner)->queue(job, delayUs);
 }
 
+Bool Looper::sync(const sp<Job>& job, Time deadline) {
+    return static_cast<JobDelegate *>(mPartner)->sync(job, deadline);
+}
+
 Bool Looper::remove(const sp<Job>& job) {
     return static_cast<JobDelegate *>(mPartner)->remove(job);
 }

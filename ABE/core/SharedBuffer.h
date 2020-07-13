@@ -101,10 +101,10 @@ struct ABE_EXPORT SharedBuffer {
         sp<Allocator>   mAllocator;
         Char *          mData;
         UInt32          mSize;
-        Atomic<UInt32>  mRefs;
+        mutable Atomic<UInt32> mRefs;
     
         // PLEASE USE Create() TO ALLOC A NEW SHARED BUFFER.
-        SharedBuffer() : mAllocator(Nil), mData(Nil), mSize(0) { }
+        SharedBuffer() : mAllocator(Nil), mData(Nil), mSize(0), mRefs(0) { }
         ~SharedBuffer();
         DISALLOW_EVILS(SharedBuffer);
 };
