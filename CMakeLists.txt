@@ -11,6 +11,15 @@ set (LIBNAME ${PROJECT_NAME}    CACHE STRING    "Library Name")
 include (libcxx.cmake)
 # build env check
 include (BuildEnvCheck.cmake)
+# version
+file (READ ${CMAKE_CURRENT_SOURCE_DIR}/ABE/core/Version.h version)
+string (REGEX MATCH "VERSION_MAJOR[ ]*\\(?([0-9]*)\\)?" _ ${version})
+set (VERSION_MAJOR  ${CMAKE_MATCH_1})
+string (REGEX MATCH "VERSION_MINOR[ ]*\\(?([0-9]*)\\)?" _ ${version})
+set (VERSION_MINOR ${CMAKE_MATCH_1})
+string (REGEX MATCH "VERSION_PATCH[ ]*\\(?([0-9]*)\\)?" _ ${version})
+set (VERSION_PATCH ${CMAKE_MATCH_1})
+message ("${PROJECT_NAME} VERSION: ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # source files
 set(ABE_SOURCES
@@ -78,8 +87,10 @@ if (XCODE)
 
     set_target_properties(${LIBNAME}_shared PROPERTIES
         FRAMEWORK TRUE
-        FRAMEWORK_VERSION A
-        PUBLIC_HEADER "ABE/ABE.h"   # need this to create Headers link in framework
+        FRAMEWORK_VERSION   A
+        VERSION             "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+        SOVERSION           "${VERSION_MAJOR}.${VERSION_MINOR}"
+        PUBLIC_HEADER       "ABE/ABE.h"   # need this to create Headers link in framework
         MACOSX_FRAMEWORK_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
         XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Mac Developer"
         )
@@ -88,7 +99,17 @@ if (XCODE)
         FRAMEWORK       DESTINATION     .
         PUBLIC_HEADER   DESTINATION     Headers
         )
+
+    # ugly install code
+    set (_DEST ${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.framework)
+    install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.BSD DESTINATION ${_DEST}/Resources)
+    install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/RELEASE DESTINATION ${_DEST}/Resources)
 else()
+    set_target_properties(${LIBNAME}_shared PROPERTIES
+        SOVERSION       "${VERSION_MAJOR}.${VERSION_MINOR}"
+        VERSION         "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+    )
+
     install (FILES  ABE/ABE.h   DESTINATION include/ABE)
     foreach (dir ${ABE_HEADERS}) 
         install (DIRECTORY ABE/${dir} 
