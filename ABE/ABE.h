@@ -62,9 +62,6 @@
 // math [non-SharedObject]
 #include <ABE/math/Matrix.h>
 
-// algo [StaticObject]
-#include <ABE/algo/CRC.h>
-
 #endif //  __cplusplus
 
 // c bindings

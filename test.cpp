@@ -928,36 +928,6 @@ void testContent() {
     ASSERT_EQ(pipe->capacity(), 1024*1024); // 1M
 }
 
-void testCRC() {
-    // https://crccalc.com/
-    // http://www.sunshine2k.de/coding/javascript/crc/crc_js.html
-    const UInt8 * data = (const UInt8 *)"1234567890abcdefgh";
-    
-    CRC crc8(kCRC8);
-    ASSERT_EQ(crc8.update(data, 18), 0x06);
-    
-    CRC crc8itu(kCRC8ITU);
-    ASSERT_EQ(crc8itu.update(data, 18), 0x53);
-    
-    CRC crc8ebu(kCRC8EBU);
-    ASSERT_EQ(crc8ebu.update(data, 18), 0x33);
-    
-    CRC crc16(kCRC16);
-    ASSERT_EQ(crc16.update(data, 18), 0x233B);
-    
-    CRC crc32(kCRC32);
-    ASSERT_EQ(crc32.update(data, 18), 0x83826287);
-    
-    CRC crc32bzip2(kCRC32BZIP2);
-    ASSERT_EQ(crc32bzip2.update(data, 18), 0x18F81443);
-    
-    CRC crc32mpeg2(kCRC32MPEG2);
-    ASSERT_EQ(crc32mpeg2.update(data, 18), 0xE707EBBC);
-    
-    CRC crc32posix(kCRC32POSIX);
-    ASSERT_EQ(crc32posix.update(data, 18), 0x55F4335A);
-}
-
 #define TEST_ENTRY(FUNC)                    \
     TEST_F(MyTest, FUNC) {                  \
         INFO("Begin Test MyTest."#FUNC);    \
@@ -989,7 +959,6 @@ TEST_ENTRY(testVector2);
 TEST_ENTRY(testHashTable1);
 TEST_ENTRY(testHashTable2);
 TEST_ENTRY(testHashTableIterator);
-TEST_ENTRY(testCRC);
 
 int main(int argc, Char **argv) {
     testing::InitGoogleTest(&argc, argv);
