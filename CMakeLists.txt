@@ -44,6 +44,9 @@ set(ABE_SOURCES
     ABE/stl/HashTable.cpp
     ABE/stl/Queue.cpp
 
+    # algo
+    ABE/algo/CRC.cpp
+
     ABE/ABE.cpp
     )
 
@@ -147,6 +150,9 @@ target_link_libraries(perf ${LIBNAME}_static)
 set_target_properties(perf PROPERTIES
     EXCLUDE_FROM_ALL TRUE
     EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+
+add_executable(crc EXCLUDE_FROM_ALL crc_main.cpp)
+target_link_libraries(crc ${LIBNAME}_static)
 
 add_custom_target(${LIBNAME}_test ALL
     DEPENDS test test_c 

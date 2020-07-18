@@ -458,10 +458,18 @@ String String::substring(UInt32 pos, UInt32 n) const {
 }
 
 Int32 String::toInt32() const {
+    if (strncasecmp(mData->data(), "0x", 2) == 0) {
+        // hex value: 0xhhhhhhh
+        return strtol(mData->data() + 2, Nil, 16);
+    }
     return strtol(mData->data(), Nil, 10);
 }
 
 Int64 String::toInt64() const {
+    if (strncasecmp(mData->data(), "0x", 2) == 0) {
+        // hex value: 0xhhhhhhh
+        return strtoll(mData->data() + 2, Nil, 16);
+    }
     return strtoll(mData->data(), Nil, 10);
 }
 
