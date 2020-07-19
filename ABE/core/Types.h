@@ -151,12 +151,14 @@ typedef UInt32          Status;
 #else
 #define ABE_EXPORT                      __declspec(dllimport)
 #endif
-#define ABE_DEPRECATED                  __declspec(deprecated)
+#define ABE_DEPRECATED                  __declspec(deprecated("deprecated"))
+#define ABE_EXPERIMENTAL                __declspec(deprecated("experimental"))
 #else
 //#define __ABE_INLINE                    __attribute__ ((__always_inline__))
 #define ABE_INLINE                      __attribute__ ((__visibility__("hidden"), __always_inline__)) inline
 #define ABE_EXPORT                      __attribute__ ((__visibility__("default")))
-#define ABE_DEPRECATED                  __attribute__ ((deprecated))
+#define ABE_DEPRECATED                  __attribute__ ((deprecated("deprecated")))
+#define ABE_EXPERIMENTAL                __attribute__ ((deprecated("experimental")))
 #endif
 
 #if defined(_MSC_VER)
