@@ -161,6 +161,8 @@ typedef UInt32          Status;
 #define ABE_EXPERIMENTAL                __attribute__ ((deprecated("experimental")))
 #endif
 
+#define ABE_EXPORT_C                    extern "C" ABE_EXPORT
+
 #if defined(_MSC_VER)
 #define ABE_LIKELY(x)                   (x)
 #define ABE_UNLIKELY(x)                 !(x)
