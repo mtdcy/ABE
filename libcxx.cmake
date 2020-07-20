@@ -34,14 +34,9 @@ endif()
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_definitions(-D_ISOC99_SOURCE)
 add_definitions(-D_FORTIFY_SOURCE=2)    # https://access.redhat.com/blogs/766093/posts/1976213
-if (DEBUG_MALLOC)
-    add_definitions(-DDEBUG_MALLOC)
-endif()
 
 if (APPLE)
     set (CMAKE_MACOSX_RPATH TRUE)
-elseif(WIN32)
-    add_definitions(-DBUILD_ABE_DLL)
 endif()
 
 if (XCODE)
@@ -50,4 +45,45 @@ if (XCODE)
     set (CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
     set (CMAKE_OSX_DEPLOYMENT_TARGET 10.10)
 endif()
+
+function (add_libcxx_library ...)
+    if (XCODE)
+        add_library (${ARGV0}_shared SHARED ${ARGN})
+        add_library (${ARGV0}_static STATIC ${ARGN})
+    else()
+        # using OBJECT library to avoid build twice for shared & static libraries
+        add_library (${ARGV0}_objects OBJECT ${ARGN})
+        add_library (${ARGV0}_shared SHARED $<TARGET_OBJECTS:${ARGV0}_objects>)
+        add_library (${ARGV0}_static STATIC $<TARGET_OBJECTS:${ARGV0}_objects>)
+    endif()
+
+    # no stdc++
+    if (APPLE)
+        target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lSystem)
+    else()
+        target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lc -ldl -lpthread)
+    endif()
+
+    # default properties
+    set_target_properties (${ARGV0}_shared ${ARGV0}_static PROPERTIES OUTPUT_NAME ${ARGV0})
+
+    if (XCODE)
+        set_target_properties (${ARGV0}_shared PROPERTIES
+            FRAMEWORK TRUE
+            FRAMEWORK_VERSION   A
+            MACOSX_FRAMEWORK_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Mac Developer"
+            )
+    endif()
+endfunction()
+
+function (add_libcxx_executable ...) 
+    add_executable (${ARGV})
+    if (APPLE)
+        target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lSystem)
+    else()
+        target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lc -ldl -lpthread)
+    endif()
+endfunction()
+
 

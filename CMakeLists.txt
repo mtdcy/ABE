@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.14)
 
 # malloc.cpp is ready only in APPLE
 option (DEBUG_MALLOC    "DEBUG MALLOC"  OFF)
@@ -11,6 +11,9 @@ set (LIBNAME ${PROJECT_NAME}    CACHE STRING    "Library Name")
 include (libcxx.cmake)
 # build env check
 include (BuildEnvCheck.cmake)
+
+add_definitions(-DBUILD_ABE_DLL)
+
 # version
 file (READ ${CMAKE_CURRENT_SOURCE_DIR}/ABE/core/Version.h version)
 string (REGEX MATCH "VERSION_MAJOR[ ]*\\(?([0-9]*)\\)?" _ ${version})
@@ -23,7 +26,7 @@ message ("${PROJECT_NAME} VERSION: ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_P
 
 # source files
 set(ABE_SOURCES
-    ABE/core/debug/malloc.cpp
+    ABE/core/Malloc.cpp
     ABE/core/CallStack.cpp
     ABE/core/Log.cpp
     ABE/core/System.cpp
@@ -52,26 +55,7 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})     # Config.h
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/ABE)
 
-if (XCODE)
-    add_library (${LIBNAME}_shared SHARED ${ABE_SOURCES})
-    add_library (${LIBNAME}_static STATIC ${ABE_SOURCES})
-else()
-    # using OBJECT library to avoid build twice for shared & static libraries
-    add_library (${LIBNAME}_objects OBJECT ${ABE_SOURCES})
-    add_library (${LIBNAME}_shared SHARED $<TARGET_OBJECTS:${LIBNAME}_objects>)
-    add_library (${LIBNAME}_static STATIC $<TARGET_OBJECTS:${LIBNAME}_objects>)
-endif()
-
-set_target_properties (${LIBNAME}_shared PROPERTIES 
-    OUTPUT_NAME ${LIBNAME})
-set_target_properties (${LIBNAME}_static PROPERTIES 
-    OUTPUT_NAME ${LIBNAME})
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    # dlopen & pthread
-    target_link_libraries(${LIBNAME}_shared -ldl -lpthread)
-    target_link_libraries(${LIBNAME}_static -ldl -lpthread)
-endif()
+add_libcxx_library (${LIBNAME} ${ABE_SOURCES})
 
 #------------------------------------------------------------------------------#
 # install 
@@ -86,13 +70,9 @@ if (XCODE)
     endforeach()
 
     set_target_properties(${LIBNAME}_shared PROPERTIES
-        FRAMEWORK TRUE
-        FRAMEWORK_VERSION   A
         VERSION             "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
         SOVERSION           "${VERSION_MAJOR}.${VERSION_MINOR}"
         PUBLIC_HEADER       "ABE/ABE.h"   # need this to create Headers link in framework
-        MACOSX_FRAMEWORK_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
-        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Mac Developer"
         )
 
     install (TARGETS ${LIBNAME}_shared
@@ -126,27 +106,26 @@ else()
 endif()
 
 #------------------------------------------------------------------------------#
-# test 
+# tools
 remove_definitions(-Werror=non-virtual-dtor)
-
-add_subdirectory(gtest-1.7.0 EXCLUDE_FROM_ALL)
-include_directories(BEFORE ${gtest_SOURCE_DIR}/include)
 
 add_executable (object EXCLUDE_FROM_ALL object.cpp)
 target_link_libraries(object ${LIBNAME}_shared)
 
-add_executable (test test.cpp)
-target_link_libraries(test ${LIBNAME}_static)
-target_link_libraries(test gtest gtest_main)
-
-add_executable(test_c test_c.c)
-target_link_libraries(test_c ${LIBNAME}_static)
-
-add_executable(perf perf.cpp)
+add_executable(perf EXCLUDE_FROM_ALL perf.cpp)
 target_link_libraries(perf ${LIBNAME}_static)
-set_target_properties(perf PROPERTIES
-    EXCLUDE_FROM_ALL TRUE
-    EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+
+#------------------------------------------------------------------------------#
+# test 
+add_subdirectory(gtest-1.7.0 EXCLUDE_FROM_ALL)
+include_directories(BEFORE ${gtest_SOURCE_DIR}/include)
+
+add_executable (test EXCLUDE_FROM_ALL test.cpp)
+target_link_libraries (test ${LIBNAME}_static)
+target_link_libraries (test gtest gtest_main)
+
+add_libcxx_executable (test_c EXCLUDE_FROM_ALL test_c.c)
+target_link_libraries (test_c ${LIBNAME}_static)
 
 add_custom_target(${LIBNAME}_test ALL
     DEPENDS test test_c 
@@ -155,11 +134,4 @@ add_custom_target(${LIBNAME}_test ALL
     COMMAND ${BASH} test ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND echo test_c
     COMMAND ${BASH} test_c
-    )
-
-add_custom_target(${LIBNAME}_perf_test EXCLUDE_FROM_ALL
-    DEPENDS perf
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND echo perf
-    COMMAND ${BASH} perf
     )
