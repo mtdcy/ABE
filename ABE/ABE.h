@@ -50,6 +50,7 @@
 #include <ABE/core/Message.h>
 #include <ABE/core/Content.h>
 #include <ABE/core/Looper.h>
+#include <ABE/core/Process.h>
 
 // containers [non-SharedObject]
 #include <ABE/stl/TypeHelper.h>

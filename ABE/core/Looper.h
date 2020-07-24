@@ -37,6 +37,7 @@
 
 #include <ABE/core/Types.h>
 #include <ABE/core/String.h>
+#include <ABE/core/System.h>
 
 #include <pthread.h>
 

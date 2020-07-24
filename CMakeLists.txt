@@ -41,6 +41,7 @@ set(ABE_SOURCES
     ABE/core/Content.cpp
     ABE/core/Thread.cpp
     ABE/core/Looper.cpp
+    ABE/core/Process.cpp
 
     ABE/stl/List.cpp
     ABE/stl/Vector.cpp
@@ -109,11 +110,14 @@ endif()
 # tools
 remove_definitions(-Werror=non-virtual-dtor)
 
-add_executable (object EXCLUDE_FROM_ALL object.cpp)
+add_libcxx_executable (object EXCLUDE_FROM_ALL object.cpp)
 target_link_libraries(object ${LIBNAME}_shared)
 
 add_executable(perf EXCLUDE_FROM_ALL perf.cpp)
 target_link_libraries(perf ${LIBNAME}_static)
+
+add_executable (process EXCLUDE_FROM_ALL process_main.cpp)
+target_link_libraries (process ${LIBNAME}_static)
 
 #------------------------------------------------------------------------------#
 # test 
