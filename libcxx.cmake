@@ -58,11 +58,11 @@ function (add_libcxx_library ...)
     endif()
 
     # no stdc++
-    if (APPLE)
-        target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lSystem)
-    else()
-        target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lc -ldl -lpthread)
-    endif()
+    #if (APPLE)
+    #    target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lSystem)
+    #else()
+    #    target_link_options (${ARGV0}_shared PRIVATE -nodefaultlibs -lc -ldl -lpthread)
+    #endif()
 
     # default properties
     set_target_properties (${ARGV0}_shared ${ARGV0}_static PROPERTIES OUTPUT_NAME ${ARGV0})
@@ -79,11 +79,11 @@ endfunction()
 
 function (add_libcxx_executable ...) 
     add_executable (${ARGV})
-    if (APPLE)
-        target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lSystem)
-    else()
-        target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lc -ldl -lpthread)
-    endif()
+    #if (APPLE)
+    #    target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lSystem)
+    #else()
+    #    target_link_options (${ARGV0} PUBLIC -nodefaultlibs -lc -ldl -lpthread)
+    #endif()
 endfunction()
 
 

@@ -31,14 +31,16 @@
 
 __BEGIN_NAMESPACE_ABE
 
+#if 0
 // function static variable initialize guard.
-ABE_EXPORT_C void ___cxa_guard_acquire(void *) {
+ABE_EXPORT_C Int __cxa_guard_acquire(void *) {
     // TODO
 }
 
-ABE_EXPORT_C void ___cxa_guard_release(void *) {
+ABE_EXPORT_C void __cxa_guard_release(void *) {
     // TODO
 }
+#endif
 
 //** c bindings **//
 ABE_EXPORT_C SharedObjectRef SharedObjectRetain(SharedObjectRef ref) {
