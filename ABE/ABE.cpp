@@ -31,6 +31,15 @@
 
 __BEGIN_NAMESPACE_ABE
 
+// function static variable initialize guard.
+ABE_EXPORT_C void ___cxa_guard_acquire(void *) {
+    // TODO
+}
+
+ABE_EXPORT_C void ___cxa_guard_release(void *) {
+    // TODO
+}
+
 //** c bindings **//
 ABE_EXPORT_C SharedObjectRef SharedObjectRetain(SharedObjectRef ref) {
     return static_cast<SharedObject *>(ref)->RetainObject();

@@ -36,16 +36,13 @@
 #include <ABE/ABE.h>
 
 #include <gtest/gtest.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-
-#include <unistd.h>
 
 USING_NAMESPACE_ABE
 
 static const Char * gCurrentDir = Nil;
+
+// static initializer test
+static sp<Looper> sTester = new Looper("tester");
 
 struct MyTest : public ::testing::Test {
     MyTest () {

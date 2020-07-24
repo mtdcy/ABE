@@ -40,8 +40,14 @@
 __BEGIN_NAMESPACE_ABE
 
 struct ABE_EXPORT Allocator : public SharedObject {
+    /**
+     * create a system default allocator
+     */
+    static sp<Allocator> Default();
+    static sp<Allocator> Create(UInt32 alignment);
+    
     ABE_INLINE Allocator() : SharedObject(FOURCC('?mal')) { }
-    ABE_INLINE virtual ~Allocator() { }
+    
     /**
      * allocate n bytes memory
      * @return return Nil on OOM otherwise it must be success
@@ -60,8 +66,9 @@ struct ABE_EXPORT Allocator : public SharedObject {
     virtual void    deallocate(void * p) = 0;
 };
 
-ABE_EXPORT extern sp<Allocator> kAllocatorDefault;
-ABE_EXPORT sp<Allocator> GetAllocator(UInt32 alignment);
+// for api compatible
+#define kAllocatorDefault   Allocator::Default()
+#define GetAllocator(n)     Allocator::Create(n)
 
 __END_NAMESPACE_ABE
 

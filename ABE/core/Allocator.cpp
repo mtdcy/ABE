@@ -85,7 +85,14 @@ struct AllocatorDefault : public Allocator {
         free(ptr);
     }
 };
-sp<Allocator> kAllocatorDefault = new AllocatorDefault;
+
+sp<Allocator> Allocator::Default() {
+    // global static variable MUST initialize in order,
+    // to avoid return Nil allocator, the global system default
+    // allocator MUST be defined as function static.
+    static sp<Allocator> sAllocator = new AllocatorDefault;
+    return sAllocator;
+}
 
 struct AllocatorDefaultAligned : public Allocator {
     const UInt32 mAlignment;
@@ -121,7 +128,7 @@ struct AllocatorDefaultAligned : public Allocator {
     }
 };
 
-sp<Allocator> GetAllocator(UInt32 alignment) {
+sp<Allocator> Allocator::Create(UInt32 alignment) {
     return new AllocatorDefaultAligned(alignment);
 }
 
