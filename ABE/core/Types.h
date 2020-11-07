@@ -56,6 +56,7 @@
 
 #pragma mark Headers
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>         // va_list
 #include <inttypes.h>       // for PRId32/PRId64/...
 #include <stddef.h>         // size_t, need by some internal apis
@@ -85,11 +86,11 @@ typedef float           Float32;
 typedef double          Float64;;
 typedef char            Char;
 // alias types
-typedef Int             Bool;
+typedef bool            Bool;
 typedef UInt32          Status;
 // type values
-#define True            1
-#define False           0
+#define True            true
+#define False           false
 #define Nil             0
 #define OK              0   // For Status with no error
 
